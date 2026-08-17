@@ -1,0 +1,202 @@
+require("dotenv").config();
+
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+const { db } = require("../database/database");
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    throw new Error(
+        "JWT_SECRET is not defined in environment variables."
+    );
+}
+
+const JWT_EXPIRES_IN =
+    process.env.JWT_EXPIRES_IN || "1d";
+
+
+// =====================================================
+// REGISTER
+// =====================================================
+
+function registerUser(name, email, password) {
+
+    return new Promise((resolve, reject) => {
+
+        const checkSql = `
+            SELECT id
+            FROM users
+            WHERE email = ?
+        `;
+
+        db.get(checkSql, [email], async function (err, user) {
+
+            if (err) {
+                return reject(err);
+            }
+
+            if (user) {
+                return reject(
+                    new Error("EMAIL_ALREADY_EXISTS")
+                );
+            }
+
+            try {
+
+                const hashedPassword =
+                    await bcrypt.hash(password, 10);
+
+                const insertSql = `
+                    INSERT INTO users
+                    (name, email, passwordHash)
+                    VALUES (?, ?, ?)
+                `;
+
+                db.run(
+                    insertSql,
+                    [
+                        name,
+                        email,
+                        hashedPassword
+                    ],
+                    function (err) {
+
+                        if (err) {
+                            return reject(err);
+                        }
+
+                        resolve({
+                            id: this.lastID,
+                            name,
+                            email
+                        });
+
+                    }
+                );
+
+            } catch (error) {
+
+                reject(error);
+
+            }
+
+        });
+
+    });
+
+}
+
+
+// =====================================================
+// LOGIN
+// =====================================================
+
+function loginUser(email, password) {
+
+    return new Promise((resolve, reject) => {
+
+        const sql = `
+            SELECT *
+            FROM users
+            WHERE email = ?
+        `;
+
+        db.get(sql, [email], async function (err, user) {
+
+            if (err) {
+                return reject(err);
+            }
+
+            if (!user) {
+                return reject(
+                    new Error("INVALID_CREDENTIALS")
+                );
+            }
+
+            try {
+
+                const passwordMatch =
+                    await bcrypt.compare(
+                        password,
+                        user.passwordHash
+                    );
+
+                if (!passwordMatch) {
+                    return reject(
+                        new Error("INVALID_CREDENTIALS")
+                    );
+                }
+
+                const token = jwt.sign(
+                    {
+                        id: user.id,
+                        email: user.email
+                    },
+                    JWT_SECRET,
+                    {
+                        expiresIn: JWT_EXPIRES_IN
+                    }
+                );
+
+                resolve({
+
+                    token,
+
+                    user: {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email
+                    }
+
+                });
+
+            } catch (error) {
+
+                reject(error);
+
+            }
+
+        });
+
+    });
+
+}
+
+
+// =====================================================
+// FIND USER BY ID
+// =====================================================
+
+function findUserById(userId) {
+
+    return new Promise((resolve, reject) => {
+
+        const sql = `
+            SELECT id, name, email, createdAt
+            FROM users
+            WHERE id = ?
+        `;
+
+        db.get(sql, [userId], function (err, user) {
+
+            if (err) {
+                return reject(err);
+            }
+
+            resolve(user || null);
+
+        });
+
+    });
+
+}
+
+
+module.exports = {
+    registerUser,
+    loginUser,
+    findUserById,
+    JWT_SECRET
+};

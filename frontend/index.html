@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Academi Buddy</title>
+
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- =========================
+     LOGIN / REGISTER SCREEN
+========================= -->
+
+<div id="auth-screen" class="auth-screen">
+
+    <div class="auth-box">
+
+        <img src="logo.png"
+             alt="Academi Buddy"
+             class="auth-logo">
+
+        <h1>Academi Buddy</h1>
+
+        <p class="auth-tagline">
+            Sign in to track your courses, exams and study time.
+        </p>
+
+        <div class="auth-tabs">
+
+            <button type="button"
+                    id="showLoginTab"
+                    class="auth-tab active">
+                Log In
+            </button>
+
+            <button type="button"
+                    id="showRegisterTab"
+                    class="auth-tab">
+                Register
+            </button>
+
+        </div>
+
+
+        <!-- LOGIN FORM -->
+
+        <form id="loginForm"
+              class="auth-form">
+
+            <label for="loginEmail">
+                Email
+            </label>
+
+            <input
+                type="email"
+                id="loginEmail"
+                placeholder="you@example.com"
+                autocomplete="username"
+                required
+            >
+
+            <label for="loginPassword">
+                Password
+            </label>
+
+            <input
+                type="password"
+                id="loginPassword"
+                placeholder="••••••••"
+                autocomplete="current-password"
+                required
+            >
+
+            <div id="loginError"
+                 class="auth-error">
+            </div>
+
+            <button type="submit"
+                    id="loginSubmitBtn">
+                Log In
+            </button>
+
+        </form>
+
+
+        <!-- REGISTER FORM -->
+
+        <form id="registerForm"
+              class="auth-form"
+              style="display:none">
+
+            <label for="registerName">
+                Full name
+            </label>
+
+            <input
+                type="text"
+                id="registerName"
+                placeholder="Jane Doe"
+                autocomplete="name"
+                required
+            >
+
+            <label for="registerEmail">
+                Email
+            </label>
+
+            <input
+                type="email"
+                id="registerEmail"
+                placeholder="you@example.com"
+                autocomplete="username"
+                required
+            >
+
+            <label for="registerPassword">
+                Password
+            </label>
+
+            <input
+                type="password"
+                id="registerPassword"
+                placeholder="At least 6 characters"
+                autocomplete="new-password"
+                required
+            >
+
+            <div id="registerError"
+                 class="auth-error">
+            </div>
+
+            <button type="submit"
+                    id="registerSubmitBtn">
+                Create Account
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     MAIN APPLICATION
+========================= -->
+
+<div class="layout"
+     id="mainLayout"
+     style="display:none">
+
+    <aside class="sidebar">
+
+        <!-- SIDEBAR LOGO -->
+
+        <img src="logo.png"
+             alt="Academi Buddy"
+             class="sidebar-logo">
+
+
+        <!-- APPLICATION NAME -->
+
+        <h2>Academi Buddy</h2>
+
+
+        <!-- LOGGED-IN USER -->
+
+        <div id="sidebarUser"
+             class="sidebar-user">
+        </div>
+
+
+        <!-- NAVIGATION -->
+
+        <button id="dashboardBtn">
+            Dashboard
+        </button>
+
+        <button id="coursesBtn">
+            Grades
+        </button>
+
+        <button id="examsBtn">
+            Deadlines
+        </button>
+
+        <button id="studyBtn">
+            Study Sessions
+        </button>
+
+
+        <!-- LOGOUT -->
+
+        <button id="logoutBtn"
+                class="logout-btn">
+            Log Out
+        </button>
+
+    </aside>
+
+
+    <!-- =========================
+         MAIN CONTENT AREA
+    ========================= -->
+
+    <section class="main-area">
+
+        <div id="sticky-header"
+             class="sticky-header">
+        </div>
+
+        <main id="app"></main>
+
+    </section>
+
+</div>
+
+
+<!-- =========================
+     JAVASCRIPT
+========================= -->
+
+<script src="auth.js?v=1"></script>
+<script src="app.js?v=106"></script>
+
+</body>
+</html>
