@@ -25,64 +25,126 @@ function registerUser(name, email, password) {
 
     return new Promise((resolve, reject) => {
 
+        // Email'i standart hale getiriyoruz.
+        // Örnek:
+        // " Test@Gmail.com " -> "test@gmail.com"
+
+        const normalizedEmail =
+            String(email)
+                .trim()
+                .toLowerCase();
+
+        const normalizedName =
+            String(name).trim();
+
+
         const checkSql = `
             SELECT id
             FROM users
-            WHERE email = ?
+            WHERE LOWER(TRIM(email)) = ?
+            LIMIT 1
         `;
 
-        db.get(checkSql, [email], async function (err, user) {
 
-            if (err) {
-                return reject(err);
-            }
+        db.get(
+            checkSql,
+            [normalizedEmail],
+            async function (err, user) {
 
-            if (user) {
-                return reject(
-                    new Error("EMAIL_ALREADY_EXISTS")
-                );
-            }
+                if (err) {
+                    return reject(err);
+                }
 
-            try {
 
-                const hashedPassword =
-                    await bcrypt.hash(password, 10);
+                // =================================================
+                // EMAIL ZATEN KAYITLI
+                // =================================================
 
-                const insertSql = `
-                    INSERT INTO users
-                    (name, email, passwordHash)
-                    VALUES (?, ?, ?)
-                `;
+                if (user) {
 
-                db.run(
-                    insertSql,
-                    [
-                        name,
-                        email,
-                        hashedPassword
-                    ],
-                    function (err) {
+                    return reject(
+                        new Error("EMAIL_ALREADY_EXISTS")
+                    );
 
-                        if (err) {
-                            return reject(err);
+                }
+
+
+                try {
+
+                    // =================================================
+                    // PASSWORD HASH
+                    // =================================================
+
+                    const hashedPassword =
+                        await bcrypt.hash(password, 10);
+
+
+                    // =================================================
+                    // CREATE USER
+                    // =================================================
+
+                    const insertSql = `
+                        INSERT INTO users
+                        (name, email, passwordHash)
+                        VALUES (?, ?, ?)
+                    `;
+
+
+                    db.run(
+                        insertSql,
+                        [
+                            normalizedName,
+                            normalizedEmail,
+                            hashedPassword
+                        ],
+                        function (err) {
+
+                            if (err) {
+
+                                // Veritabanında UNIQUE kısıtı
+                                // varsa eşzamanlı kayıt denemelerinde
+                                // de ikinci hesabın oluşmasını engeller.
+
+                                if (
+                                    err.code === "SQLITE_CONSTRAINT" ||
+                                    err.code === "SQLITE_CONSTRAINT_UNIQUE"
+                                ) {
+
+                                    return reject(
+                                        new Error(
+                                            "EMAIL_ALREADY_EXISTS"
+                                        )
+                                    );
+
+                                }
+
+                                return reject(err);
+
+                            }
+
+
+                            resolve({
+
+                                id: this.lastID,
+
+                                name: normalizedName,
+
+                                email: normalizedEmail
+
+                            });
+
                         }
+                    );
 
-                        resolve({
-                            id: this.lastID,
-                            name,
-                            email
-                        });
 
-                    }
-                );
+                } catch (error) {
 
-            } catch (error) {
+                    reject(error);
 
-                reject(error);
+                }
 
             }
-
-        });
+        );
 
     });
 
@@ -97,68 +159,102 @@ function loginUser(email, password) {
 
     return new Promise((resolve, reject) => {
 
+        // Login sırasında da email'i normalize ediyoruz.
+
+        const normalizedEmail =
+            String(email)
+                .trim()
+                .toLowerCase();
+
+
         const sql = `
             SELECT *
             FROM users
-            WHERE email = ?
+            WHERE LOWER(TRIM(email)) = ?
+            LIMIT 1
         `;
 
-        db.get(sql, [email], async function (err, user) {
 
-            if (err) {
-                return reject(err);
-            }
+        db.get(
+            sql,
+            [normalizedEmail],
+            async function (err, user) {
 
-            if (!user) {
-                return reject(
-                    new Error("INVALID_CREDENTIALS")
-                );
-            }
+                if (err) {
+                    return reject(err);
+                }
 
-            try {
 
-                const passwordMatch =
-                    await bcrypt.compare(
-                        password,
-                        user.passwordHash
-                    );
+                if (!user) {
 
-                if (!passwordMatch) {
                     return reject(
                         new Error("INVALID_CREDENTIALS")
                     );
+
                 }
 
-                const token = jwt.sign(
-                    {
-                        id: user.id,
-                        email: user.email
-                    },
-                    JWT_SECRET,
-                    {
-                        expiresIn: JWT_EXPIRES_IN
-                    }
-                );
 
-                resolve({
+                try {
 
-                    token,
+                    const passwordMatch =
+                        await bcrypt.compare(
+                            password,
+                            user.passwordHash
+                        );
 
-                    user: {
-                        id: user.id,
-                        name: user.name,
-                        email: user.email
+
+                    if (!passwordMatch) {
+
+                        return reject(
+                            new Error("INVALID_CREDENTIALS")
+                        );
+
                     }
 
-                });
 
-            } catch (error) {
+                    // =================================================
+                    // JWT
+                    // =================================================
 
-                reject(error);
+                    const token =
+                        jwt.sign(
+                            {
+                                id: user.id,
+                                email: user.email
+                            },
+                            JWT_SECRET,
+                            {
+                                expiresIn:
+                                    JWT_EXPIRES_IN
+                            }
+                        );
+
+
+                    resolve({
+
+                        token,
+
+                        user: {
+
+                            id: user.id,
+
+                            name: user.name,
+
+                            email: user.email
+
+                        }
+
+                    });
+
+
+                } catch (error) {
+
+                    reject(error);
+
+                }
 
             }
-
-        });
+        );
 
     });
 
@@ -179,24 +275,38 @@ function findUserById(userId) {
             WHERE id = ?
         `;
 
-        db.get(sql, [userId], function (err, user) {
 
-            if (err) {
-                return reject(err);
+        db.get(
+            sql,
+            [userId],
+            function (err, user) {
+
+                if (err) {
+                    return reject(err);
+                }
+
+                resolve(user || null);
+
             }
-
-            resolve(user || null);
-
-        });
+        );
 
     });
 
 }
 
 
+// =====================================================
+// EXPORTS
+// =====================================================
+
 module.exports = {
+
     registerUser,
+
     loginUser,
+
     findUserById,
+
     JWT_SECRET
+
 };

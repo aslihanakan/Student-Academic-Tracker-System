@@ -1,229 +1,1024 @@
-/* ─── AUTH: token storage, login/register UI, and API auth headers ──────────*/
+/* ─── AUTH: token storage, login/register UI, and API auth headers ────────── */
 
 const AUTH_TOKEN_KEY = "atsToken";
 const AUTH_USER_KEY = "atsUser";
+
+
+/* ─── API URL ──────────────────────────────────────────────────────────────── */
+
+/*
+ * Eğer uygulama Express tarafından servis ediliyorsa:
+ *
+ *     http://localhost:5000
+ *
+ * API istekleri:
+ *
+ *     http://localhost:5000/api/...
+ *
+ * Eğer Render'da çalışıyorsa aynı domain kullanılır.
+ *
+ * Local geliştirmede VS Code Live Server (127.0.0.1:3000)
+ * kullanıldığında backend'in 5000 portunda çalıştığını varsayıyoruz.
+ */
+
+function getApiBaseUrl() {
+
+    const hostname = window.location.hostname;
+
+    /*
+     * VS Code Live Server / local frontend
+     */
+    if (
+        hostname === "127.0.0.1" ||
+        hostname === "localhost"
+    ) {
+
+        /*
+         * Eğer sayfa 3000 portundan açıldıysa
+         * backend 5000 portunda çalışıyor.
+         */
+        if (window.location.port === "3000") {
+            return "http://localhost:5000";
+        }
+
+        /*
+         * Sayfa zaten Express tarafından 5000
+         * üzerinden servis ediliyorsa.
+         */
+        if (window.location.port === "5000") {
+            return "";
+        }
+    }
+
+
+    /*
+     * Render / production.
+     *
+     * Frontend ve backend aynı Render servisi
+     * üzerinden servis ediliyorsa relative URL kullanılır.
+     */
+    return "";
+}
+
+
+const API_BASE_URL = getApiBaseUrl();
+
+
+function apiUrl(path) {
+    return API_BASE_URL + path;
+}
+
+
+/* ─── TOKEN STORAGE ────────────────────────────────────────────────────────── */
 
 function getToken() {
     return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
+
 function getStoredUser() {
+
     try {
-        return JSON.parse(localStorage.getItem(AUTH_USER_KEY));
+
+        return JSON.parse(
+            localStorage.getItem(AUTH_USER_KEY)
+        );
+
     } catch (err) {
+
         return null;
+
     }
 }
+
 
 function setSession(token, user) {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+
+    /*
+     * Token gerçekten geldiyse kaydet.
+     */
+    if (token) {
+        localStorage.setItem(
+            AUTH_TOKEN_KEY,
+            token
+        );
+    }
+
+
+    /*
+     * User gerçekten geldiyse kaydet.
+     */
+    if (user) {
+        localStorage.setItem(
+            AUTH_USER_KEY,
+            JSON.stringify(user)
+        );
+    }
 }
+
 
 function clearSession() {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(AUTH_USER_KEY);
+
+    localStorage.removeItem(
+        AUTH_TOKEN_KEY
+    );
+
+    localStorage.removeItem(
+        AUTH_USER_KEY
+    );
 }
 
-/* Every call the app makes to fetch("/api/...") automatically gets the
-   logged-in user's token attached, and a 401 response automatically
-   sends the user back to the login screen. This avoids having to edit
-   every single fetch() call scattered across app.js. */
-const originalFetch = window.fetch.bind(window);
+
+/* ─── AUTHORIZED FETCH ─────────────────────────────────────────────────────── */
+
+/*
+ * Uygulamanın diğer API çağrılarına JWT token ekler.
+ */
+
+const originalFetch =
+    window.fetch.bind(window);
+
 
 window.fetch = function (input, init) {
-    init = init ? Object.assign({}, init) : {};
 
-    const url = typeof input === "string" ? input : (input && input.url) || "";
-    const isApiCall = url.startsWith("/api/") || url.startsWith(API_URL_PREFIX_PLACEHOLDER());
-    const isAuthCall = url.startsWith("/api/auth/");
+    init = init
+        ? Object.assign({}, init)
+        : {};
 
-    const token = getToken();
-    if (token && isApiCall && !isAuthCall) {
-        const headers = new Headers(init.headers || (typeof input !== "string" ? input.headers : undefined));
-        headers.set("Authorization", "Bearer " + token);
+
+    const url =
+        typeof input === "string"
+            ? input
+            : (input && input.url) || "";
+
+
+    const isApiCall =
+        url.includes("/api/");
+
+
+    const isAuthCall =
+        url.includes("/api/auth/");
+
+
+    const token =
+        getToken();
+
+
+    if (
+        token &&
+        isApiCall &&
+        !isAuthCall
+    ) {
+
+        const headers =
+            new Headers(
+                init.headers ||
+                (
+                    typeof input !== "string"
+                        ? input.headers
+                        : undefined
+                )
+            );
+
+
+        headers.set(
+            "Authorization",
+            "Bearer " + token
+        );
+
+
         init.headers = headers;
+
     }
 
-    return originalFetch(input, init).then(function (response) {
-        if (response.status === 401 && isApiCall && !isAuthCall) {
+
+    return originalFetch(
+        input,
+        init
+    ).then(function (response) {
+
+        /*
+         * API'den 401 gelirse oturumu temizle.
+         */
+
+        if (
+            response.status === 401 &&
+            isApiCall &&
+            !isAuthCall
+        ) {
+
             clearSession();
+
             showAuthScreen();
+
         }
+
+
         return response;
+
     });
+
 };
 
-// Kept as a function so it evaluates after API_URL (declared in app.js) exists.
-function API_URL_PREFIX_PLACEHOLDER() {
-    return typeof API_URL !== "undefined" ? API_URL : "/api";
-}
 
-/* ─── SCREEN SWITCHING ───────────────────────────────────────────────────────*/
+/* ─── SCREEN SWITCHING ─────────────────────────────────────────────────────── */
 
 function showAuthScreen() {
-    document.getElementById("auth-screen").style.display = "flex";
-    document.getElementById("mainLayout").style.display = "none";
+
+    const authScreen =
+        document.getElementById(
+            "auth-screen"
+        );
+
+
+    const mainLayout =
+        document.getElementById(
+            "mainLayout"
+        );
+
+
+    if (authScreen) {
+        authScreen.style.display = "flex";
+    }
+
+
+    if (mainLayout) {
+        mainLayout.style.display = "none";
+    }
+
 }
+
 
 function showMainApp(user) {
-    document.getElementById("auth-screen").style.display = "none";
-    document.getElementById("mainLayout").style.display = "flex";
 
-    const sidebarUser = document.getElementById("sidebarUser");
-    if (sidebarUser && user) {
-        sidebarUser.textContent = user.name || user.email || "";
+    const authScreen =
+        document.getElementById(
+            "auth-screen"
+        );
+
+
+    const mainLayout =
+        document.getElementById(
+            "mainLayout"
+        );
+
+
+    if (authScreen) {
+        authScreen.style.display = "none";
     }
 
-    if (typeof window.onAuthenticated === "function") {
+
+    if (mainLayout) {
+        mainLayout.style.display = "flex";
+    }
+
+
+    const sidebarUser =
+        document.getElementById(
+            "sidebarUser"
+        );
+
+
+    if (
+        sidebarUser &&
+        user
+    ) {
+
+        sidebarUser.textContent =
+            user.name ||
+            user.email ||
+            "";
+
+    }
+
+
+    if (
+        typeof window.onAuthenticated ===
+        "function"
+    ) {
+
         window.onAuthenticated();
+
     }
+
 }
 
-/* ─── TAB SWITCHING ──────────────────────────────────────────────────────────*/
 
-function setAuthError(elementId, message) {
-    const el = document.getElementById(elementId);
-    if (el) el.textContent = message || "";
+/* ─── ERROR HANDLING ───────────────────────────────────────────────────────── */
+
+function setAuthError(
+    elementId,
+    message
+) {
+
+    const el =
+        document.getElementById(
+            elementId
+        );
+
+
+    if (el) {
+
+        el.textContent =
+            message || "";
+
+    }
+
 }
 
-document.getElementById("showLoginTab").addEventListener("click", function () {
-    document.getElementById("showLoginTab").classList.add("active");
-    document.getElementById("showRegisterTab").classList.remove("active");
-    document.getElementById("loginForm").style.display = "flex";
-    document.getElementById("registerForm").style.display = "none";
-    setAuthError("loginError", "");
-    setAuthError("registerError", "");
-});
 
-document.getElementById("showRegisterTab").addEventListener("click", function () {
-    document.getElementById("showRegisterTab").classList.add("active");
-    document.getElementById("showLoginTab").classList.remove("active");
-    document.getElementById("registerForm").style.display = "flex";
-    document.getElementById("loginForm").style.display = "none";
-    setAuthError("loginError", "");
-    setAuthError("registerError", "");
-});
+/*
+ * Backend'den JSON gelmezse uygulamanın
+ * patlamasını önler.
+ */
 
-/* ─── LOGIN ──────────────────────────────────────────────────────────────────*/
-
-document.getElementById("loginForm").addEventListener("submit", async function (event) {
-    event.preventDefault();
-    setAuthError("loginError", "");
-
-    const email = document.getElementById("loginEmail").value.trim();
-    const password = document.getElementById("loginPassword").value;
-    const submitBtn = document.getElementById("loginSubmitBtn");
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Logging in...";
+async function readResponseData(response) {
 
     try {
-        const response = await originalFetch("/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
-        });
 
-        const data = await response.json();
+        return await response.json();
 
-        if (!response.ok) {
-            setAuthError("loginError", data.message || "Login failed.");
-            return;
-        }
-
-        setSession(data.token, data.user);
-        showMainApp(data.user);
-        event.target.reset();
     } catch (err) {
-        console.error("Login error:", err);
-        setAuthError("loginError", "Could not reach the server. Please try again.");
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Log In";
-    }
-});
 
-/* ─── REGISTER ───────────────────────────────────────────────────────────────*/
+        return {};
 
-document.getElementById("registerForm").addEventListener("submit", async function (event) {
-    event.preventDefault();
-    setAuthError("registerError", "");
-
-    const name = document.getElementById("registerName").value.trim();
-    const email = document.getElementById("registerEmail").value.trim();
-    const password = document.getElementById("registerPassword").value;
-    const submitBtn = document.getElementById("registerSubmitBtn");
-
-    if (password.length < 6) {
-        setAuthError("registerError", "Password must be at least 6 characters long.");
-        return;
     }
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Creating account...";
+}
 
-    try {
-        const response = await originalFetch("/api/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, password })
-        });
 
-        const data = await response.json();
+/* ─── TAB SWITCHING ────────────────────────────────────────────────────────── */
 
-        if (!response.ok) {
-            setAuthError("registerError", data.message || "Registration failed.");
-            return;
+document
+    .getElementById("showLoginTab")
+    .addEventListener(
+        "click",
+        function () {
+
+            document
+                .getElementById(
+                    "showLoginTab"
+                )
+                .classList
+                .add("active");
+
+
+            document
+                .getElementById(
+                    "showRegisterTab"
+                )
+                .classList
+                .remove("active");
+
+
+            document
+                .getElementById(
+                    "loginForm"
+                )
+                .style.display = "flex";
+
+
+            document
+                .getElementById(
+                    "registerForm"
+                )
+                .style.display = "none";
+
+
+            setAuthError(
+                "loginError",
+                ""
+            );
+
+
+            setAuthError(
+                "registerError",
+                ""
+            );
+
         }
+    );
 
-        setSession(data.token, data.user);
-        showMainApp(data.user);
-        event.target.reset();
-    } catch (err) {
-        console.error("Register error:", err);
-        setAuthError("registerError", "Could not reach the server. Please try again.");
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Create Account";
-    }
-});
 
-/* ─── LOGOUT ─────────────────────────────────────────────────────────────────*/
+document
+    .getElementById("showRegisterTab")
+    .addEventListener(
+        "click",
+        function () {
 
-document.getElementById("logoutBtn").addEventListener("click", function () {
-    clearSession();
-    showAuthScreen();
-});
+            document
+                .getElementById(
+                    "showRegisterTab"
+                )
+                .classList
+                .add("active");
 
-/* ─── SESSION CHECK ON LOAD ──────────────────────────────────────────────────*/
+
+            document
+                .getElementById(
+                    "showLoginTab"
+                )
+                .classList
+                .remove("active");
+
+
+            document
+                .getElementById(
+                    "registerForm"
+                )
+                .style.display = "flex";
+
+
+            document
+                .getElementById(
+                    "loginForm"
+                )
+                .style.display = "none";
+
+
+            setAuthError(
+                "loginError",
+                ""
+            );
+
+
+            setAuthError(
+                "registerError",
+                ""
+            );
+
+        }
+    );
+
+
+/* ─── LOGIN ────────────────────────────────────────────────────────────────── */
+
+document
+    .getElementById("loginForm")
+    .addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            setAuthError(
+                "loginError",
+                ""
+            );
+
+
+            /*
+             * Email'i standartlaştır.
+             */
+
+            const email =
+                document
+                    .getElementById(
+                        "loginEmail"
+                    )
+                    .value
+                    .trim()
+                    .toLowerCase();
+
+
+            const password =
+                document
+                    .getElementById(
+                        "loginPassword"
+                    )
+                    .value;
+
+
+            const submitBtn =
+                document.getElementById(
+                    "loginSubmitBtn"
+                );
+
+
+            if (!email) {
+
+                setAuthError(
+                    "loginError",
+                    "Please enter your email address."
+                );
+
+                return;
+
+            }
+
+
+            if (!password) {
+
+                setAuthError(
+                    "loginError",
+                    "Please enter your password."
+                );
+
+                return;
+
+            }
+
+
+            submitBtn.disabled = true;
+
+            submitBtn.textContent =
+                "Logging in...";
+
+
+            try {
+
+                const response =
+                    await originalFetch(
+                        apiUrl(
+                            "/api/auth/login"
+                        ),
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                email,
+                                password
+                            })
+                        }
+                    );
+
+
+                const data =
+                    await readResponseData(
+                        response
+                    );
+
+
+                /*
+                 * Backend hata döndürdüyse
+                 * gerçek hata mesajını göster.
+                 */
+
+                if (!response.ok) {
+
+                    if (
+                        response.status === 401
+                    ) {
+
+                        setAuthError(
+                            "loginError",
+                            "Invalid email or password."
+                        );
+
+                    } else if (
+                        response.status === 400
+                    ) {
+
+                        setAuthError(
+                            "loginError",
+                            data.message ||
+                            "Please check your information."
+                        );
+
+                    } else {
+
+                        setAuthError(
+                            "loginError",
+                            data.message ||
+                            "An error occurred. Please try again."
+                        );
+
+                    }
+
+                    return;
+
+                }
+
+
+                /*
+                 * Başarılı login'de token
+                 * ve user gelmeli.
+                 */
+
+                if (
+                    !data.token ||
+                    !data.user
+                ) {
+
+                    console.error(
+                        "Invalid login response:",
+                        data
+                    );
+
+
+                    setAuthError(
+                        "loginError",
+                        "Login response was invalid. Please try again."
+                    );
+
+                    return;
+
+                }
+
+
+                setSession(
+                    data.token,
+                    data.user
+                );
+
+
+                showMainApp(
+                    data.user
+                );
+
+
+                event.target.reset();
+
+
+            } catch (err) {
+
+                console.error(
+                    "Login error:",
+                    err
+                );
+
+
+                /*
+                 * Bu mesaj artık sadece gerçekten
+                 * network / server bağlantısı
+                 * başarısız olduğunda gösterilir.
+                 */
+
+                setAuthError(
+                    "loginError",
+                    "Could not reach the server. Please try again."
+                );
+
+
+            } finally {
+
+                submitBtn.disabled = false;
+
+                submitBtn.textContent =
+                    "Log In";
+
+            }
+
+        }
+    );
+
+
+/* ─── REGISTER ─────────────────────────────────────────────────────────────── */
+
+document
+    .getElementById("registerForm")
+    .addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            setAuthError(
+                "registerError",
+                ""
+            );
+
+
+            const name =
+                document
+                    .getElementById(
+                        "registerName"
+                    )
+                    .value
+                    .trim();
+
+
+            const email =
+                document
+                    .getElementById(
+                        "registerEmail"
+                    )
+                    .value
+                    .trim()
+                    .toLowerCase();
+
+
+            const password =
+                document
+                    .getElementById(
+                        "registerPassword"
+                    )
+                    .value;
+
+
+            const submitBtn =
+                document.getElementById(
+                    "registerSubmitBtn"
+                );
+
+
+            if (!name) {
+
+                setAuthError(
+                    "registerError",
+                    "Please enter your full name."
+                );
+
+                return;
+
+            }
+
+
+            if (!email) {
+
+                setAuthError(
+                    "registerError",
+                    "Please enter your email address."
+                );
+
+                return;
+
+            }
+
+
+            if (password.length < 6) {
+
+                setAuthError(
+                    "registerError",
+                    "Password must be at least 6 characters long."
+                );
+
+                return;
+
+            }
+
+
+            submitBtn.disabled = true;
+
+            submitBtn.textContent =
+                "Creating account...";
+
+
+            try {
+
+                const response =
+                    await originalFetch(
+                        apiUrl(
+                            "/api/auth/register"
+                        ),
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                name,
+                                email,
+                                password
+                            })
+                        }
+                    );
+
+
+                const data =
+                    await readResponseData(
+                        response
+                    );
+
+
+                /*
+                 * Email zaten kayıtlıysa
+                 * backend'in mesajını göster.
+                 */
+
+                if (!response.ok) {
+
+                    if (
+                        data.message ===
+                        "This email is already registered."
+                    ) {
+
+                        setAuthError(
+                            "registerError",
+                            "This email is already registered."
+                        );
+
+                    } else {
+
+                        setAuthError(
+                            "registerError",
+                            data.message ||
+                            "Registration failed. Please try again."
+                        );
+
+                    }
+
+                    return;
+
+                }
+
+
+                /*
+                 * ÖNEMLİ:
+                 *
+                 * Mevcut backend register endpoint'in
+                 * sadece user bilgisi döndürüyor olabilir.
+                 *
+                 * Bu durumda token yoksa otomatik login
+                 * yapmıyoruz.
+                 */
+
+                if (
+                    data.token &&
+                    data.user
+                ) {
+
+                    setSession(
+                        data.token,
+                        data.user
+                    );
+
+
+                    showMainApp(
+                        data.user
+                    );
+
+
+                    event.target.reset();
+
+                    return;
+
+                }
+
+
+                /*
+                 * Register başarılı fakat backend
+                 * token döndürmüyorsa login ekranına
+                 * geçiyoruz.
+                 */
+
+                event.target.reset();
+
+
+                setAuthError(
+                    "registerError",
+                    "Account created successfully. Please log in."
+                );
+
+
+                /*
+                 * Login sekmesine geç.
+                 */
+
+                document
+                    .getElementById(
+                        "showLoginTab"
+                    )
+                    .click();
+
+
+                /*
+                 * Kullanıcının emailini login
+                 * ekranına aktar.
+                 */
+
+                document
+                    .getElementById(
+                        "loginEmail"
+                    )
+                    .value = email;
+
+
+            } catch (err) {
+
+                console.error(
+                    "Register error:",
+                    err
+                );
+
+
+                setAuthError(
+                    "registerError",
+                    "Could not reach the server. Please try again."
+                );
+
+
+            } finally {
+
+                submitBtn.disabled = false;
+
+                submitBtn.textContent =
+                    "Create Account";
+
+            }
+
+        }
+    );
+
+
+/* ─── LOGOUT ───────────────────────────────────────────────────────────────── */
+
+document
+    .getElementById("logoutBtn")
+    .addEventListener(
+        "click",
+        function () {
+
+            clearSession();
+
+            showAuthScreen();
+
+        }
+    );
+
+
+/* ─── SESSION CHECK ON LOAD ────────────────────────────────────────────────── */
 
 async function initAuth() {
-    const token = getToken();
+
+    const token =
+        getToken();
+
 
     if (!token) {
+
         showAuthScreen();
+
         return;
+
     }
+
 
     try {
-        const response = await originalFetch("/api/auth/me", {
-            headers: { "Authorization": "Bearer " + token }
-        });
+
+        const response =
+            await originalFetch(
+                apiUrl(
+                    "/api/auth/me"
+                ),
+                {
+                    headers: {
+                        "Authorization":
+                            "Bearer " + token
+                    }
+                }
+            );
+
 
         if (!response.ok) {
+
             clearSession();
+
             showAuthScreen();
+
             return;
+
         }
 
-        const user = await response.json();
-        setSession(token, user);
-        showMainApp(user);
+
+        const user =
+            await response.json();
+
+
+        setSession(
+            token,
+            user
+        );
+
+
+        showMainApp(
+            user
+        );
+
+
     } catch (err) {
-        console.error("Session check failed:", err);
+
+        console.error(
+            "Session check failed:",
+            err
+        );
+
+
+        /*
+         * Server geçici olarak ulaşılmazsa
+         * mevcut oturumu hemen silmiyoruz.
+         */
+
         showAuthScreen();
+
     }
+
 }
 
-document.addEventListener("DOMContentLoaded", initAuth);
+
+/* ─── START AUTH ───────────────────────────────────────────────────────────── */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    initAuth
+);

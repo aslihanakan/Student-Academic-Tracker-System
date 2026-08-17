@@ -82,13 +82,57 @@ function initializeDatabase() {
         db.run(`
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+
                 name TEXT NOT NULL,
+
                 email TEXT NOT NULL UNIQUE,
+
                 passwordHash TEXT NOT NULL,
+
                 createdAt TEXT NOT NULL
                     DEFAULT (datetime('now'))
             )
         `);
+
+
+        // ─────────────────────────────────────────
+        // UNIQUE EMAIL INDEX
+        // ─────────────────────────────────────────
+        // Prevents duplicate emails regardless of
+        // uppercase/lowercase differences or
+        // accidental spaces.
+        //
+        // Examples treated as the same:
+        //
+        // test@gmail.com
+        // TEST@GMAIL.COM
+        // Test@gmail.com
+        //  test@gmail.com
+        //
+        // ─────────────────────────────────────────
+
+        db.run(`
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_users_email_lower
+            ON users (LOWER(TRIM(email)))
+        `, function (err) {
+
+            if (err) {
+
+                console.error(
+                    "Email unique index error:",
+                    err.message
+                );
+
+            } else {
+
+                console.log(
+                    "Unique email index is ready."
+                );
+
+            }
+
+        });
 
 
         // ─────────────────────────────────────────
@@ -106,7 +150,10 @@ function initializeDatabase() {
                 instructorName TEXT NOT NULL,
 
                 credit INTEGER NOT NULL
-                    CHECK (credit >= 1 AND credit <= 10),
+                    CHECK (
+                        credit >= 1
+                        AND credit <= 10
+                    ),
 
                 midtermGrade INTEGER
                     CHECK (
@@ -176,8 +223,10 @@ function initializeDatabase() {
                         err.message
                     );
                 }
+
             }
         );
+
 
         ensureColumn(
             "courses",
@@ -191,8 +240,10 @@ function initializeDatabase() {
                         err.message
                     );
                 }
+
             }
         );
+
 
         ensureColumn(
             "courses",
@@ -206,8 +257,10 @@ function initializeDatabase() {
                         err.message
                     );
                 }
+
             }
         );
+
 
         ensureColumn(
             "courses",
@@ -221,6 +274,7 @@ function initializeDatabase() {
                         err.message
                     );
                 }
+
             }
         );
 
@@ -237,6 +291,7 @@ function initializeDatabase() {
             "todos"
         ];
 
+
         tablesNeedingUserId.forEach(
             function (table) {
 
@@ -247,13 +302,17 @@ function initializeDatabase() {
                     function (err) {
 
                         if (err) {
+
                             console.error(
                                 `Migration error while adding userId to ${table}:`,
                                 err.message
                             );
+
                         }
+
                     }
                 );
+
             }
         );
 
