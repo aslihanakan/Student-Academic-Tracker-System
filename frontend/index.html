@@ -1,232 +1,907 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>Academi Buddy</title>
 
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png">
+    <link rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="favicon-32.png">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="favicon-16.png">
+
+    <link rel="apple-touch-icon"
+          sizes="180x180"
+          href="favicon-180.png">
+
+    <link rel="stylesheet"
+          href="style.css">
+
 </head>
+
 
 <body>
 
-<!-- =========================
-     LOGIN / REGISTER SCREEN
-========================= -->
 
-<div id="auth-screen" class="auth-screen">
+<!-- =========================================================
+     AUTH / LANDING SCREEN
+========================================================= -->
 
-    <div class="auth-box">
-
-        <img src="logo.png"
-             alt="Academi Buddy"
-             class="auth-logo">
-
-        <h1>Academi Buddy</h1>
-
-        <p class="auth-tagline">
-            Sign in to track your courses, exams and study time.
-        </p>
-
-        <div class="auth-tabs">
-
-            <button type="button"
-                    id="showLoginTab"
-                    class="auth-tab active">
-                Log In
-            </button>
-
-            <button type="button"
-                    id="showRegisterTab"
-                    class="auth-tab">
-                Register
-            </button>
-
-        </div>
+<div id="auth-screen"
+     class="auth-screen">
 
 
-        <!-- LOGIN FORM -->
+    <!-- =====================================================
+         BACKGROUND VIDEO
+    ====================================================== -->
 
-        <form id="loginForm"
-              class="auth-form">
+    <video
+        id="authBackgroundVideo"
+        class="auth-background-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto">
 
-            <label for="loginEmail">
-                Email
-            </label>
+        <source
+            src="videos/login-background.mp4"
+            type="video/mp4">
 
-            <input
-                type="email"
-                id="loginEmail"
-                placeholder="you@example.com"
-                autocomplete="username"
-                required
-            >
+        Your browser does not support background video.
 
-            <label for="loginPassword">
-                Password
-            </label>
+    </video>
 
-            <input
-                type="password"
-                id="loginPassword"
-                placeholder="••••••••"
-                autocomplete="current-password"
-                required
-            >
 
-            <div id="loginError"
-                 class="auth-error">
+    <!-- =====================================================
+         VIDEO DARK OVERLAY
+    ====================================================== -->
+
+    <div class="auth-video-overlay"></div>
+
+
+    <!-- =====================================================
+         LANDING PAGE
+    ====================================================== -->
+
+    <div id="landingScreen"
+         class="landing-screen">
+
+
+        <!-- =================================================
+             LEFT SIDE
+        ================================================== -->
+
+        <section class="landing-content">
+
+
+            <!-- LOGO -->
+
+            <img
+                src="logo.png"
+                alt="Academi Buddy"
+                class="landing-logo">
+
+
+            <!-- BRAND -->
+
+            <div class="landing-brand">
+                Academi Buddy
             </div>
 
-            <button type="submit"
-                    id="loginSubmitBtn">
-                Log In
-            </button>
 
-        </form>
+            <!-- MAIN TITLE -->
+
+            <h1>
+
+                Manage your
+                <span>academic life in one place.</span>
+
+            </h1>
 
 
-        <!-- REGISTER FORM -->
+            <!-- DESCRIPTION -->
 
-        <form id="registerForm"
-              class="auth-form"
-              style="display:none">
+            <p class="landing-description">
 
-            <label for="registerName">
-                Full name
-            </label>
+                Keep track of your courses, exams, grades
+                and study sessions with ease.
+                Make your academic life more organized,
+                productive and stress-free.
 
-            <input
-                type="text"
-                id="registerName"
-                placeholder="Jane Doe"
-                autocomplete="name"
-                required
-            >
+            </p>
 
-            <label for="registerEmail">
-                Email
-            </label>
 
-            <input
-                type="email"
-                id="registerEmail"
-                placeholder="you@example.com"
-                autocomplete="username"
-                required
-            >
+            <!-- FEATURES -->
 
-            <label for="registerPassword">
-                Password
-            </label>
+            <div class="landing-features">
 
-            <input
-                type="password"
-                id="registerPassword"
-                placeholder="At least 6 characters"
-                autocomplete="new-password"
-                required
-            >
 
-            <div id="registerError"
-                 class="auth-error">
+                <!-- FEATURE 1 -->
+
+                <div class="landing-feature">
+
+                    <div class="feature-icon">
+                        📚
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Course & Grade Tracking
+                        </strong>
+
+                        <span>
+                            Keep all your courses and grades
+                            organized in one place.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FEATURE 2 -->
+
+                <div class="landing-feature">
+
+                    <div class="feature-icon">
+                        📝
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Exam Tracking
+                        </strong>
+
+                        <span>
+                            Keep track of upcoming exams
+                            and important deadlines.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FEATURE 3 -->
+
+                <div class="landing-feature">
+
+                    <div class="feature-icon">
+                        🎯
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Grade Calculator
+                        </strong>
+
+                        <span>
+                            Calculate your required final
+                            grade and course results.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FEATURE 4 -->
+
+                <div class="landing-feature">
+
+                    <div class="feature-icon">
+                        ⏱️
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Study Tracking
+                        </strong>
+
+                        <span>
+                            Record your study sessions
+                            and monitor your progress.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
             </div>
 
-            <button type="submit"
-                    id="registerSubmitBtn">
-                Create Account
-            </button>
 
-        </form>
+            <!-- FOOTER -->
+
+            <div class="landing-footer">
+
+                <span>
+                    ✦
+                </span>
+
+                Make your academic journey easier.
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             RIGHT SIDE
+        ================================================== -->
+
+        <section class="landing-auth">
+
+
+            <!-- =================================================
+                 WELCOME CARD
+            ================================================== -->
+
+            <div id="welcomeCard"
+                 class="welcome-card">
+
+
+                <!-- LOGO -->
+
+                <div class="welcome-logo-wrapper">
+
+                    <img
+                        src="logo.png"
+                        alt="Academi Buddy"
+                        class="welcome-logo">
+
+                </div>
+
+
+                <!-- TITLE -->
+
+                <h2>
+
+                    Welcome to
+
+                    <span>
+                        Academi Buddy
+                    </span>
+
+                </h2>
+
+
+                <!-- DESCRIPTION -->
+
+                <p>
+
+                    Your personal academic companion for
+                    managing courses, grades, exams and
+                    study time.
+
+                </p>
+
+
+                <!-- BUTTONS -->
+
+                <div class="welcome-buttons">
+
+
+                    <button
+                        type="button"
+                        class="welcome-login-button"
+                        onclick="showLoginScreen()">
+
+                        Log In
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="welcome-register-button"
+                        onclick="showRegisterScreen()">
+
+                        Create Account
+
+                    </button>
+
+
+                </div>
+
+
+                <!-- SMALL TEXT -->
+
+                <div class="welcome-note">
+
+                    <span>
+                        ✦
+                    </span>
+
+                    Start organizing your academic life today.
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+                 LOGIN / REGISTER CARD
+            ================================================== -->
+
+            <div id="auth-box"
+                 class="auth-box"
+                 style="display:none;">
+
+
+                <!-- LOGO -->
+
+                <img
+                    src="logo.png"
+                    alt="Academi Buddy"
+                    class="auth-logo">
+
+
+                <!-- TITLE -->
+
+                <h1>
+                    Academi Buddy
+                </h1>
+
+
+                <p class="auth-tagline">
+
+                    Sign in to track your courses,
+                    exams and study time.
+
+                </p>
+
+
+                <!-- TABS -->
+
+                <div class="auth-tabs">
+
+
+                    <button
+                        type="button"
+                        id="showLoginTab"
+                        class="auth-tab active">
+
+                        Log In
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="showRegisterTab"
+                        class="auth-tab">
+
+                        Register
+
+                    </button>
+
+
+                </div>
+
+
+
+                <!-- =================================================
+                     LOGIN FORM
+                ================================================== -->
+
+                <form
+                    id="loginForm"
+                    class="auth-form">
+
+
+                    <label for="loginEmail">
+                        Email
+                    </label>
+
+
+                    <input
+                        type="email"
+                        id="loginEmail"
+                        placeholder="you@example.com"
+                        autocomplete="username"
+                        required
+                    >
+
+
+                    <label for="loginPassword">
+                        Password
+                    </label>
+
+
+                    <input
+                        type="password"
+                        id="loginPassword"
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                        required
+                    >
+
+
+                    <div
+                        id="loginError"
+                        class="auth-error">
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        id="loginSubmitBtn">
+
+                        Log In
+
+                    </button>
+
+
+                </form>
+
+
+
+                <!-- =================================================
+                     REGISTER FORM
+                ================================================== -->
+
+                <form
+                    id="registerForm"
+                    class="auth-form"
+                    style="display:none;">
+
+
+                    <label for="registerName">
+                        Full Name
+                    </label>
+
+
+                    <input
+                        type="text"
+                        id="registerName"
+                        placeholder="Jane Doe"
+                        autocomplete="name"
+                        required
+                    >
+
+
+                    <label for="registerEmail">
+                        Email
+                    </label>
+
+
+                    <input
+                        type="email"
+                        id="registerEmail"
+                        placeholder="you@example.com"
+                        autocomplete="username"
+                        required
+                    >
+
+
+                    <label for="registerPassword">
+                        Password
+                    </label>
+
+
+                    <input
+                        type="password"
+                        id="registerPassword"
+                        placeholder="At least 6 characters"
+                        autocomplete="new-password"
+                        required
+                    >
+
+
+                    <div
+                        id="registerError"
+                        class="auth-error">
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        id="registerSubmitBtn">
+
+                        Create Account
+
+                    </button>
+
+
+                </form>
+
+
+                <!-- BACK -->
+
+                <button
+                    type="button"
+                    class="auth-back-button"
+                    onclick="showLandingScreen()">
+
+                    ← Back
+
+                </button>
+
+
+            </div>
+
+
+        </section>
+
 
     </div>
+
 
 </div>
 
 
-<!-- =========================
-     MAIN APPLICATION
-========================= -->
 
-<div class="layout"
-     id="mainLayout"
-     style="display:none">
+<!-- =========================================================
+     MAIN APPLICATION
+========================================================= -->
+
+<div
+    class="layout"
+    id="mainLayout"
+    style="display:none;">
+
+
+    <!-- SIDEBAR -->
 
     <aside class="sidebar">
 
-        <!-- SIDEBAR LOGO -->
 
-        <img src="logo.png"
-             alt="Academi Buddy"
-             class="sidebar-logo">
-
-
-        <!-- APPLICATION NAME -->
-
-        <h2>Academi Buddy</h2>
+        <img
+            src="logo.png"
+            alt="Academi Buddy"
+            class="sidebar-logo">
 
 
-        <!-- LOGGED-IN USER -->
+        <h2>
+            Academi Buddy
+        </h2>
 
-        <div id="sidebarUser"
-             class="sidebar-user">
+
+        <div
+            id="sidebarUser"
+            class="sidebar-user">
         </div>
 
-
-        <!-- NAVIGATION -->
 
         <button id="dashboardBtn">
             Dashboard
         </button>
 
+
         <button id="coursesBtn">
             Grades
         </button>
 
+
         <button id="examsBtn">
             Deadlines
         </button>
+
 
         <button id="studyBtn">
             Study Sessions
         </button>
 
 
-        <!-- LOGOUT -->
+        <button
+            id="logoutBtn"
+            class="logout-btn">
 
-        <button id="logoutBtn"
-                class="logout-btn">
             Log Out
+
         </button>
+
 
     </aside>
 
 
-    <!-- =========================
-         MAIN CONTENT AREA
-    ========================= -->
+
+    <!-- MAIN CONTENT -->
 
     <section class="main-area">
 
-        <div id="sticky-header"
-             class="sticky-header">
+
+        <div
+            id="sticky-header"
+            class="sticky-header">
         </div>
+
 
         <main id="app"></main>
 
+
     </section>
+
 
 </div>
 
 
-<!-- =========================
-     JAVASCRIPT
-========================= -->
+
+<!-- =========================================================
+     LANDING FUNCTIONS
+========================================================= -->
+
+<script>
+
+
+function showLandingScreen() {
+
+    const welcomeCard =
+        document.getElementById("welcomeCard");
+
+    const authBox =
+        document.getElementById("auth-box");
+
+
+    if (welcomeCard) {
+        welcomeCard.style.display = "block";
+    }
+
+
+    if (authBox) {
+        authBox.style.display = "none";
+    }
+
+}
+
+
+
+function showLoginScreen() {
+
+    const welcomeCard =
+        document.getElementById("welcomeCard");
+
+    const authBox =
+        document.getElementById("auth-box");
+
+    const loginForm =
+        document.getElementById("loginForm");
+
+    const registerForm =
+        document.getElementById("registerForm");
+
+    const loginTab =
+        document.getElementById("showLoginTab");
+
+    const registerTab =
+        document.getElementById("showRegisterTab");
+
+
+    if (welcomeCard) {
+        welcomeCard.style.display = "none";
+    }
+
+
+    if (authBox) {
+        authBox.style.display = "block";
+    }
+
+
+    if (loginForm) {
+        loginForm.style.display = "flex";
+    }
+
+
+    if (registerForm) {
+        registerForm.style.display = "none";
+    }
+
+
+    if (loginTab) {
+        loginTab.classList.add("active");
+    }
+
+
+    if (registerTab) {
+        registerTab.classList.remove("active");
+    }
+
+
+    setTimeout(function () {
+
+        const email =
+            document.getElementById("loginEmail");
+
+        if (email) {
+            email.focus();
+        }
+
+    }, 150);
+
+}
+
+
+
+function showRegisterScreen() {
+
+    const welcomeCard =
+        document.getElementById("welcomeCard");
+
+    const authBox =
+        document.getElementById("auth-box");
+
+    const loginForm =
+        document.getElementById("loginForm");
+
+    const registerForm =
+        document.getElementById("registerForm");
+
+    const loginTab =
+        document.getElementById("showLoginTab");
+
+    const registerTab =
+        document.getElementById("showRegisterTab");
+
+
+    if (welcomeCard) {
+        welcomeCard.style.display = "none";
+    }
+
+
+    if (authBox) {
+        authBox.style.display = "block";
+    }
+
+
+    if (loginForm) {
+        loginForm.style.display = "none";
+    }
+
+
+    if (registerForm) {
+        registerForm.style.display = "flex";
+    }
+
+
+    if (loginTab) {
+        loginTab.classList.remove("active");
+    }
+
+
+    if (registerTab) {
+        registerTab.classList.add("active");
+    }
+
+
+    setTimeout(function () {
+
+        const name =
+            document.getElementById("registerName");
+
+        if (name) {
+            name.focus();
+        }
+
+    }, 150);
+
+}
+
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        const loginTab =
+            document.getElementById("showLoginTab");
+
+
+        const registerTab =
+            document.getElementById("showRegisterTab");
+
+
+        if (loginTab) {
+
+            loginTab.addEventListener(
+                "click",
+                showLoginScreen
+            );
+
+        }
+
+
+        if (registerTab) {
+
+            registerTab.addEventListener(
+                "click",
+                showRegisterScreen
+            );
+
+        }
+
+
+        /* ================================================
+           FORCE BACKGROUND VIDEO TO PLAY
+        ================================================= */
+
+        const video =
+            document.getElementById(
+                "authBackgroundVideo"
+            );
+
+
+        if (video) {
+
+            video.muted = true;
+
+            video.setAttribute(
+                "playsinline",
+                ""
+            );
+
+
+            const playVideo = function () {
+
+                video.play()
+                    .catch(function (error) {
+
+                        console.log(
+                            "Background video could not autoplay:",
+                            error
+                        );
+
+                    });
+
+            };
+
+
+            playVideo();
+
+
+            document.addEventListener(
+                "click",
+                function () {
+
+                    if (video.paused) {
+                        playVideo();
+                    }
+
+                },
+                {
+                    once: true
+                }
+            );
+
+        }
+
+    }
+);
+
+
+</script>
+
+
+
+<!-- =========================================================
+     EXISTING JAVASCRIPT
+========================================================= -->
 
 <script src="auth.js?v=1"></script>
+
 <script src="app.js?v=106"></script>
 
+
 </body>
+
 </html>
