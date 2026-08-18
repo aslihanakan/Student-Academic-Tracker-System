@@ -49,6 +49,37 @@ router.post("/", examController.createExam);
 /**
  * @swagger
  * /api/exams/{id}:
+ *   put:
+ *     summary: Mevcut bir sınav kaydını günceller
+ *     tags: [Exams]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Sınav ID'si
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ExamInput'
+ *     responses:
+ *       200:
+ *         description: Sınav başarıyla güncellendi.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Exam'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ */
+router.put("/:id", examController.updateExam);
+
+/**
+ * @swagger
+ * /api/exams/{id}:
  *   delete:
  *     summary: Bir sınav kaydını siler
  *     tags: [Exams]

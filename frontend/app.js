@@ -494,7 +494,7 @@ function showToast(message, type) {
     }, 3500);
 }
 
-function showConfirm(title, message) {
+function showConfirm(title, message, confirmLabel) {
     ensureNotificationRoot();
 
     return new Promise(function (resolve) {
@@ -507,7 +507,7 @@ function showConfirm(title, message) {
                 <div class="app-modal-message">${escapeHtml(message)}</div>
                 <div class="app-modal-actions">
                     <button class="app-modal-btn cancel">Cancel</button>
-                    <button class="app-modal-btn confirm">Yes, delete</button>
+                    <button class="app-modal-btn confirm">${escapeHtml(confirmLabel || "Yes, delete")}</button>
                 </div>
             </div>
         `;
@@ -533,28 +533,26 @@ const PAGE_META = {
     dashboard: {
         title: "Dashboard",
         subtitle: "Welcome back! Let's check your academic progress.",
-        placeholder: "Search dashboard...",
         icon: "🏠"
     },
 
     courses: {
         title: "Grades",
         subtitle: "Manage your courses and grades.",
-        placeholder: "Search courses or instructors...",
         icon: "📚"
     },
 
     exams: {
         title: "Deadlines",
         subtitle: "Track all your upcoming exam and project deadlines.",
-        placeholder: "Search exams or projects...",
-        icon: "📝"
+        placeholder: "Search by course name or date...",
+        icon: "📝",
+        searchable: true
     },
 
     study: {
         title: "Study Sessions",
         subtitle: "Record and review your daily study time.",
-        placeholder: "Search sessions or courses...",
         icon: "⏱️"
     }
 };
@@ -580,69 +578,62 @@ function updateStickyHeader(pageKey) {
                 </div>
             </div>
         </div>
+
+        ${
+            meta.searchable
+                ? `
+                    <input
+                        type="text"
+                        class="sticky-search"
+                        placeholder="${escapeHtml(meta.placeholder || "Search...")}"
+                        autocomplete="off"
+                        oninput="handleStickySearch(this.value)"
+                    >
+                `
+                : ""
+        }
     `;
 }
 
 function handleStickySearch(query) {
     const lowerQuery = query.toLowerCase().trim();
 
-    const courseRows =
-        document.querySelectorAll("#courses-table tbody tr");
+    document.querySelectorAll(".add-form-box").forEach(box => {
+        box.style.display =
+            lowerQuery ? "none" : "";
+    });
 
-    if (courseRows.length) {
-        courseRows.forEach(row => {
-            row.style.display =
+    document.querySelectorAll("table").forEach(table => {
+        const rows = table.querySelectorAll("tbody tr");
+
+        let anyVisible = false;
+
+        rows.forEach(row => {
+            const match =
                 row.textContent
                     .toLowerCase()
-                    .includes(lowerQuery)
-                    ? ""
-                    : "none";
+                    .includes(lowerQuery);
+
+            row.style.display = match ? "" : "none";
+
+            if (match) {
+                anyVisible = true;
+            }
         });
 
-        return;
-    }
+        /*
+         * Hide the whole table (and, if it's grouped inside a
+         * per-day/per-section wrapper, the wrapper too) when
+         * nothing in it matches the search — so only the
+         * table(s) actually containing a result stay on screen.
+         * With an empty query everything is shown again.
+         */
+        const wrapper =
+            table.closest(".session-group") || table;
 
-    const allRows = document.querySelectorAll("table tbody tr");
-
-    if (allRows.length) {
-        allRows.forEach(row => {
-            row.style.display =
-                row.textContent
-                    .toLowerCase()
-                    .includes(lowerQuery)
-                    ? ""
-                    : "none";
-        });
-
-        return;
-    }
-
-    const sessionGroups =
-        document.querySelectorAll(".session-group");
-
-    if (sessionGroups.length) {
-        sessionGroups.forEach(group => {
-            const rows = group.querySelectorAll("tbody tr");
-
-            let anyVisible = false;
-
-            rows.forEach(row => {
-                const match =
-                    row.textContent
-                        .toLowerCase()
-                        .includes(lowerQuery);
-
-                row.style.display = match ? "" : "none";
-
-                if (match) {
-                    anyVisible = true;
-                }
-            });
-
-            group.style.display =
-                anyVisible ? "" : "none";
-        });
-    }
+        wrapper.style.display =
+            (lowerQuery && !anyVisible) ? "none" : "";
+    });
 }
 
 /*
@@ -1682,11 +1673,11 @@ function buildCourseRow(c) {
     return `
         <tr>
 
-            <td>
+            <td data-label="Course">
                 ${escapeHtml(c.courseName)}
             </td>
 
-            <td>
+            <td data-label="Instructor">
                 ${escapeHtml(
                     formatEmpty(
                         c.instructorName
@@ -1694,13 +1685,13 @@ function buildCourseRow(c) {
                 )}
             </td>
 
-            <td>
+            <td data-label="Credit">
                 ${escapeHtml(
                     formatEmpty(c.credit)
                 )}
             </td>
 
-            <td>
+            <td data-label="Midterm">
                 ${escapeHtml(
                     formatEmpty(
                         c.midtermGrade
@@ -1708,7 +1699,7 @@ function buildCourseRow(c) {
                 )}
             </td>
 
-            <td>
+            <td data-label="Project">
                 ${escapeHtml(
                     formatEmpty(
                         c.projectGrade
@@ -1716,11 +1707,11 @@ function buildCourseRow(c) {
                 )}
             </td>
 
-            <td>
+            <td data-label="Req. Final">
                 ${reqCell}
             </td>
 
-            <td>
+            <td data-label="Final">
                 ${escapeHtml(
                     formatEmpty(
                         c.finalGrade
@@ -1728,11 +1719,11 @@ function buildCourseRow(c) {
                 )}
             </td>
 
-            <td>
+            <td data-label="Result">
                 ${resultCell}
             </td>
 
-            <td>
+            <td data-label="Makeup Grade">
                 ${butCell}
             </td>
 
@@ -1821,11 +1812,19 @@ async function loadCourses() {
 
         document.getElementById("app").innerHTML = `
 
-            <div class="form-box">
+            <div class="form-box add-form-box">
 
-                <h2>
-                    Add Course
-                </h2>
+                <div
+                    class="form-box-header"
+                    onclick="toggleAddFormBox(this)">
+
+                    <h2>
+                        Add Course
+                    </h2>
+
+                    <span class="form-box-chevron">▾</span>
+
+                </div>
 
                 <div
                     style="
@@ -2920,6 +2919,21 @@ async function saveCourse() {
 
 
     if (
+        course.midtermGrade === null &&
+        course.projectGrade === null &&
+        course.finalGrade === null &&
+        course.makeupGrade === null
+    ) {
+        showToast(
+            "Please enter at least one grade (midterm, project, final or makeup) to save the course.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (
         course.midtermWeight < 0 ||
         course.projectWeight < 0
     ) {
@@ -3195,6 +3209,21 @@ function editCourse(
 
 
             if (
+                updated.midtermGrade === null &&
+                updated.projectGrade === null &&
+                updated.finalGrade === null &&
+                updated.makeupGrade === null
+            ) {
+                showToast(
+                    "Please enter at least one grade (midterm, project, final or makeup) to save the course.",
+                    "warning"
+                );
+
+                return;
+            }
+
+
+            if (
                 updated.midtermWeight < 0 ||
                 updated.projectWeight < 0
             ) {
@@ -3301,6 +3330,8 @@ function editCourse(
         top: 0,
         behavior: "smooth"
     });
+
+    expandAddFormBoxIfCollapsed(saveButton);
 }
 
 
@@ -3359,7 +3390,7 @@ async function deleteCourse(id, courseName) {
 let selectedStudyDate = null;
 let editingStudySessionId = null;
 
-async function loadStudyPage() {
+async function loadStudyPage(resetToToday = true) {
 
     updateStickyHeader("study");
 
@@ -3437,7 +3468,10 @@ async function loadStudyPage() {
                 .toLocaleDateString("sv-SE");
 
 
-        if (!selectedStudyDate) {
+        if (resetToToday) {
+            selectedStudyDate =
+                todayText;
+        } else if (!selectedStudyDate) {
             selectedStudyDate =
                 uniqueDates[0] ||
                 todayText;
@@ -3448,11 +3482,19 @@ async function loadStudyPage() {
             "app"
         ).innerHTML = `
 
-            <div class="form-box">
+            <div class="form-box add-form-box">
 
-                <h2 id="studyFormTitle">
-                    Add Study Session
-                </h2>
+                <div
+                    class="form-box-header"
+                    onclick="toggleAddFormBox(this)">
+
+                    <h2 id="studyFormTitle">
+                        Add Study Session
+                    </h2>
+
+                    <span class="form-box-chevron">▾</span>
+
+                </div>
 
                 <input
                     type="text"
@@ -3794,15 +3836,15 @@ function renderSessionsBySelectedDate() {
         filtered.map(s => `
             <tr>
 
-                <td>
+                <td data-label="Course">
                     ${escapeHtml(s.courseName)}
                 </td>
 
-                <td>
+                <td data-label="Duration">
                     ${escapeHtml(s.hours)}h
                 </td>
 
-                <td>
+                <td data-label="Topic">
                     ${escapeHtml(
                         formatEmpty(s.note)
                     )}
@@ -3942,6 +3984,48 @@ async function saveStudySession() {
 
 
     /*
+     * If the user is adding a brand new session (not editing an
+     * existing one) while viewing a day other than today, confirm
+     * first — this is the easiest way to accidentally log a
+     * session on the wrong day after navigating the day view.
+     */
+    if (!editingStudySessionId && selectedStudyDate) {
+
+        const todayText =
+            new Date()
+                .toLocaleDateString("sv-SE");
+
+        if (selectedStudyDate !== todayText) {
+
+            const friendlyDate =
+                new Date(
+                    selectedStudyDate +
+                    "T00:00:00"
+                ).toLocaleDateString(
+                    "en-US",
+                    {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                    }
+                );
+
+            const confirmedPastDate =
+                await showConfirm(
+                    "Add Entry For a Different Day?",
+                    `You are about to add a study session for ${friendlyDate}, not today. Do you want to continue?`,
+                    "Yes, add it"
+                );
+
+            if (!confirmedPastDate) {
+                return;
+            }
+        }
+    }
+
+
+    /*
      * The course doesn't need to already exist — if it's not
      * found among the known courses, a lightweight course record
      * is created automatically (same behavior as the Deadlines
@@ -4027,7 +4111,7 @@ async function saveStudySession() {
 
         editingStudySessionId = null;
 
-        await loadStudyPage();
+        await loadStudyPage(false);
 
     } catch (err) {
 
@@ -4090,6 +4174,10 @@ function editStudySession(
         top: 0,
         behavior: "smooth"
     });
+
+    expandAddFormBoxIfCollapsed(
+        document.getElementById("studyFormTitle")
+    );
 }
 
 function cancelStudyEdit() {
@@ -4161,7 +4249,7 @@ async function deleteStudySession(id) {
         }
 
 
-        await loadStudyPage();
+        await loadStudyPage(false);
 
     } catch (err) {
 
@@ -4221,37 +4309,53 @@ async function loadExamsPage() {
                 ? exams.map(e => `
                     <tr>
 
-                        <td>
+                        <td data-label="Course">
                             ${escapeHtml(e.courseName)}
                         </td>
 
-                        <td>
+                        <td data-label="Instructor">
                             ${escapeHtml(e.examName)}
                         </td>
 
-                        <td>
+                        <td data-label="Type">
                             ${escapeHtml(toTitleCase(e.examType))}
                         </td>
 
-                        <td>
+                        <td data-label="Date">
                             ${escapeHtml(
                                 toDateText(e.examDate)
                             )}
                         </td>
 
-                        <td>
+                        <td data-label="Time Left">
                             ${formatDaysLeftColored(
                                 e.examDate
                             )}
                         </td>
 
-                        <td>
+                        <td class="action-buttons">
+
+                            <button
+                                class="btn-edit"
+                                onclick="editExam(
+                                    ${e.id},
+                                    '${escapeForOnclick(e.courseName)}',
+                                    '${escapeForOnclick(e.examName)}',
+                                    '${escapeForOnclick(toDateText(e.examDate))}',
+                                    '${escapeForOnclick(e.examType)}',
+                                    '${escapeForOnclick(e.score ?? "")}'
+                                )"
+                            >
+                                ✏️
+                            </button>
+
                             <button
                                 class="btn-delete"
                                 onclick="deleteExam(${e.id})"
                             >
                                 🗑️
                             </button>
+
                         </td>
 
                     </tr>
@@ -4270,15 +4374,15 @@ async function loadExamsPage() {
                 ? projects.map(p => `
                     <tr>
 
-                        <td>
+                        <td data-label="Course">
                             ${escapeHtml(p.courseName)}
                         </td>
 
-                        <td>
+                        <td data-label="Project Topic">
                             ${escapeHtml(p.projectName)}
                         </td>
 
-                        <td>
+                        <td data-label="Instructor">
                             ${escapeHtml(
                                 formatEmpty(
                                     p.description
@@ -4286,29 +4390,46 @@ async function loadExamsPage() {
                             )}
                         </td>
 
-                        <td>
+                        <td data-label="Due Date">
                             ${escapeHtml(
                                 toDateText(p.dueDate)
                             )}
                         </td>
 
-                        <td>
+                        <td data-label="Time Left">
                             ${formatDaysLeftColored(
                                 p.dueDate
                             )}
                         </td>
 
-                        <td>
+                        <td data-label="Status">
                             ${escapeHtml(toTitleCase(p.status))}
                         </td>
 
-                        <td>
+                        <td class="action-buttons">
+
+                            <button
+                                class="btn-edit"
+                                onclick="editProject(
+                                    ${p.id},
+                                    '${escapeForOnclick(p.courseName)}',
+                                    '${escapeForOnclick(p.projectName)}',
+                                    '${escapeForOnclick(toDateText(p.dueDate))}',
+                                    '${escapeForOnclick(p.description ?? "")}',
+                                    '${escapeForOnclick(p.status)}',
+                                    '${escapeForOnclick(p.score ?? "")}'
+                                )"
+                            >
+                                ✏️
+                            </button>
+
                             <button
                                 class="btn-delete"
                                 onclick="deleteProject(${p.id})"
                             >
                                 🗑️
                             </button>
+
                         </td>
 
                     </tr>
@@ -4326,11 +4447,19 @@ async function loadExamsPage() {
             "app"
         ).innerHTML = `
 
-            <div class="form-box">
+            <div class="form-box add-form-box">
 
-                <h2>
-                    Add Exam
-                </h2>
+                <div
+                    class="form-box-header"
+                    onclick="toggleAddFormBox(this)">
+
+                    <h2>
+                        Add Exam
+                    </h2>
+
+                    <span class="form-box-chevron">▾</span>
+
+                </div>
 
                 <input
                     type="text"
@@ -4385,6 +4514,7 @@ async function loadExamsPage() {
 
 
                 <button
+                    id="examSaveButton"
                     onclick="saveExam()"
                 >
                     Save Exam
@@ -4415,11 +4545,19 @@ async function loadExamsPage() {
             </table>
 
 
-            <div class="form-box">
+            <div class="form-box add-form-box">
 
-                <h2>
-                    Add Project
-                </h2>
+                <div
+                    class="form-box-header"
+                    onclick="toggleAddFormBox(this)">
+
+                    <h2>
+                        Add Project
+                    </h2>
+
+                    <span class="form-box-chevron">▾</span>
+
+                </div>
 
                 <input
                     type="text"
@@ -4478,6 +4616,7 @@ async function loadExamsPage() {
 
 
                 <button
+                    id="projectSaveButton"
                     onclick="saveProject()"
                 >
                     Save Project
@@ -4678,6 +4817,169 @@ async function deleteExam(id) {
     }
 }
 
+/*
+ * Fills the "Add Exam" form with an existing exam's data and turns
+ * the save button into an "Update Exam" button, mirroring editCourse.
+ * "score" is passed through unchanged since there is no score field
+ * on this form.
+ */
+function editExam(
+    id,
+    courseName,
+    examName,
+    examDate,
+    examType,
+    score
+) {
+
+    document.getElementById(
+        "examCourseName"
+    ).value = courseName;
+
+    document.getElementById(
+        "examTeacherName"
+    ).value = examName;
+
+    document.getElementById(
+        "examDate"
+    ).value = examDate;
+
+    document.getElementById(
+        "examType"
+    ).value = examType;
+
+
+    const saveButton =
+        document.getElementById(
+            "examSaveButton"
+        );
+
+    saveButton.textContent =
+        "Update Exam";
+
+    saveButton.onclick =
+        async function () {
+
+            const courseNameInput =
+                toTitleCase(
+                    document.getElementById(
+                        "examCourseName"
+                    ).value.trim()
+                );
+
+            const examNameInput =
+                toTitleCase(
+                    document.getElementById(
+                        "examTeacherName"
+                    ).value.trim()
+                );
+
+            const examDateInput =
+                document.getElementById(
+                    "examDate"
+                ).value;
+
+            const examTypeInput =
+                document.getElementById(
+                    "examType"
+                ).value;
+
+
+            if (
+                !courseNameInput ||
+                !examNameInput ||
+                !examDateInput ||
+                !examTypeInput
+            ) {
+                showToast(
+                    "Course, instructor name, date and exam type are required.",
+                    "warning"
+                );
+
+                return;
+            }
+
+
+            try {
+
+                const courseId =
+                    await getOrCreateCourseIdByName(
+                        courseNameInput,
+                        examNameInput
+                    );
+
+                if (!courseId) {
+                    showToast(
+                        "Course could not be found or created.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+                const response =
+                    await fetch(
+                        `${API_URL}/exams/${id}`,
+                        {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+                            body:
+                                JSON.stringify({
+                                    courseId,
+                                    examName: examNameInput,
+                                    examDate: examDateInput,
+                                    examType: examTypeInput,
+                                    score
+                                })
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    const error =
+                        await response
+                            .json()
+                            .catch(() => ({}));
+
+                    showToast(
+                        error.message ||
+                        "Exam could not be updated.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+
+                await loadExamsPage();
+
+            } catch (err) {
+
+                console.error(
+                    "Exam Update Error:",
+                    err
+                );
+
+                showToast(
+                    "Exam could not be updated.",
+                    "error"
+                );
+            }
+        };
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+    expandAddFormBoxIfCollapsed(saveButton);
+}
+
 async function saveProject() {
 
     const courseNameInput =
@@ -4839,6 +5141,309 @@ async function deleteProject(id) {
         );
     }
 }
+
+
+/*
+ * Fills the "Add Project" form with an existing project's data and
+ * turns the save button into an "Update Project" button, mirroring
+ * editCourse / editExam. "score" is passed through unchanged since
+ * there is no score field on this form.
+ */
+function editProject(
+    id,
+    courseName,
+    projectName,
+    dueDate,
+    description,
+    status,
+    score
+) {
+
+    document.getElementById(
+        "projectCourseName"
+    ).value = courseName;
+
+    document.getElementById(
+        "projectTopic"
+    ).value = projectName;
+
+    document.getElementById(
+        "projectTeacherName"
+    ).value = description;
+
+    document.getElementById(
+        "projectDueDate"
+    ).value = dueDate;
+
+    document.getElementById(
+        "projectStatus"
+    ).value = status;
+
+
+    const saveButton =
+        document.getElementById(
+            "projectSaveButton"
+        );
+
+    saveButton.textContent =
+        "Update Project";
+
+    saveButton.onclick =
+        async function () {
+
+            const courseNameInput =
+                toTitleCase(
+                    document.getElementById(
+                        "projectCourseName"
+                    ).value.trim()
+                );
+
+            const projectNameInput =
+                toTitleCase(
+                    document.getElementById(
+                        "projectTopic"
+                    ).value.trim()
+                );
+
+            const dueDateInput =
+                document.getElementById(
+                    "projectDueDate"
+                ).value;
+
+            const descriptionInput =
+                toTitleCase(
+                    document.getElementById(
+                        "projectTeacherName"
+                    ).value.trim()
+                );
+
+            const statusInput =
+                document.getElementById(
+                    "projectStatus"
+                ).value;
+
+
+            if (
+                !courseNameInput ||
+                !projectNameInput ||
+                !dueDateInput
+            ) {
+                showToast(
+                    "Course, project topic and due date are required.",
+                    "warning"
+                );
+
+                return;
+            }
+
+
+            try {
+
+                const courseId =
+                    await getOrCreateCourseIdByName(
+                        courseNameInput,
+                        descriptionInput
+                    );
+
+                if (!courseId) {
+                    showToast(
+                        "Course could not be found or created.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+                const response =
+                    await fetch(
+                        `${API_URL}/projects/${id}`,
+                        {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+                            body:
+                                JSON.stringify({
+                                    courseId,
+                                    projectName: projectNameInput,
+                                    dueDate: dueDateInput,
+                                    description: descriptionInput,
+                                    status: statusInput,
+                                    score
+                                })
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    const error =
+                        await response
+                            .json()
+                            .catch(() => ({}));
+
+                    showToast(
+                        error.message ||
+                        "Project could not be updated.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+
+                await loadExamsPage();
+
+            } catch (err) {
+
+                console.error(
+                    "Project Update Error:",
+                    err
+                );
+
+                showToast(
+                    "Project could not be updated.",
+                    "error"
+                );
+            }
+        };
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+    expandAddFormBoxIfCollapsed(saveButton);
+}
+
+
+/* ─── MOBILE COLLAPSIBLE "ADD" FORMS ─────────────────────────────────────────*/
+/* On mobile, the Add Course / Add Exam / Add Project / Add Study Session
+   boxes start collapsed (just the header) and expand when tapped, so they
+   don't take up the whole screen. On desktop this has no visual effect —
+   the box is always shown expanded via CSS. */
+
+function toggleAddFormBox(headerEl) {
+
+    const box =
+        headerEl.closest(".add-form-box");
+
+    if (!box) {
+        return;
+    }
+
+    box.classList.toggle("is-expanded");
+}
+
+function expandAddFormBoxIfCollapsed(anyElementInsideBox) {
+
+    if (window.innerWidth > 768) {
+        return;
+    }
+
+    const box =
+        anyElementInsideBox?.closest(".add-form-box");
+
+    if (box) {
+        box.classList.add("is-expanded");
+    }
+}
+
+
+/* ─── MOBILE SIDEBAR (hamburger drawer) ──────────────────────────────────────*/
+
+function openMobileSidebar() {
+
+    document.getElementById("mainSidebar")
+        ?.classList.add("is-open");
+
+    document.getElementById("sidebarOverlay")
+        ?.classList.add("is-visible");
+
+    document.getElementById("mobileTopbar")
+        ?.classList.add("is-open");
+
+    document
+        .getElementById("sidebarToggleBtn")
+        ?.setAttribute("aria-expanded", "true");
+
+    document.body.style.overflow = "hidden";
+}
+
+function closeMobileSidebar() {
+
+    document.getElementById("mainSidebar")
+        ?.classList.remove("is-open");
+
+    document.getElementById("sidebarOverlay")
+        ?.classList.remove("is-visible");
+
+    document.getElementById("mobileTopbar")
+        ?.classList.remove("is-open");
+
+    document
+        .getElementById("sidebarToggleBtn")
+        ?.setAttribute("aria-expanded", "false");
+
+    document.body.style.overflow = "";
+}
+
+function toggleMobileSidebar() {
+
+    const sidebar =
+        document.getElementById("mainSidebar");
+
+    if (sidebar?.classList.contains("is-open")) {
+        closeMobileSidebar();
+    } else {
+        openMobileSidebar();
+    }
+}
+
+document
+    .getElementById("sidebarToggleBtn")
+    ?.addEventListener(
+        "click",
+        toggleMobileSidebar
+    );
+
+document
+    .getElementById("sidebarCloseBtn")
+    ?.addEventListener(
+        "click",
+        closeMobileSidebar
+    );
+
+document
+    .getElementById("sidebarOverlay")
+    ?.addEventListener(
+        "click",
+        closeMobileSidebar
+    );
+
+// Close the drawer automatically after picking a page on mobile
+document
+    .getElementById("mainSidebar")
+    ?.querySelectorAll("button:not(.sidebar-close-btn)")
+    .forEach((btn) => {
+
+        btn.addEventListener("click", () => {
+
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+        });
+    });
+
+// If the window is resized from mobile to desktop while open, reset state
+window.addEventListener("resize", () => {
+
+    if (window.innerWidth > 768) {
+        closeMobileSidebar();
+    }
+});
 
 
 /* ─── EVENTS ──────────────────────────────────────────────────────────────────*/

@@ -132,6 +132,15 @@ body {
 
 
 /* =========================================================
+   MOBILE AUTH TOGGLE (hidden on desktop, shown ≤768px)
+   ========================================================= */
+
+.mobile-auth-toggle {
+    display: none;
+}
+
+
+/* =========================================================
    LANDING SCREEN
    ========================================================= */
 
@@ -1288,6 +1297,98 @@ body {
 }
 
 
+@media (max-width: 768px) {
+
+    /* Show the person icon top-right */
+
+    .mobile-auth-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        z-index: 60;
+
+        width: 46px;
+        height: 46px;
+
+        background: rgba(4, 14, 33, 0.75);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+
+        font-size: 20px;
+        line-height: 1;
+        color: #ffffff;
+
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+        transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .mobile-auth-toggle:hover {
+        background: rgba(59, 130, 246, 0.25);
+        border-color: rgba(96, 165, 250, 0.5);
+    }
+
+    .mobile-auth-toggle.is-active {
+        background: rgba(59, 130, 246, 0.3);
+        border-color: rgba(96, 165, 250, 0.6);
+    }
+
+    /* The auth card becomes a dropdown anchored under the icon,
+       instead of sitting in normal document flow below the hero
+       content, so it no longer pushes the page down on mobile */
+
+    .landing-auth {
+        position: fixed;
+        top: 74px;
+        right: 18px;
+        left: 18px;
+        z-index: 55;
+
+        width: auto;
+        max-width: 400px;
+        margin-left: auto;
+
+        max-height: 0;
+        overflow: hidden;
+
+        opacity: 0;
+        transform: translateY(-10px);
+        pointer-events: none;
+
+        transition:
+            max-height 0.32s ease,
+            opacity 0.22s ease,
+            transform 0.28s ease;
+    }
+
+    .landing-auth.is-open {
+        max-height: min(80vh, 640px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .welcome-card,
+    .auth-box {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    }
+
+}
+
+
 @media (max-width: 600px) {
 
     .auth-screen {
@@ -1358,11 +1459,6 @@ body {
         margin-top: 20px;
 
         font-size: 11px;
-    }
-
-
-    .landing-auth {
-        width: 100%;
     }
 
 
@@ -1468,6 +1564,21 @@ body {
         linear-gradient(160deg, #010c1d 0%, #071731 45%, #0a1d3a 100%);
 
     overflow: hidden;
+}
+
+/* ---- MOBILE TOP BAR (hamburger trigger) ---- */
+/* Hidden on desktop; shown only inside the @media block below */
+
+.mobile-topbar {
+    display: none;
+}
+
+.sidebar-overlay {
+    display: none;
+}
+
+.sidebar-close-btn {
+    display: none;
 }
 
 /* ---- SIDEBAR ---- */
@@ -1850,6 +1961,26 @@ table tbody tr:hover {
 .form-box.filter-box,
 .form-box.tool-box {
     background: #ffffff;
+}
+
+/* Header wrapper used by collapsible "Add ..." forms.
+   On desktop this just looks like a normal heading row;
+   the collapse/expand behavior only activates on mobile
+   (see the ≤768px media query below). */
+
+.form-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.form-box-header h2 {
+    margin: 0 0 14px 0;
+}
+
+.form-box-chevron {
+    display: none;
 }
 
 .tools-grid {
@@ -2322,44 +2453,181 @@ table tbody tr:hover {
 }
 
 @media (max-width: 768px) {
-    .sidebar-logo {
-        width: 58px;
-        height: 58px;
-        margin: 0 4px 0 0;
-        flex: 0 0 auto;
+
+    html, body {
+        overflow-x: hidden;
     }
 
     .layout {
         flex-direction: column;
-        height: auto;
-        overflow: visible;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
     }
 
-    html, body {
-        overflow: auto;
+    /* ---- Mobile top bar with hamburger icon ---- */
+
+    .mobile-topbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        flex: 0 0 auto;
+        width: 100%;
+        padding: 10px 14px;
+
+        background: rgba(4, 14, 33, 0.95);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+        position: relative;
+        z-index: 30;
     }
+
+    .hamburger-btn {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+
+        width: 38px;
+        height: 38px;
+        flex: 0 0 auto;
+
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .hamburger-btn span {
+        display: block;
+        width: 18px;
+        height: 2px;
+        background: #ffffff;
+        border-radius: 2px;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    /* Turn hamburger into an X when the sidebar is open */
+    .mobile-topbar.is-open .hamburger-btn span:nth-child(1) {
+        transform: translateY(6px) rotate(45deg);
+    }
+
+    .mobile-topbar.is-open .hamburger-btn span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .mobile-topbar.is-open .hamburger-btn span:nth-child(3) {
+        transform: translateY(-6px) rotate(-45deg);
+    }
+
+    .mobile-topbar-logo {
+        width: 32px;
+        height: 32px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+    }
+
+    .mobile-topbar-title {
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 16px;
+        letter-spacing: -0.3px;
+    }
+
+    /* ---- Sidebar becomes an off-canvas drawer ---- */
 
     .sidebar {
-        width: 100%;
-        flex: 0 0 auto;
-        flex-direction: row;
-        flex-wrap: wrap;
-        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 50;
+
+        width: 78%;
+        max-width: 300px;
+        height: 100vh;
+        height: 100dvh;
+
+        flex-direction: column;
+        flex-wrap: nowrap;
+
+        transform: translateX(-100%);
+        transition: transform 0.28s ease;
+
+        box-shadow: 8px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .sidebar-logo {
+        width: 58px;
+        height: 58px;
     }
 
     .sidebar button {
-        width: auto;
-        flex: 1 1 auto;
-        text-align: center;
+        width: 100%;
+        flex: 0 0 auto;
+        text-align: left;
     }
 
     .sidebar .logout-btn {
-        margin-top: 0;
+        margin-top: auto;
     }
 
+    .sidebar-close-btn {
+        display: block;
+        align-self: flex-end;
+
+        width: 34px;
+        height: 34px;
+
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+
+        color: #ffffff;
+        font-size: 20px;
+        line-height: 1;
+
+        cursor: pointer;
+        margin-bottom: 6px;
+    }
+
+    /* ---- Overlay behind the open drawer ---- */
+
+    .sidebar-overlay {
+        display: block;
+
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+
+        background: rgba(0, 0, 0, 0.55);
+
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.28s ease;
+    }
+
+    .sidebar-overlay.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* ---- Main content fills remaining space, scrolls independently ---- */
+
     .main-area {
+        flex: 1 1 auto;
         height: auto;
-        overflow: visible;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     #app {
@@ -2368,5 +2636,155 @@ table tbody tr:hover {
 
     .sticky-header {
         padding: 14px 16px;
+        flex-wrap: wrap;
+    }
+
+    .sticky-search {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    /* ---- Tables: stack into full-width cards instead of scrolling sideways ---- */
+
+    table {
+        display: block;
+        width: 100%;
+        overflow: visible;
+        white-space: normal;
+        box-shadow: none;
+        background: transparent;
+    }
+
+    table thead {
+        display: none;
+    }
+
+    table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    table tbody tr {
+        display: block;
+        width: 100%;
+        margin-bottom: 12px;
+
+        background: #ffffff;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+        overflow: hidden;
+    }
+
+    table tbody tr:last-child {
+        margin-bottom: 0;
+    }
+
+    table tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+
+        width: 100%;
+        padding: 10px 14px;
+
+        text-align: right;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    table tbody tr td:last-child {
+        border-bottom: none;
+    }
+
+    /* Label shown in front of each value, taken from the data-label
+       attribute the JS puts on every <td> (mirrors the column's <th>). */
+    table tbody td[data-label]::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+
+        text-align: left;
+    }
+
+    /* Action column (edit/delete buttons): no label, buttons pushed right */
+    table tbody td.action-buttons {
+        justify-content: flex-end;
+    }
+
+    /* Empty-state row ("No exams found." etc.) spans the whole card,
+       centered, without a label in front of it. */
+    table tbody td[colspan] {
+        display: block;
+        text-align: center;
+        color: #64748b;
+    }
+
+    table tbody td[colspan]::before {
+        content: none;
+    }
+
+    /* ---- Grids collapse to a single column on small screens ---- */
+
+    [style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* ---- Collapsible "Add ..." forms ----
+       Collapsed by default: only the header row (title + chevron)
+       is visible. Tapping the header expands the form so all the
+       input fields become visible/editable. */
+
+    .add-form-box {
+        padding-bottom: 22px;
+    }
+
+    .add-form-box:not(.is-expanded) {
+        padding-bottom: 22px;
+    }
+
+    .add-form-box .form-box-header {
+        cursor: pointer;
+        padding: 4px 2px;
+        margin: -4px -2px 0 -2px;
+        border-radius: 8px;
+
+        transition: background 0.15s ease;
+    }
+
+    .add-form-box .form-box-header:active {
+        background: #f1f5f9;
+    }
+
+    .add-form-box .form-box-header h2 {
+        margin: 0;
+    }
+
+    .add-form-box .form-box-chevron {
+        display: inline-block;
+        flex: 0 0 auto;
+
+        font-size: 15px;
+        color: #64748b;
+
+        transition: transform 0.22s ease;
+    }
+
+    .add-form-box.is-expanded .form-box-chevron {
+        transform: rotate(180deg);
+    }
+
+    .add-form-box:not(.is-expanded) > *:not(.form-box-header) {
+        display: none !important;
+    }
+}
+
+@media (max-width: 420px) {
+    .mobile-topbar-title {
+        display: none;
     }
 }

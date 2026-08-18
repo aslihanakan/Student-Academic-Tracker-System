@@ -87,6 +87,20 @@ function createCourse(
     }
 
     if (
+        midtermGrade === null &&
+        projectGrade === null &&
+        finalGrade === null &&
+        makeupGrade === null
+    ) {
+        return callback(
+            new Error(
+                "Please enter at least one grade (midterm, project, final or makeup) to save the course."
+            )
+        );
+    }
+
+
+    if (
         !isValidGrade(midtermGrade) ||
         !isValidGrade(projectGrade) ||
         !isValidGrade(finalGrade) ||
@@ -246,6 +260,20 @@ function updateCourse(
             new Error("Credit must be between 1 and 10.")
         );
     }
+
+    if (
+        midtermGrade === null &&
+        projectGrade === null &&
+        finalGrade === null &&
+        makeupGrade === null
+    ) {
+        return callback(
+            new Error(
+                "Please enter at least one grade (midterm, project, final or makeup) to save the course."
+            )
+        );
+    }
+
 
     if (
         !isValidGrade(midtermGrade) ||

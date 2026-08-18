@@ -54,6 +54,52 @@ function createProject(userId, courseId, projectName, dueDate, description, scor
     });
 }
 
+function updateProject(id, userId, courseId, projectName, dueDate, description, score, status, callback) {
+    if (!courseId || !projectName || !dueDate) {
+        return callback(new Error("Course, project name and due date are required."));
+    }
+
+    score = score === "" || score === undefined ? null : Number(score);
+    status = status || "pending";
+
+    if (score !== null && (score < 0 || score > 100)) {
+        return callback(new Error("Score must be between 0 and 100."));
+    }
+
+    verifyCourseOwnership(courseId, userId, function (ownerErr, isOwner) {
+        if (ownerErr) return callback(ownerErr);
+
+        if (!isOwner) {
+            return callback(new Error("Course not found."));
+        }
+
+        const sql = `
+            UPDATE projects
+            SET courseId = ?, projectName = ?, dueDate = ?, description = ?, score = ?, status = ?
+            WHERE id = ? AND userId = ?
+        `;
+
+        db.run(sql, [courseId, projectName, dueDate, description, score, status, id, userId], function (err) {
+            if (err) return callback(err);
+
+            if (this.changes === 0) {
+                return callback(new Error("Project not found."));
+            }
+
+            callback(null, {
+                id,
+                userId,
+                courseId,
+                projectName,
+                dueDate,
+                description,
+                score,
+                status
+            });
+        });
+    });
+}
+
 function deleteProject(id, userId, callback) {
     db.run("DELETE FROM projects WHERE id = ? AND userId = ?", [id, userId], function (err) {
         if (err) return callback(err);
@@ -69,5 +115,6 @@ function deleteProject(id, userId, callback) {
 module.exports = {
     getAllProjects,
     createProject,
+    updateProject,
     deleteProject
 };

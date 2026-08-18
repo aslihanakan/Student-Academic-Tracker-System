@@ -71,6 +71,19 @@
 
 
     <!-- =====================================================
+         MOBILE AUTH TOGGLE (top-right icon, opens login/register)
+    ====================================================== -->
+
+    <button
+        id="mobileAuthToggle"
+        class="mobile-auth-toggle"
+        aria-label="Giriş / Kayıt Ol"
+        aria-expanded="false">
+        👤
+    </button>
+
+
+    <!-- =====================================================
          LANDING PAGE
     ====================================================== -->
 
@@ -561,9 +574,55 @@
     style="display:none;">
 
 
+    <!-- MOBILE TOP BAR (hamburger menu trigger, only visible on small screens) -->
+
+    <div
+        class="mobile-topbar"
+        id="mobileTopbar">
+
+        <button
+            id="sidebarToggleBtn"
+            class="hamburger-btn"
+            aria-label="Menüyü aç/kapat"
+            aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <img
+            src="logo.png"
+            alt="Academi Buddy"
+            class="mobile-topbar-logo">
+
+        <span class="mobile-topbar-title">
+            Academi Buddy
+        </span>
+
+    </div>
+
+
+    <!-- OVERLAY (click to close sidebar on mobile) -->
+
+    <div
+        class="sidebar-overlay"
+        id="sidebarOverlay">
+    </div>
+
+
     <!-- SIDEBAR -->
 
-    <aside class="sidebar">
+    <aside
+        class="sidebar"
+        id="mainSidebar">
+
+
+        <button
+            id="sidebarCloseBtn"
+            class="sidebar-close-btn"
+            aria-label="Menüyü kapat">
+            &times;
+        </button>
 
 
         <img
@@ -829,6 +888,104 @@ document.addEventListener(
             );
 
         }
+
+
+        /* ================================================
+           MOBILE AUTH TOGGLE (👤 icon opens login/register
+           card as a dropdown on small screens)
+        ================================================= */
+
+        const mobileAuthToggle =
+            document.getElementById("mobileAuthToggle");
+
+        const landingAuth =
+            document.querySelector(".landing-auth");
+
+
+        function closeMobileAuth() {
+
+            if (landingAuth) {
+                landingAuth.classList.remove("is-open");
+            }
+
+            if (mobileAuthToggle) {
+                mobileAuthToggle.classList.remove("is-active");
+                mobileAuthToggle.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+            }
+
+        }
+
+
+        function toggleMobileAuth() {
+
+            if (!landingAuth) {
+                return;
+            }
+
+            const isOpen =
+                landingAuth.classList.toggle("is-open");
+
+            if (mobileAuthToggle) {
+                mobileAuthToggle.classList.toggle(
+                    "is-active",
+                    isOpen
+                );
+
+                mobileAuthToggle.setAttribute(
+                    "aria-expanded",
+                    isOpen ? "true" : "false"
+                );
+            }
+
+        }
+
+
+        if (mobileAuthToggle) {
+
+            mobileAuthToggle.addEventListener(
+                "click",
+                function (e) {
+                    e.stopPropagation();
+                    toggleMobileAuth();
+                }
+            );
+
+        }
+
+
+        // Close the dropdown when tapping outside of it
+        document.addEventListener("click", function (e) {
+
+            if (!landingAuth || !landingAuth.classList.contains("is-open")) {
+                return;
+            }
+
+            const clickedInsidePanel =
+                landingAuth.contains(e.target);
+
+            const clickedToggleBtn =
+                mobileAuthToggle &&
+                mobileAuthToggle.contains(e.target);
+
+            if (!clickedInsidePanel && !clickedToggleBtn) {
+                closeMobileAuth();
+            }
+
+        });
+
+
+        // Close the dropdown again if the window is resized
+        // back to a desktop width
+        window.addEventListener("resize", function () {
+
+            if (window.innerWidth > 768) {
+                closeMobileAuth();
+            }
+
+        });
 
 
         /* ================================================

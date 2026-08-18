@@ -49,6 +49,37 @@ router.post("/", projectController.createProject);
 /**
  * @swagger
  * /api/projects/{id}:
+ *   put:
+ *     summary: Mevcut bir proje kaydını günceller
+ *     tags: [Projects]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Proje ID'si
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ProjectInput'
+ *     responses:
+ *       200:
+ *         description: Proje başarıyla güncellendi.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Project'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ */
+router.put("/:id", projectController.updateProject);
+
+/**
+ * @swagger
+ * /api/projects/{id}:
  *   delete:
  *     summary: Bir proje kaydını siler
  *     tags: [Projects]

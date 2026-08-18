@@ -34,6 +34,33 @@ function createProject(req, res) {
     );
 }
 
+function updateProject(req, res) {
+    const id = Number(req.params.id);
+    const courseId = Number(req.body.courseId);
+    const projectName = req.body.projectName;
+    const dueDate = req.body.dueDate;
+    const description = req.body.description || "";
+    const score = req.body.score;
+    const status = req.body.status || "pending";
+
+    projectService.updateProject(
+        id,
+        req.userId,
+        courseId,
+        projectName,
+        dueDate,
+        description,
+        score,
+        status,
+        function (err, project) {
+            if (err) {
+                return res.status(400).json({ message: err.message });
+            }
+            res.status(200).json(project);
+        }
+    );
+}
+
 function deleteProject(req, res) {
     const id = Number(req.params.id);
 
@@ -48,5 +75,6 @@ function deleteProject(req, res) {
 module.exports = {
     getAllProjects,
     createProject,
+    updateProject,
     deleteProject
 };

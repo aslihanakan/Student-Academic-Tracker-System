@@ -26,6 +26,23 @@ function createExam(req, res) {
     });
 }
 
+function updateExam(req, res) {
+    const id = Number(req.params.id);
+    const courseId = Number(req.body.courseId);
+    const examName = req.body.examName;
+    const examDate = req.body.examDate;
+    const examType = req.body.examType;
+    const score = req.body.score;
+
+    examService.updateExam(id, req.userId, courseId, examName, examDate, examType, score, function (err, exam) {
+        if (err) {
+            return res.status(400).json({ message: err.message });
+        }
+
+        res.status(200).json(exam);
+    });
+}
+
 function deleteExam(req, res) {
     const id = Number(req.params.id);
 
@@ -41,5 +58,6 @@ function deleteExam(req, res) {
 module.exports = {
     getAllExams,
     createExam,
+    updateExam,
     deleteExam
 };

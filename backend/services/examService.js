@@ -52,6 +52,50 @@ function createExam(userId, courseId, examName, examDate, examType, score, callb
     });
 }
 
+function updateExam(id, userId, courseId, examName, examDate, examType, score, callback) {
+    if (!courseId || !examName || !examDate || !examType) {
+        return callback(new Error("Course, exam name, exam date and exam type are required."));
+    }
+
+    score = score === "" || score === undefined ? null : Number(score);
+
+    if (score !== null && (score < 0 || score > 100)) {
+        return callback(new Error("Score must be between 0 and 100."));
+    }
+
+    verifyCourseOwnership(courseId, userId, function (ownerErr, isOwner) {
+        if (ownerErr) return callback(ownerErr);
+
+        if (!isOwner) {
+            return callback(new Error("Course not found."));
+        }
+
+        const sql = `
+            UPDATE exams
+            SET courseId = ?, examName = ?, examDate = ?, examType = ?, score = ?
+            WHERE id = ? AND userId = ?
+        `;
+
+        db.run(sql, [courseId, examName, examDate, examType, score, id, userId], function (err) {
+            if (err) return callback(err);
+
+            if (this.changes === 0) {
+                return callback(new Error("Exam not found."));
+            }
+
+            callback(null, {
+                id,
+                userId,
+                courseId,
+                examName,
+                examDate,
+                examType,
+                score
+            });
+        });
+    });
+}
+
 function deleteExam(id, userId, callback) {
     db.run("DELETE FROM exams WHERE id = ? AND userId = ?", [id, userId], function (err) {
         if (err) return callback(err);
@@ -67,5 +111,6 @@ function deleteExam(id, userId, callback) {
 module.exports = {
     getAllExams,
     createExam,
+    updateExam,
     deleteExam
 };
