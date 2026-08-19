@@ -218,6 +218,60 @@ function initializeDatabase() {
                 if (err) console.error("Migration error:", err.message);
             });
 
+            ensureColumn("courses", "academicYear", "TEXT", function (err) {
+                if (err) {
+                    console.error("Migration error:", err.message);
+                    return;
+                }
+
+                db.run(
+                    `UPDATE courses SET academicYear = 'Unspecified' WHERE academicYear IS NULL`,
+                    [],
+                    function (err) {
+                        if (err) {
+                            console.error("Backfill error (academicYear):", err.message);
+                        }
+                    }
+                );
+            });
+
+            ensureColumn("courses", "semester", "TEXT", function (err) {
+                if (err) {
+                    console.error("Migration error:", err.message);
+                    return;
+                }
+
+                db.run(
+                    `UPDATE courses SET semester = 'Unspecified' WHERE semester IS NULL`,
+                    [],
+                    function (err) {
+                        if (err) {
+                            console.error("Backfill error (semester):", err.message);
+                        }
+                    }
+                );
+            });
+
+            // Optional extra graded items beyond midterm/project/final
+            // (e.g. homework, quizzes, attendance). Stored as a JSON
+            // array string: [{ "label": "Homework", "weight": 10, "score": 85 }, ...]
+            ensureColumn("courses", "extraGrades", "TEXT", function (err) {
+                if (err) {
+                    console.error("Migration error:", err.message);
+                    return;
+                }
+
+                db.run(
+                    `UPDATE courses SET extraGrades = '[]' WHERE extraGrades IS NULL`,
+                    [],
+                    function (err) {
+                        if (err) {
+                            console.error("Backfill error (extraGrades):", err.message);
+                        }
+                    }
+                );
+            });
+
             const tablesNeedingUserId = [
                 "courses",
                 "exams",

@@ -164,7 +164,7 @@ async function fetchJson(url) {
  * Final = automatically 50%
  */
 
-function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passingGrade) {
+function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passingGrade, extraGrades) {
     // Weights must be entered by the user.
     if (
         midtermWeight === null ||
@@ -181,12 +181,25 @@ function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passi
         };
     }
 
+    // Optional extra graded items (homework, quiz, attendance...),
+    // each { weight, score }. Weight is a percentage (e.g. 10 for
+    // 10%); score may be null if not graded yet.
+    const extras =
+        Array.isArray(extraGrades)
+            ? extraGrades
+            : [];
+
     // Weights come in as percentages (e.g. 40 for 40%), convert to fractions.
     const mw = Number(midtermWeight) / 100;
     const pw = Number(projectWeight) / 100;
+    const ew =
+        extras.reduce(
+            (sum, item) => sum + (Number(item.weight) || 0),
+            0
+        ) / 100;
     const pg = Number(passingGrade);
 
-    if (mw < 0 || pw < 0 || mw + pw >= 1) {
+    if (mw < 0 || pw < 0 || ew < 0 || mw + pw + ew >= 1) {
         return {
             value: null,
             label: "Invalid weights",
@@ -202,7 +215,7 @@ function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passi
         };
     }
 
-    const fw = 1 - mw - pw;
+    const fw = 1 - mw - pw - ew;
 
     const m =
         midterm !== null &&
@@ -218,8 +231,16 @@ function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passi
             ? Number(project)
             : null;
 
+    const extraHasAnyGrade =
+        extras.some(
+            item =>
+                item.score !== null &&
+                item.score !== undefined &&
+                item.score !== ""
+        );
+
     // No grades entered
-    if (m === null && p === null) {
+    if (m === null && p === null && !extraHasAnyGrade) {
         return {
             value: null,
             label: "-",
@@ -246,11 +267,24 @@ function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passi
         };
     }
 
+    const extraEarned =
+        extras.reduce((sum, item) => {
+            const score =
+                item.score !== null &&
+                item.score !== undefined &&
+                item.score !== ""
+                    ? Number(item.score)
+                    : 0;
+
+            return sum + (score * (Number(item.weight) || 0) / 100);
+        }, 0);
+
     // If final weight is 0, we cannot calculate a required final
     if (fw === 0) {
         const currentGrade =
             (m !== null ? m * mw : 0) +
-            (p !== null ? p * pw : 0);
+            (p !== null ? p * pw : 0) +
+            extraEarned;
 
         if (currentGrade >= pg) {
             return {
@@ -269,7 +303,8 @@ function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passi
 
     const earnedSoFar =
         (m !== null ? m * mw : 0) +
-        (p !== null ? p * pw : 0);
+        (p !== null ? p * pw : 0) +
+        extraEarned;
 
     const needed = (pg - earnedSoFar) / fw;
 
@@ -332,9 +367,19 @@ function calcCourseResult(course) {
         return null;
     }
 
+    const extras =
+        Array.isArray(course.extraGrades)
+            ? course.extraGrades
+            : [];
+
     const mw = Number(course.midtermWeight ?? 0) / 100;
     const pw = Number(course.projectWeight ?? 0) / 100;
-    const fw = 1 - mw - pw;
+    const ew =
+        extras.reduce(
+            (sum, item) => sum + (Number(item.weight) || 0),
+            0
+        ) / 100;
+    const fw = 1 - mw - pw - ew;
     const pg = Number(course.passingGrade ?? 60);
 
     const m =
@@ -351,7 +396,19 @@ function calcCourseResult(course) {
             ? Number(course.projectGrade)
             : 0;
 
-    const avg = (m * mw) + (p * pw) + (Number(f) * fw);
+    const extraEarned =
+        extras.reduce((sum, item) => {
+            const score =
+                item.score !== null &&
+                item.score !== undefined &&
+                item.score !== ""
+                    ? Number(item.score)
+                    : 0;
+
+            return sum + (score * (Number(item.weight) || 0) / 100);
+        }, 0);
+
+    const avg = (m * mw) + (p * pw) + (Number(f) * fw) + extraEarned;
 
     if (avg >= pg) {
         return "pass";
@@ -1567,9 +1624,140 @@ function renderCalendar() {
 /* ─── COURSES ─────────────────────────────────────────────────────────────────*/
 
 /*
+ * Builds a human-readable term label from a course's academicYear
+ * and semester fields, e.g. "2025-2026 Fall". Falls back to
+ * "Unspecified Term" for legacy courses saved before term tracking
+ * existed.
+ */
+function getTermLabel(c) {
+    const year =
+        c.academicYear &&
+        c.academicYear !== "Unspecified"
+            ? c.academicYear
+            : null;
+
+    const sem =
+        c.semester &&
+        c.semester !== "Unspecified"
+            ? c.semester
+            : null;
+
+    if (!year && !sem) {
+        return "No Term Assigned";
+    }
+
+    return [year, sem].filter(Boolean).join(" ");
+}
+
+const LAST_TERM_STORAGE_KEY = "sat_last_term_text";
+
+/*
+ * Reads the term text the student last typed into the "Current
+ * Term" field, so new courses keep going into that same term
+ * across page reloads until the student types something else.
+ */
+function getStoredLastTerm() {
+    try {
+        return localStorage.getItem(LAST_TERM_STORAGE_KEY) || "";
+    } catch (e) {
+        return "";
+    }
+}
+
+function setStoredLastTerm(value) {
+    try {
+        localStorage.setItem(LAST_TERM_STORAGE_KEY, value || "");
+    } catch (e) {
+        // localStorage unavailable - the typed term just won't be
+        // remembered across reloads, nothing else breaks.
+    }
+}
+
+/*
+ * The Current Term field only accepts one format:
+ * "YYYY-YYYY Fall|Spring|Summer" (e.g. "2025-2026 Fall"), with
+ * the second year being the first year + 1. An empty value is
+ * still allowed (term stays unspecified) - this only rejects
+ * text that doesn't match once something has been typed. The
+ * Fall/Spring/Summer word is matched case-insensitively - however
+ * the student types it ("fall", "FALL", "fAlL"...) it's accepted
+ * and rewritten to the fixed canonical format by
+ * normalizeTermInput() below before it's saved.
+ */
+const TERM_FORMAT_REGEX =
+    /^(\d{4})-(\d{4}) (Fall|Spring|Summer)$/i;
+
+const TERM_FORMAT_EXAMPLE =
+    "2025-2026 Fall";
+
+function isValidTermFormat(text) {
+    const match =
+        TERM_FORMAT_REGEX.exec((text || "").trim());
+
+    if (!match) return false;
+
+    const startYear = parseInt(match[1], 10);
+    const endYear = parseInt(match[2], 10);
+
+    return endYear === startYear + 1;
+}
+
+/*
+ * Rewrites whatever casing the student typed the term in (e.g.
+ * "2025-2026 fall", "2025-2026 FALL") into the one fixed
+ * canonical format ("2025-2026 Fall") the rest of the app relies
+ * on for grouping/matching terms together. If the text doesn't
+ * match the expected term shape at all, it's returned unchanged
+ * so isValidTermFormat() still flags it as invalid.
+ */
+function normalizeTermInput(text) {
+    const trimmed = (text || "").trim();
+
+    const match =
+        TERM_FORMAT_REGEX.exec(trimmed);
+
+    if (!match) return trimmed;
+
+    const startYear = parseInt(match[1], 10);
+    const endYear = parseInt(match[2], 10);
+
+    if (endYear !== startYear + 1) return trimmed;
+
+    const season = match[3].toLowerCase();
+    const canonicalSeason =
+        season.charAt(0).toUpperCase() + season.slice(1);
+
+    return `${match[1]}-${match[2]} ${canonicalSeason}`;
+}
+
+/*
+ * Groups a list of courses by their term label, preserving each
+ * group's first-seen order (newest-added terms tend to appear
+ * first since courses are typically added most-recent-first).
+ */
+function groupCoursesByTerm(courses) {
+    const groups = new Map();
+
+    courses.forEach(c => {
+        const label = getTermLabel(c);
+
+        if (!groups.has(label)) {
+            groups.set(label, []);
+        }
+
+        groups.get(label).push(c);
+    });
+
+    return groups;
+}
+
+/*
  * Builds a single <tr> for the courses table.
  */
-function buildCourseRow(c) {
+function buildCourseRow(c, termLabel) {
+
+    const rowTermLabel =
+        termLabel || getTermLabel(c);
 
     // NO automatic 30/30 anymore
     const mw =
@@ -1581,14 +1769,42 @@ function buildCourseRow(c) {
     const pg =
         c.passingGrade ?? 60;
 
+    const extraGrades =
+        Array.isArray(c.extraGrades)
+            ? c.extraGrades
+            : [];
+
     const req =
         calcRequiredFinal(
             c.midtermGrade,
             c.projectGrade,
             mw,
             pw,
-            pg
+            pg,
+            extraGrades
         );
+
+    /*
+     * Extra grade items (homework, quiz, attendance...) now get
+     * their own dedicated "Extra Grades" column instead of being
+     * tucked away as small subtext under the course name, so the
+     * score you actually got on each one is easy to see at a
+     * glance rather than easy to miss.
+     */
+    const extraGradesCell =
+        extraGrades.length
+            ? `
+                <div style="font-size:12px;line-height:1.6;">
+                    ${extraGrades.map(item => `
+                        <div>
+                            ${escapeHtml(item.label)}:
+                            <strong>${escapeHtml(formatEmpty(item.score))}</strong>
+                            <span style="color:#94a3b8">(${escapeHtml(item.weight)}%)</span>
+                        </div>
+                    `).join("")}
+                </div>
+            `
+            : `<span style="color:#94a3b8">-</span>`;
 
     const reqCell = `
         <span
@@ -1632,49 +1848,25 @@ function buildCourseRow(c) {
             ? c.makeupGrade
             : "";
 
-    const wasFailingBeforeMakeup =
-        (function () {
-            const f = c.finalGrade;
-
-            if (f === null || f === undefined || f === "") {
-                return false;
-            }
-
-            const mwF = Number(c.midtermWeight ?? 0) / 100;
-            const pwF = Number(c.projectWeight ?? 0) / 100;
-            const fwF = 1 - mwF - pwF;
-            const pgF = Number(c.passingGrade ?? 60);
-
-            const mF =
-                c.midtermGrade !== null &&
-                c.midtermGrade !== undefined &&
-                c.midtermGrade !== ""
-                    ? Number(c.midtermGrade)
-                    : 0;
-
-            const pF =
-                c.projectGrade !== null &&
-                c.projectGrade !== undefined &&
-                c.projectGrade !== ""
-                    ? Number(c.projectGrade)
-                    : 0;
-
-            const avgF =
-                (mF * mwF) + (pF * pwF) + (Number(f) * fwF);
-
-            return avgF < pgF;
-        })();
-
+    /*
+     * The makeup grade is always shown here whenever one has been
+     * entered for the course - even if the course was already
+     * passing on midterm/project/final alone. Some instructors
+     * still record a "büt" grade after the fact (a resit taken for
+     * a higher grade, a late-added makeup, etc.), so this no longer
+     * hides an entered makeup grade just because the course result
+     * is already "Pass" without it.
+     */
     const butCell =
-        wasFailingBeforeMakeup
-            ? `<span>${escapeHtml(butValue || "-")}</span>`
+        butValue !== ""
+            ? `<span>${escapeHtml(butValue)}</span>`
             : `<span style="color:#94a3b8">-</span>`;
 
     return `
-        <tr>
+        <tr data-term="${escapeHtml(rowTermLabel)}" data-course-id="${c.id}">
 
             <td data-label="Course">
-                ${escapeHtml(c.courseName)}
+                <span class="course-name-text">${escapeHtml(c.courseName)}</span>
             </td>
 
             <td data-label="Instructor">
@@ -1727,6 +1919,10 @@ function buildCourseRow(c) {
                 ${butCell}
             </td>
 
+            <td data-label="Extra Grades">
+                ${extraGradesCell}
+            </td>
+
             <td class="action-buttons">
 
                 <button
@@ -1742,7 +1938,9 @@ function buildCourseRow(c) {
                         '${escapeForOnclick(mw)}',
                         '${escapeForOnclick(pw)}',
                         '${escapeForOnclick(pg)}',
-                        '${escapeForOnclick(c.makeupGrade ?? "")}'
+                        '${escapeForOnclick(c.makeupGrade ?? "")}',
+                        '${escapeForOnclick(c.academicYear ?? "")}',
+                        '${escapeForOnclick(c.semester ?? "")}'
                     )"
                 >
                     ✏️
@@ -1776,7 +1974,7 @@ function renderCoursesTableBody(courses) {
             ? courses.map(c => buildCourseRow(c)).join("")
             : `
                 <tr>
-                    <td colspan="10">
+                    <td colspan="11">
                         No courses found.
                     </td>
                 </tr>
@@ -1798,12 +1996,89 @@ async function loadCourses() {
         window._coursesForGPA =
             courses;
 
+        window._allCoursesForTermFilter =
+            courses;
+
+        /*
+         * Group courses by term (academicYear + semester) so the
+         * table doesn't turn into one long undifferentiated pile
+         * once grades from multiple semesters pile up. Each group
+         * gets its own header row inside the table body.
+         */
+        const termGroups =
+            groupCoursesByTerm(courses);
+
+        /*
+         * The term filter is no longer optional ("All Terms" was
+         * removed) - one term must always be selected, and the
+         * table only ever shows that term's courses. Default to
+         * the most-recently-added real term (courses tend to be
+         * added most-recent-first, see groupCoursesByTerm), only
+         * falling back to "No Term Assigned" if that's genuinely
+         * the only group that exists yet.
+         */
+        const termKeys =
+            [...termGroups.keys()];
+
+        const realTermKeys =
+            termKeys.filter(
+                label => label !== "No Term Assigned"
+            );
+
+        const defaultTerm =
+            realTermKeys.length > 0
+                ? realTermKeys[0]
+                : (termKeys[0] || "");
+
+        const termOptions =
+            termKeys
+                .map(
+                    label =>
+                        `<option value="${escapeHtml(label)}" ${label === defaultTerm ? "selected" : ""}>${escapeHtml(label)}</option>`
+                )
+                .join("");
+
+        /*
+         * The "Current Term" field is free text (e.g. "2025-2026"
+         * or "2025-2026 Fall") - it is remembered across reloads
+         * until the student types something different. A datalist
+         * of previously-used terms is offered as suggestions, but
+         * typing a brand new value just creates that term.
+         */
+        const activeTermText =
+            getStoredLastTerm();
+
+        const termDatalistOptions =
+            [...termGroups.keys()]
+                .filter(label => label !== "No Term Assigned")
+                .map(
+                    label =>
+                        `<option value="${escapeHtml(label)}"></option>`
+                )
+                .join("");
+
         const rows =
             courses.length
-                ? courses.map(c => buildCourseRow(c)).join("")
+                ? [...termGroups.entries()]
+                    .map(([label, group]) => `
+                        <tr class="term-group-header" data-term="${escapeHtml(label)}">
+                            <td colspan="11" style="
+                                background:#f1f5f9;
+                                font-weight:700;
+                                color:#334155;
+                                padding:10px 14px;
+                            ">
+                                📅 ${escapeHtml(label)}
+                                <span style="font-weight:500;color:#94a3b8;">
+                                    (${group.length} course${group.length === 1 ? "" : "s"})
+                                </span>
+                            </td>
+                        </tr>
+                        ${group.map(c => buildCourseRow(c, label)).join("")}
+                    `).join("")
                 : `
                     <tr>
-                        <td colspan="10">
+                        <td colspan="11">
                             No courses found.
                         </td>
                     </tr>
@@ -1823,6 +2098,62 @@ async function loadCourses() {
                     </h2>
 
                     <span class="form-box-chevron">▾</span>
+
+                </div>
+
+                <div
+                    style="
+                        margin-bottom:14px;
+                        padding:10px 12px;
+                        background:#eff6ff;
+                        border:1px solid #bfdbfe;
+                        border-radius:8px;
+                    "
+                >
+
+                    <label
+                        for="academicYear"
+                        style="
+                            font-size:12px;
+                            color:#1e40af;
+                            display:block;
+                            margin-bottom:4px;
+                            font-weight:700;
+                        "
+                    >
+                        📅 Current Term (required) - format: YYYY-YYYY Fall/Spring/Summer (e.g. 2025-2026 Fall) - remembered for new courses until you change it
+                    </label>
+
+                    <style>
+                        #academicYear::placeholder {
+                            color: #94a3b8;
+                            font-style: italic;
+                            opacity: 1;
+                        }
+                    </style>
+
+                    <input
+                        type="text"
+                        id="academicYear"
+                        list="termHistoryList"
+                        placeholder="e.g. 2025-2026 Fall"
+                        value="${escapeHtml(activeTermText)}"
+                        oninput="rememberActiveTerm(this.value)"
+                        required
+                        style="
+                            width:100%;
+                            padding:8px 10px;
+                            border-radius:8px;
+                            border:1px solid #93c5fd;
+                            font-size:14px;
+                            background:#fff;
+                            color:#1e293b;
+                        "
+                    >
+
+                    <datalist id="termHistoryList">
+                        ${termDatalistOptions}
+                    </datalist>
 
                 </div>
 
@@ -1988,6 +2319,73 @@ async function loadCourses() {
 
 
                 <div
+                    style="
+                        margin-top:10px;
+                        padding:12px;
+                        background:#f8fafc;
+                        border-radius:8px;
+                        border:1px solid #e2e8f0;
+                    "
+                >
+
+                    <div
+                        style="
+                            display:flex;
+                            align-items:center;
+                            justify-content:space-between;
+                            margin-bottom:8px;
+                        "
+                    >
+
+                        <label
+                            style="
+                                font-size:12px;
+                                color:#64748b;
+                                font-weight:600;
+                            "
+                        >
+                            Other Graded Items (optional) — for
+                            instructors who also grade homework,
+                            quizzes, attendance, etc.
+                        </label>
+
+                        <button
+                            type="button"
+                            onclick="addExtraGradeRow()"
+                            style="
+                                font-size:12px;
+                                padding:4px 12px;
+                                background:#eff6ff;
+                                border:1px solid #93c5fd;
+                                border-radius:20px;
+                                cursor:pointer;
+                                color:#1e40af;
+                                font-weight:700;
+                                white-space:nowrap;
+                            "
+                        >
+                            + Add Grade Item
+                        </button>
+
+                    </div>
+
+                    <div id="extraGradesList"></div>
+
+                    <div
+                        style="
+                            font-size:11px;
+                            color:#94a3b8;
+                            margin-top:4px;
+                        "
+                    >
+                        Each item needs a name and a weight (%). The
+                        score can be left empty until it's graded.
+                    </div>
+
+                </div>
+
+
+                <div
                     id="required-final-preview"
                     style="
                         margin-top:8px;
@@ -2037,6 +2435,21 @@ async function loadCourses() {
                         "
                     ></div>
 
+                    <select
+                        id="termFilter"
+                        onchange="filterCoursesByTerm(this.value)"
+                        style="
+                            width:100%;
+                            margin-bottom:8px;
+                            padding:6px 8px;
+                            border-radius:8px;
+                            border:1px solid #cbd5e1;
+                            font-size:13px;
+                        "
+                    >
+                        ${termOptions}
+                    </select>
+
                     <div
                         style="
                             display:flex;
@@ -2047,8 +2460,8 @@ async function loadCourses() {
 
                         <button
                             onclick="
-                                filterCourses('');
                                 document.getElementById('courseSearch').value='';
+                                filterCourses('');
                             "
                             style="
                                 font-size:12px;
@@ -2061,7 +2474,7 @@ async function loadCourses() {
                                 font-weight:500;
                             "
                         >
-                            All
+                            Clear Search
                         </button>
 
                         <button
@@ -2160,6 +2573,43 @@ async function loadCourses() {
             </div>
 
 
+            <div
+                style="
+                    margin:0 0 10px 0;
+                    display:flex;
+                    align-items:center;
+                    gap:10px;
+                    flex-wrap:wrap;
+                "
+            >
+
+                <label
+                    for="tableTermFilter"
+                    style="
+                        font-weight:700;
+                        font-size:13px;
+                        color:#334155;
+                    "
+                >
+                    📅 Filter by Term:
+                </label>
+
+                <select
+                    id="tableTermFilter"
+                    onchange="filterCoursesByTerm(this.value)"
+                    style="
+                        padding:6px 10px;
+                        border-radius:8px;
+                        border:1px solid #cbd5e1;
+                        font-size:13px;
+                        min-width:220px;
+                    "
+                >
+                    ${termOptions}
+                </select>
+
+            </div>
+
             <table id="courses-table">
 
                 <thead>
@@ -2174,6 +2624,7 @@ async function loadCourses() {
                         <th>Final</th>
                         <th>Result</th>
                         <th>Makeup Grade</th>
+                        <th>Extra Grades</th>
                         <th>Action</th>
                     </tr>
 
@@ -2187,7 +2638,18 @@ async function loadCourses() {
         `;
 
         updateRequiredFinalPreview();
-        updateSearchStats();
+
+        /*
+         * A term is always selected now (no more "All Terms"), so
+         * apply that default filter immediately - the table opens
+         * already scoped to one term instead of showing everything
+         * (including legacy "No Term Assigned" courses) at once.
+         */
+        if (defaultTerm) {
+            filterCoursesByTerm(defaultTerm);
+        } else {
+            updateSearchStats();
+        }
 
     } catch (err) {
         console.error(
@@ -2198,6 +2660,138 @@ async function loadCourses() {
         document.getElementById("app").innerHTML =
             `<p>Courses could not be loaded.</p>`;
     }
+}
+
+
+/* ─── OTHER GRADED ITEMS (optional extra grades) ──────────────────────────────*/
+
+let extraGradeRowCounter = 0;
+
+/*
+ * Appends one "extra grade item" row (name / weight / score) to the
+ * Add/Edit Course form. Called by the "+ Add Grade Item" button, and
+ * by editCourse() to pre-fill a course's existing extra grade items.
+ */
+function addExtraGradeRow(item) {
+    const container =
+        document.getElementById("extraGradesList");
+
+    if (!container) return;
+
+    const rowId = `extraGradeRow_${extraGradeRowCounter++}`;
+
+    const label = item?.label ?? "";
+    const weight = item?.weight ?? "";
+    const score = item?.score ?? "";
+
+    const row = document.createElement("div");
+    row.className = "extra-grade-row";
+    row.id = rowId;
+    row.style.cssText =
+        "display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center;";
+
+    row.innerHTML = `
+        <input
+            type="text"
+            class="extra-grade-label"
+            placeholder="e.g. Homework, Quiz, Attendance"
+            value="${escapeHtml(label)}"
+            oninput="updateRequiredFinalPreview()"
+        >
+        <input
+            type="number"
+            class="extra-grade-weight"
+            placeholder="Weight %"
+            min="0"
+            max="100"
+            value="${escapeHtml(weight)}"
+            oninput="updateRequiredFinalPreview()"
+        >
+        <input
+            type="number"
+            class="extra-grade-score"
+            placeholder="Score (optional)"
+            min="0"
+            max="100"
+            value="${escapeHtml(score)}"
+            oninput="updateRequiredFinalPreview()"
+        >
+        <button
+            type="button"
+            onclick="removeExtraGradeRow('${rowId}')"
+            style="
+                font-size:12px;
+                padding:6px 10px;
+                background:#fee2e2;
+                border:1px solid #fca5a5;
+                border-radius:8px;
+                cursor:pointer;
+                color:#991b1b;
+                font-weight:700;
+            "
+        >
+            ✕
+        </button>
+    `;
+
+    container.appendChild(row);
+    updateRequiredFinalPreview();
+}
+
+function removeExtraGradeRow(rowId) {
+    const row = document.getElementById(rowId);
+    if (row) row.remove();
+    updateRequiredFinalPreview();
+}
+
+function clearExtraGradeRows() {
+    const container =
+        document.getElementById("extraGradesList");
+
+    if (container) container.innerHTML = "";
+}
+
+/*
+ * Reads every extra grade row currently in the form and returns a
+ * clean array of { label, weight, score } — rows left completely
+ * empty (never filled in after pressing "+") are skipped.
+ */
+function getExtraGradesFromForm() {
+    const rows =
+        document.querySelectorAll(
+            "#extraGradesList .extra-grade-row"
+        );
+
+    const list = [];
+
+    rows.forEach(row => {
+        const labelRaw =
+            row.querySelector(".extra-grade-label")?.value.trim() || "";
+
+        // However the label is typed ("homework", "HOMEWORK",
+        // "quiz"...), it's normalized to the same fixed Title
+        // Case style used for course/instructor names, so
+        // "Homework: 40 (10%)" always looks consistent no matter
+        // how it was originally entered.
+        const label =
+            toTitleCase(labelRaw);
+
+        const weightRaw =
+            row.querySelector(".extra-grade-weight")?.value.trim() || "";
+
+        const scoreRaw =
+            row.querySelector(".extra-grade-score")?.value.trim() || "";
+
+        if (!label && !weightRaw && !scoreRaw) return;
+
+        list.push({
+            label,
+            weight: weightRaw === "" ? 0 : Number(weightRaw),
+            score: scoreRaw === "" ? null : Number(scoreRaw)
+        });
+    });
+
+    return list;
 }
 
 
@@ -2235,6 +2829,15 @@ function updateRequiredFinalPreview() {
             )?.value || 60
         );
 
+    const extraGrades =
+        getExtraGradesFromForm();
+
+    const extraWeightSum =
+        extraGrades.reduce(
+            (sum, item) => sum + (Number(item.weight) || 0),
+            0
+        );
+
     const preview =
         document.getElementById(
             "required-final-preview"
@@ -2246,12 +2849,14 @@ function updateRequiredFinalPreview() {
     const finalWeight =
         100 -
         midtermWeight -
-        projectWeight;
+        projectWeight -
+        extraWeightSum;
 
 
     if (
         midtermWeight < 0 ||
         projectWeight < 0 ||
+        extraWeightSum < 0 ||
         finalWeight < 0
     ) {
         preview.innerHTML = `
@@ -2301,18 +2906,27 @@ function updateRequiredFinalPreview() {
     }
 
 
+    const extraWeightInfo =
+        extraWeightSum > 0
+            ? ` · Extras: <strong>${extraWeightSum}%</strong>`
+            : "";
+
     const weightInfo = `
         Weights →
         Midterm:
         <strong>${midtermWeight}%</strong>
         · Project:
         <strong>${projectWeight}%</strong>
+        ${extraWeightInfo}
         · Final:
         <strong>${finalWeight}%</strong>
     `;
 
 
-    if (!midterm && !project) {
+    const extraHasAnyValue =
+        extraGrades.some(item => item.label || item.weight);
+
+    if (!midterm && !project && !extraHasAnyValue) {
         preview.innerHTML = weightInfo;
         return;
     }
@@ -2324,7 +2938,8 @@ function updateRequiredFinalPreview() {
             project,
             midtermWeight,
             projectWeight,
-            passingGrade
+            passingGrade,
+            extraGrades
         );
 
 
@@ -2350,9 +2965,33 @@ function applyQuickFilter(type) {
             "#courses-table tbody tr"
         );
 
+    /*
+     * A term is always selected (no more "All Terms"), so quick
+     * filters stay scoped to whichever term is currently active
+     * instead of reaching across every term in the table.
+     */
+    const activeTerm =
+        document.getElementById("tableTermFilter")?.value ||
+        document.getElementById("termFilter")?.value ||
+        "";
+
     let count = 0;
 
     rows.forEach(row => {
+
+        if (row.classList.contains("term-group-header")) {
+            row.style.display =
+                (!activeTerm || row.dataset.term === activeTerm)
+                    ? ""
+                    : "none";
+            return;
+        }
+
+        if (activeTerm && row.dataset.term !== activeTerm) {
+            row.style.display = "none";
+            return;
+        }
+
         const cells =
             row.querySelectorAll("td");
 
@@ -2409,7 +3048,7 @@ function updateSearchStats(visible) {
 
     const allRows =
         document.querySelectorAll(
-            "#courses-table tbody tr"
+            "#courses-table tbody tr:not(.term-group-header)"
         );
 
     const total =
@@ -2426,6 +3065,73 @@ function updateSearchStats(visible) {
             : `Showing ${shown} of ${total} courses`;
 }
 
+/*
+ * Filters the courses table to a single term (e.g. "2025-2026
+ * Fall"), also hiding/showing each term's group header row.
+ * An empty value shows every term again.
+ */
+function filterCoursesByTerm(termLabel) {
+
+    const rows =
+        document.querySelectorAll(
+            "#courses-table tbody tr"
+        );
+
+    let count = 0;
+
+    rows.forEach(row => {
+
+        if (row.classList.contains("term-group-header")) {
+            row.style.display =
+                (!termLabel || row.dataset.term === termLabel)
+                    ? ""
+                    : "none";
+            return;
+        }
+
+        const match =
+            !termLabel ||
+            row.dataset.term === termLabel;
+
+        row.style.display =
+            match ? "" : "none";
+
+        if (match) {
+            count++;
+        }
+    });
+
+    /*
+     * Two dropdowns can trigger this (the one above the table and
+     * the one inside the Search Courses card) - keep them showing
+     * the same value no matter which one the student just used.
+     */
+    const termFilterEl =
+        document.getElementById("termFilter");
+
+    if (termFilterEl && termFilterEl.value !== (termLabel || "")) {
+        termFilterEl.value = termLabel || "";
+    }
+
+    const tableTermFilterEl =
+        document.getElementById("tableTermFilter");
+
+    if (tableTermFilterEl && tableTermFilterEl.value !== (termLabel || "")) {
+        tableTermFilterEl.value = termLabel || "";
+    }
+
+    updateSearchStats(count);
+}
+
+/*
+ * Saves whatever the student is typing into the "Current Term"
+ * field so it keeps being pre-filled for new courses next time,
+ * until they type something else.
+ */
+function rememberActiveTerm(value) {
+    setStoredLastTerm((value || "").trim());
+}
+
 function filterCourses(keyword) {
     const rows =
         document.querySelectorAll(
@@ -2435,9 +3141,34 @@ function filterCourses(keyword) {
     const query =
         keyword.toLowerCase();
 
+    /*
+     * A term is always selected (no more "All Terms"), so text
+     * search also stays scoped to the currently active term.
+     */
+    const activeTerm =
+        document.getElementById("tableTermFilter")?.value ||
+        document.getElementById("termFilter")?.value ||
+        "";
+
     let count = 0;
 
     rows.forEach(row => {
+
+        if (row.classList.contains("term-group-header")) {
+            const termMatches =
+                !activeTerm || row.dataset.term === activeTerm;
+
+            row.style.display =
+                (query || !termMatches) ? "none" : "";
+
+            return;
+        }
+
+        if (activeTerm && row.dataset.term !== activeTerm) {
+            row.style.display = "none";
+            return;
+        }
+
         const match =
             row.textContent
                 .toLowerCase()
@@ -2517,26 +3248,27 @@ function calculateGPA() {
 
 
         /*
-         * Get the course from the API data
-         * instead of assuming 30/30/40.
+         * Get the course from the API data instead of assuming
+         * 30/30/40. Matched by id (stored on the row) rather than
+         * by name text, since the Course cell may also contain the
+         * extra-grade-items summary now.
          */
-        const courseName =
-            cells[0].textContent.trim();
+        const courseId =
+            Number(row.dataset.courseId);
 
-
-        /*
-         * Find the matching course.
-         */
         const course =
             window._coursesForGPA?.find(
-                c =>
-                    String(c.courseName).trim() ===
-                    courseName
+                c => c.id === courseId
             );
 
 
         if (!course) return;
 
+
+        const extraGrades =
+            Array.isArray(course.extraGrades)
+                ? course.extraGrades
+                : [];
 
         const midtermWeight =
             Number(
@@ -2548,10 +3280,17 @@ function calculateGPA() {
                 course.projectWeight ?? 0
             ) / 100;
 
+        const extraWeight =
+            extraGrades.reduce(
+                (sum, item) => sum + (Number(item.weight) || 0),
+                0
+            ) / 100;
+
         const finalWeight =
             1 -
             midtermWeight -
-            projectWeight;
+            projectWeight -
+            extraWeight;
 
 
         /*
@@ -2575,11 +3314,24 @@ function calculateGPA() {
                 ? 0
                 : project;
 
+        const extraEarned =
+            extraGrades.reduce((sum, item) => {
+                const score =
+                    item.score !== null &&
+                    item.score !== undefined &&
+                    item.score !== ""
+                        ? Number(item.score)
+                        : 0;
+
+                return sum + (score * (Number(item.weight) || 0) / 100);
+            }, 0);
+
 
         const avg =
             (midtermValue * midtermWeight) +
             (projectValue * projectWeight) +
-            (final * finalWeight);
+            (final * finalWeight) +
+            extraEarned;
 
 
         let gpaPoint = 0;
@@ -2860,6 +3612,18 @@ async function saveCourse() {
                 "credit"
             ).value,
 
+        academicYear:
+            normalizeTermInput(
+                document.getElementById(
+                    "academicYear"
+                ).value
+            ) || null,
+
+        // Semester is no longer collected separately - the whole
+        // term (year and/or semester) is typed as one piece of
+        // text into the "Current Term" field above (academicYear).
+        semester: null,
+
         midtermGrade:
             document.getElementById(
                 "midtermGrade"
@@ -2900,7 +3664,11 @@ async function saveCourse() {
                 document.getElementById(
                     "passingGrade"
                 ).value.trim() || 60
-            )
+            ),
+
+        // Optional extra graded items (homework, quiz, attendance...)
+        extraGrades:
+            getExtraGradesFromForm()
     };
 
 
@@ -2919,13 +3687,27 @@ async function saveCourse() {
 
 
     if (
+        !course.academicYear ||
+        !isValidTermFormat(course.academicYear)
+    ) {
+        showToast(
+            `Please enter the current term, in the format "${TERM_FORMAT_EXAMPLE}" (year-year, space, then Fall/Spring/Summer).`,
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (
         course.midtermGrade === null &&
         course.projectGrade === null &&
         course.finalGrade === null &&
-        course.makeupGrade === null
+        course.makeupGrade === null &&
+        course.extraGrades.length === 0
     ) {
         showToast(
-            "Please enter at least one grade (midterm, project, final or makeup) to save the course.",
+            "Please enter at least one grade (midterm, project, final, makeup, or an extra grade item) to save the course.",
             "warning"
         );
 
@@ -2946,12 +3728,43 @@ async function saveCourse() {
     }
 
 
+    /*
+     * Every extra grade item needs a name and a positive weight.
+     */
+    for (const item of course.extraGrades) {
+        if (!item.label) {
+            showToast(
+                "Please enter a name for every extra grade item (e.g. Homework, Quiz, Attendance).",
+                "warning"
+            );
+
+            return;
+        }
+
+        if (!(item.weight > 0)) {
+            showToast(
+                `Please enter a weight for "${item.label}".`,
+                "warning"
+            );
+
+            return;
+        }
+    }
+
+    const extraWeightSum =
+        course.extraGrades.reduce(
+            (sum, item) => sum + (Number(item.weight) || 0),
+            0
+        );
+
+
     if (
         course.midtermWeight +
-        course.projectWeight >= 100
+        course.projectWeight +
+        extraWeightSum >= 100
     ) {
         showToast(
-            "Midterm and project weights must total less than 100%. The remaining percentage is automatically used for the final.",
+            "Midterm, project and extra grade item weights must total less than 100%. The remaining percentage is automatically used for the final.",
             "warning"
         );
 
@@ -3061,7 +3874,9 @@ function editCourse(
     midtermWeight,
     projectWeight,
     passingGrade,
-    makeupGrade
+    makeupGrade,
+    academicYear,
+    semester
 ) {
 
     document.getElementById(
@@ -3075,6 +3890,22 @@ function editCourse(
     document.getElementById(
         "credit"
     ).value = credit;
+
+    /*
+     * The "Current Term" field is now one free-text box, so an
+     * existing course's year + semester are combined into a
+     * single editable string (e.g. "2025-2026 Fall") instead of
+     * two separate controls.
+     */
+    document.getElementById(
+        "academicYear"
+    ).value =
+        (
+            (academicYear && academicYear !== "Unspecified") ||
+            (semester && semester !== "Unspecified")
+        )
+            ? getTermLabel({ academicYear, semester })
+            : "";
 
     document.getElementById(
         "midtermGrade"
@@ -3114,6 +3945,25 @@ function editCourse(
         passingGrade ?? 60;
 
 
+    /*
+     * Pre-fill any existing "extra grade item" rows (homework,
+     * quiz, attendance...) for this course. Looked up by id from
+     * the already-loaded course list rather than threaded through
+     * this function's arguments, since it's an array.
+     */
+    clearExtraGradeRows();
+
+    const fullCourse =
+        window._coursesForGPA?.find(c => c.id === id);
+
+    const existingExtraGrades =
+        Array.isArray(fullCourse?.extraGrades)
+            ? fullCourse.extraGrades
+            : [];
+
+    existingExtraGrades.forEach(item => addExtraGradeRow(item));
+
+
     updateRequiredFinalPreview();
 
 
@@ -3150,6 +4000,17 @@ function editCourse(
                     document.getElementById(
                         "credit"
                     ).value,
+
+                academicYear:
+                    normalizeTermInput(
+                        document.getElementById(
+                            "academicYear"
+                        ).value
+                    ) || null,
+
+                // Semester is folded into the Current Term text
+                // above (academicYear) - no separate field anymore.
+                semester: null,
 
                 midtermGrade:
                     document.getElementById(
@@ -3190,7 +4051,11 @@ function editCourse(
                         document.getElementById(
                             "passingGrade"
                         ).value.trim() || 60
-                    )
+                    ),
+
+                // Optional extra graded items (homework, quiz, attendance...)
+                extraGrades:
+                    getExtraGradesFromForm()
             };
 
 
@@ -3209,13 +4074,27 @@ function editCourse(
 
 
             if (
+                !updated.academicYear ||
+                !isValidTermFormat(updated.academicYear)
+            ) {
+                showToast(
+                    `Please enter the current term, in the format "${TERM_FORMAT_EXAMPLE}" (year-year, space, then Fall/Spring/Summer).`,
+                    "warning"
+                );
+
+                return;
+            }
+
+
+            if (
                 updated.midtermGrade === null &&
                 updated.projectGrade === null &&
                 updated.finalGrade === null &&
-                updated.makeupGrade === null
+                updated.makeupGrade === null &&
+                updated.extraGrades.length === 0
             ) {
                 showToast(
-                    "Please enter at least one grade (midterm, project, final or makeup) to save the course.",
+                    "Please enter at least one grade (midterm, project, final, makeup, or an extra grade item) to save the course.",
                     "warning"
                 );
 
@@ -3236,12 +4115,43 @@ function editCourse(
             }
 
 
+            /*
+             * Every extra grade item needs a name and a positive weight.
+             */
+            for (const item of updated.extraGrades) {
+                if (!item.label) {
+                    showToast(
+                        "Please enter a name for every extra grade item (e.g. Homework, Quiz, Attendance).",
+                        "warning"
+                    );
+
+                    return;
+                }
+
+                if (!(item.weight > 0)) {
+                    showToast(
+                        `Please enter a weight for "${item.label}".`,
+                        "warning"
+                    );
+
+                    return;
+                }
+            }
+
+            const updatedExtraWeightSum =
+                updated.extraGrades.reduce(
+                    (sum, item) => sum + (Number(item.weight) || 0),
+                    0
+                );
+
+
             if (
                 updated.midtermWeight +
-                updated.projectWeight >= 100
+                updated.projectWeight +
+                updatedExtraWeightSum >= 100
             ) {
                 showToast(
-                    "Midterm and project weights must total less than 100%.",
+                    "Midterm, project and extra grade item weights must total less than 100%.",
                     "warning"
                 );
 
@@ -3326,10 +4236,7 @@ function editCourse(
         };
 
 
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
+    scrollAppFormIntoView();
 
     expandAddFormBoxIfCollapsed(saveButton);
 }
@@ -4170,10 +5077,7 @@ function editStudySession(
         "inline-block";
 
 
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
+    scrollAppFormIntoView();
 
     expandAddFormBoxIfCollapsed(
         document.getElementById("studyFormTitle")
@@ -4972,10 +5876,7 @@ function editExam(
         };
 
 
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
+    scrollAppFormIntoView();
 
     expandAddFormBoxIfCollapsed(saveButton);
 }
@@ -5310,10 +6211,7 @@ function editProject(
         };
 
 
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
+    scrollAppFormIntoView();
 
     expandAddFormBoxIfCollapsed(saveButton);
 }
@@ -5349,6 +6247,35 @@ function expandAddFormBoxIfCollapsed(anyElementInsideBox) {
     if (box) {
         box.classList.add("is-expanded");
     }
+}
+
+
+/*
+ * Scrolls the user up to the "Add/Edit" form at the top of the
+ * current page. The page content does NOT scroll on `window` -
+ * the actual scrollable element is the `.main-area` wrapper
+ * (see style.css), so `window.scrollTo()` alone silently does
+ * nothing there. This scrolls every scrollable ancestor that
+ * could plausibly be holding the scroll position (`.main-area`
+ * and `window`) so clicking "Edit" always lands the user right
+ * on the now-filled-in form, regardless of layout/viewport.
+ */
+function scrollAppFormIntoView() {
+
+    const mainArea =
+        document.querySelector(".main-area");
+
+    if (mainArea) {
+        mainArea.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    }
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
 }
 
 

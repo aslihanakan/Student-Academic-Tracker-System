@@ -57,6 +57,13 @@ function createCourse(req, res) {
     // Makeup ("büt") exam grade, entered after a course is failed
     const makeupGrade = req.body.makeupGrade;
 
+    // Term info (e.g. "2025-2026" and "Fall")
+    const academicYear = req.body.academicYear;
+    const semester = req.body.semester;
+
+    // Optional extra graded items (homework, quizzes, attendance...)
+    const extraGrades = req.body.extraGrades;
+
     courseService.createCourse(
         req.userId,
         courseName,
@@ -69,6 +76,9 @@ function createCourse(req, res) {
         projectWeight,
         passingGrade,
         makeupGrade,
+        academicYear,
+        semester,
+        extraGrades,
         function (err, course) {
 
             if (err) {
@@ -102,6 +112,13 @@ function updateCourse(req, res) {
     // Makeup ("büt") exam grade, entered after a course is failed
     const makeupGrade = req.body.makeupGrade;
 
+    // Term info (e.g. "2025-2026" and "Fall")
+    const academicYear = req.body.academicYear;
+    const semester = req.body.semester;
+
+    // Optional extra graded items (homework, quizzes, attendance...)
+    const extraGrades = req.body.extraGrades;
+
     courseService.updateCourse(
         id,
         req.userId,
@@ -115,6 +132,9 @@ function updateCourse(req, res) {
         projectWeight,
         passingGrade,
         makeupGrade,
+        academicYear,
+        semester,
+        extraGrades,
         function (err, course) {
 
             if (err) {
