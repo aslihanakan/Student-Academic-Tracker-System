@@ -21,13 +21,6 @@ const PORT = process.env.PORT || 5000;
 
 
 // =====================================================
-// DATABASE
-// =====================================================
-
-initializeDatabase();
-
-
-// =====================================================
 // MIDDLEWARE
 // =====================================================
 
@@ -157,25 +150,38 @@ app.use(function (req, res) {
 
 
 // =====================================================
-// SERVER
+// DATABASE + SERVER
 // =====================================================
+// initializeDatabase() is async now (it talks to Turso over
+// the network), so we wait for it to finish before the server
+// starts accepting requests. Otherwise the first requests could
+// hit tables that don't exist yet.
 
-app.listen(PORT, function () {
+initializeDatabase()
+    .then(function () {
 
-    console.log(
-        `Server running at http://localhost:${PORT}`
-    );
+        app.listen(PORT, function () {
 
-    console.log(
-        `Swagger Docs: http://localhost:${PORT}/api-docs`
-    );
+            console.log(
+                `Server running at http://localhost:${PORT}`
+            );
 
-    console.log(
-        `Swagger JSON: http://localhost:${PORT}/api-docs.json`
-    );
+            console.log(
+                `Swagger Docs: http://localhost:${PORT}/api-docs`
+            );
 
-    console.log(
-        `Health Check: http://localhost:${PORT}/api/health`
-    );
+            console.log(
+                `Swagger JSON: http://localhost:${PORT}/api-docs.json`
+            );
 
-});
+            console.log(
+                `Health Check: http://localhost:${PORT}/api/health`
+            );
+
+        });
+
+    })
+    .catch(function (err) {
+        console.error("Failed to initialize database:", err);
+        process.exit(1);
+    });
