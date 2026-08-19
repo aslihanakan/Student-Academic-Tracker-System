@@ -79,6 +79,36 @@ router.put("/:id", examController.updateExam);
 
 /**
  * @swagger
+ * /api/exams/{id}/status:
+ *   patch:
+ *     summary: Bir sınavın tamamlandı/tamamlanmadı durumunu günceller
+ *     tags: [Exams]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Sınav ID'si
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isDone:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Durum başarıyla güncellendi.
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch("/:id/status", examController.updateExamStatus);
+
+/**
+ * @swagger
  * /api/exams/{id}:
  *   delete:
  *     summary: Bir sınav kaydını siler

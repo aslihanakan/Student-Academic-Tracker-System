@@ -112,9 +112,33 @@ function deleteProject(id, userId, callback) {
     });
 }
 
+/*
+ * Quick toggle used by the checkbox in the projects table: flips
+ * status between "completed" and "pending" without touching any of
+ * the project's other fields.
+ */
+function updateProjectStatus(id, userId, status, callback) {
+    if (!["pending", "in progress", "completed"].includes(status)) {
+        return callback(new Error("Invalid status."));
+    }
+
+    const sql = "UPDATE projects SET status = ? WHERE id = ? AND userId = ?";
+
+    db.run(sql, [status, id, userId], function (err) {
+        if (err) return callback(err);
+
+        if (this.changes === 0) {
+            return callback(new Error("Project not found."));
+        }
+
+        callback(null, { id, status });
+    });
+}
+
 module.exports = {
     getAllProjects,
     createProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    updateProjectStatus
 };

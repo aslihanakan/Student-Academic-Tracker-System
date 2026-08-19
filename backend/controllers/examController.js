@@ -55,9 +55,23 @@ function deleteExam(req, res) {
     });
 }
 
+function updateExamStatus(req, res) {
+    const id = Number(req.params.id);
+    const isDone = req.body.isDone;
+
+    examService.updateExamStatus(id, req.userId, isDone, function (err, result) {
+        if (err) {
+            return res.status(404).json({ message: err.message });
+        }
+
+        res.status(200).json(result);
+    });
+}
+
 module.exports = {
     getAllExams,
     createExam,
     updateExam,
-    deleteExam
+    deleteExam,
+    updateExamStatus
 };

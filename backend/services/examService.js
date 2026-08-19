@@ -108,9 +108,31 @@ function deleteExam(id, userId, callback) {
     });
 }
 
+/*
+ * Quick toggle used by the checkbox in the exams table: marks an
+ * exam done/undone without touching any of its other fields. Once
+ * isDone is true the frontend shows a green "Completed" badge;
+ * otherwise, if the exam date has passed, it shows a red "Overdue"
+ * badge instead of the normal days-left countdown.
+ */
+function updateExamStatus(id, userId, isDone, callback) {
+    const sql = "UPDATE exams SET isDone = ? WHERE id = ? AND userId = ?";
+
+    db.run(sql, [isDone ? 1 : 0, id, userId], function (err) {
+        if (err) return callback(err);
+
+        if (this.changes === 0) {
+            return callback(new Error("Exam not found."));
+        }
+
+        callback(null, { id, isDone: isDone ? 1 : 0 });
+    });
+}
+
 module.exports = {
     getAllExams,
     createExam,
     updateExam,
-    deleteExam
+    deleteExam,
+    updateExamStatus
 };

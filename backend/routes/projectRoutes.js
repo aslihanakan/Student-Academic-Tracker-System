@@ -79,6 +79,36 @@ router.put("/:id", projectController.updateProject);
 
 /**
  * @swagger
+ * /api/projects/{id}/status:
+ *   patch:
+ *     summary: Bir projenin durumunu (pending/in progress/completed) günceller
+ *     tags: [Projects]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Proje ID'si
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Durum başarıyla güncellendi.
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch("/:id/status", projectController.updateProjectStatus);
+
+/**
+ * @swagger
  * /api/projects/{id}:
  *   delete:
  *     summary: Bir proje kaydını siler

@@ -141,6 +141,69 @@ function ensureColumn(table, column, definition, callback) {
     });
 }
 
+/*
+ * SQLite/libsql can't ALTER a CHECK constraint in place, so for
+ * databases created before "homework"/"quiz"/"other" were added to
+ * todos.type, we recreate the table with the wider constraint and
+ * copy the existing rows across. Safe to run on every boot: it's a
+ * no-op once the table already has the new constraint.
+ */
+function migrateTodosTypeCheck(callback) {
+    db.get(
+        `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'todos'`,
+        [],
+        function (err, row) {
+            if (err) return callback(err);
+
+            if (!row || !row.sql || row.sql.indexOf("'homework'") !== -1) {
+                return callback(null);
+            }
+
+            db.run(`ALTER TABLE todos RENAME TO todos_old_typecheck`, [], function (err) {
+                if (err) return callback(err);
+
+                db.run(`
+                    CREATE TABLE todos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        userId INTEGER NOT NULL,
+                        courseId INTEGER NOT NULL,
+                        type TEXT NOT NULL
+                            CHECK (type IN ('exam', 'project', 'homework', 'quiz', 'other')),
+                        title TEXT NOT NULL,
+                        dueDate TEXT NOT NULL,
+                        isDone INTEGER NOT NULL DEFAULT 0
+                            CHECK (isDone IN (0, 1)),
+                        FOREIGN KEY (courseId)
+                            REFERENCES courses(id)
+                            ON DELETE CASCADE,
+                        FOREIGN KEY (userId)
+                            REFERENCES users(id)
+                            ON DELETE CASCADE
+                    )
+                `, [], function (err) {
+                    if (err) return callback(err);
+
+                    db.run(
+                        `INSERT INTO todos (id, userId, courseId, type, title, dueDate, isDone)
+                         SELECT id, userId, courseId, type, title, dueDate, isDone FROM todos_old_typecheck`,
+                        [],
+                        function (err) {
+                            if (err) return callback(err);
+
+                            db.run(`DROP TABLE todos_old_typecheck`, [], function (err) {
+                                if (err) return callback(err);
+
+                                console.log("Migrated todos.type check constraint.");
+                                callback(null);
+                            });
+                        }
+                    );
+                });
+            });
+        }
+    );
+}
+
 function initializeDatabase() {
 
     return new Promise(function (resolve, reject) {
@@ -311,6 +374,27 @@ function initializeDatabase() {
                 )
             `);
 
+            // Tracks whether an exam/quiz has been completed by the
+            // student, independent of "score" (a score can be entered
+            // later, but isDone lets the UI show a green "Completed"
+            // checkmark or a red "Overdue" warning once the date passes).
+            ensureColumn("exams", "isDone", "INTEGER DEFAULT 0", function (err) {
+                if (err) {
+                    console.error("Migration error (exams.isDone):", err.message);
+                    return;
+                }
+
+                db.run(
+                    `UPDATE exams SET isDone = 0 WHERE isDone IS NULL`,
+                    [],
+                    function (err) {
+                        if (err) {
+                            console.error("Backfill error (exams.isDone):", err.message);
+                        }
+                    }
+                );
+            });
+
             db.run(`
                 CREATE TABLE IF NOT EXISTS projects (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -350,13 +434,18 @@ function initializeDatabase() {
                 )
             `);
 
+            // "todos" now doubles as the lightweight "extra activity"
+            // list (homework, quiz reminders, etc.) shown on the Exams
+            // page and, in condensed form, on the Dashboard. The type
+            // CHECK constraint is widened below via migrateTodosTypeCheck
+            // for databases that were created before this change.
             db.run(`
                 CREATE TABLE IF NOT EXISTS todos (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     userId INTEGER NOT NULL,
                     courseId INTEGER NOT NULL,
                     type TEXT NOT NULL
-                        CHECK (type IN ('exam', 'project')),
+                        CHECK (type IN ('exam', 'project', 'homework', 'quiz', 'other')),
                     title TEXT NOT NULL,
                     dueDate TEXT NOT NULL,
                     isDone INTEGER NOT NULL DEFAULT 0
@@ -368,7 +457,18 @@ function initializeDatabase() {
                         REFERENCES users(id)
                         ON DELETE CASCADE
                 )
-            `);
+            `, [], function (err) {
+                if (err) {
+                    console.error("Todos table creation error:", err.message);
+                    return;
+                }
+
+                migrateTodosTypeCheck(function (err) {
+                    if (err) {
+                        console.error("Migration error (todos.type check):", err.message);
+                    }
+                });
+            });
 
             db.run(`
                 CREATE TABLE IF NOT EXISTS dashboard_summary (

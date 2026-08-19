@@ -29,26 +29,9 @@ function isValidWeight(value) {
     return Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
-/*
- * The term (academicYear) field only accepts one format:
- * "YYYY-YYYY Fall|Spring|Summer" (e.g. "2025-2026 Fall"), with the
- * second year being the first year + 1. The Fall/Spring/Summer part
- * is matched case-insensitively - "fall", "FALL", "fAlL" etc are
- * all accepted and rewritten to the canonical capitalized form
- * below, so however the student types it, it's stored consistently.
- * Kept in sync with the same check on the frontend (isValidTermFormat
- * in app.js).
- */
 const TERM_FORMAT_REGEX = /^(\d{4})-(\d{4}) (Fall|Spring|Summer)$/i;
 const TERM_FORMAT_EXAMPLE = "2025-2026 Fall";
 
-/*
- * Rewrites a term string typed in any letter-casing into the fixed
- * canonical format ("2025-2026 Fall"). Returns null if the text
- * doesn't match the expected shape at all (wrong year math, missing
- * season, etc.) - callers fall back to the raw trimmed text in that
- * case so the existing "invalid format" validation still catches it.
- */
 function canonicalizeTermFormat(text) {
     const match = TERM_FORMAT_REGEX.exec(String(text || "").trim());
 
@@ -90,15 +73,6 @@ function isValidTermFormat(text) {
 
 /*
  * ─── EXTRA (OPTIONAL) GRADED ITEMS ──────────────────────────────
- *
- * Some instructors also grade on homework, quizzes, attendance,
- * etc. instead of just midterm/project/final. These are stored as
- * a JSON array on the course row:
- *   [{ "label": "Homework 1", "weight": 10, "score": 85 }, ...]
- *
- * "score" may be null (not graded yet), "weight" is always a
- * number between 0 and 100 (exclusive of the total reaching 100
- * together with midterm/project/final weights).
  */
 
 function parseExtraGrades(raw) {
@@ -116,13 +90,6 @@ function parseExtraGrades(raw) {
     return [];
 }
 
-/*
- * Normalizes free-text names (extra grade item labels, etc.) to a
- * consistent Title Case, regardless of how the client sent them in
- * ("homework", "HOMEWORK", "homeWORK" all become "Homework"). Kept
- * in sync with the same helper on the frontend (toTitleCase in
- * app.js) so the stored label always looks the same either way.
- */
 function toTitleCase(value) {
     if (value === null || value === undefined) return value;
 
@@ -146,12 +113,6 @@ function toTitleCase(value) {
         .join(" ");
 }
 
-/*
- * Validates and normalizes the extra grades array coming from the
- * client. Returns { list, error }. "list" is ready to store
- * (stringified separately by the caller); "error" is an Error
- * instance when validation fails.
- */
 function normalizeExtraGrades(raw) {
     const input = parseExtraGrades(raw);
 
@@ -164,7 +125,6 @@ function normalizeExtraGrades(raw) {
         const weight = normalizeWeight(item.weight);
         const score = normalizeGrade(item.score);
 
-        // Skip fully empty rows (e.g. an unused "+" row).
         if (!label && !weight && (score === null)) {
             continue;
         }
@@ -208,10 +168,6 @@ function sumExtraGradeWeights(list) {
     }, 0);
 }
 
-/*
- * Parses the raw DB row's extraGrades TEXT column back into an
- * array so callers always receive a usable JS array.
- */
 function mapCourseRow(row) {
     if (!row) return row;
 
@@ -310,21 +266,6 @@ function createCourse(
     }
 
     if (
-        midtermGrade === null &&
-        projectGrade === null &&
-        finalGrade === null &&
-        makeupGrade === null &&
-        extraGradesList.length === 0
-    ) {
-        return callback(
-            new Error(
-                "Please enter at least one grade (midterm, project, final, makeup, or an extra grade item) to save the course."
-            )
-        );
-    }
-
-
-    if (
         !isValidGrade(midtermGrade) ||
         !isValidGrade(projectGrade) ||
         !isValidGrade(finalGrade) ||
@@ -362,17 +303,6 @@ function createCourse(
         return callback(
             new Error(
                 "Passing grade must be between 0 and 100."
-            )
-        );
-    }
-
-    if (
-        midtermGrade !== null &&
-        midtermWeight === 0
-    ) {
-        return callback(
-            new Error(
-                "You entered a midterm grade. Please enter the midterm weight."
             )
         );
     }
@@ -521,21 +451,6 @@ function updateCourse(
     }
 
     if (
-        midtermGrade === null &&
-        projectGrade === null &&
-        finalGrade === null &&
-        makeupGrade === null &&
-        extraGradesList.length === 0
-    ) {
-        return callback(
-            new Error(
-                "Please enter at least one grade (midterm, project, final, makeup, or an extra grade item) to save the course."
-            )
-        );
-    }
-
-
-    if (
         !isValidGrade(midtermGrade) ||
         !isValidGrade(projectGrade) ||
         !isValidGrade(finalGrade) ||
@@ -577,16 +492,6 @@ function updateCourse(
         );
     }
 
-    if (
-        midtermGrade !== null &&
-        midtermWeight === 0
-    ) {
-        return callback(
-            new Error(
-                "You entered a midterm grade. Please enter the midterm weight."
-            )
-        );
-    }
 
     if (
         projectGrade !== null &&

@@ -72,9 +72,22 @@ function deleteProject(req, res) {
     });
 }
 
+function updateProjectStatus(req, res) {
+    const id = Number(req.params.id);
+    const status = req.body.status;
+
+    projectService.updateProjectStatus(id, req.userId, status, function (err, result) {
+        if (err) {
+            return res.status(404).json({ message: err.message });
+        }
+        res.status(200).json(result);
+    });
+}
+
 module.exports = {
     getAllProjects,
     createProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    updateProjectStatus
 };
