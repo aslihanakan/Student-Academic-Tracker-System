@@ -14,19 +14,24 @@ async function loadDashboard() {
             sessions,
             exams,
             projects,
-            todos
+            todos,
+            dayNotesResult
         ] = await Promise.all([
             fetchJson(`${API_URL}/dashboard`),
             fetchJson(`${API_URL}/courses?includeUnlisted=1`),
             fetchJson(`${API_URL}/study-sessions`),
             fetchJson(`${API_URL}/exams`),
             fetchJson(`${API_URL}/projects`),
-            fetchJson(`${API_URL}/todos`)
+            fetchJson(`${API_URL}/todos`),
+            fetchJson(`${API_URL}/day-notes`).catch(() => [])
         ]);
 
         window._dashboardActivities = todos;
         window._allCoursesForDeadlines = courses;
         window._allCourses = courses;
+        window._dayNotes = Array.isArray(dayNotesResult) ? dayNotesResult : [];
+
+        await migrateLocalDayNotesIfNeeded();
 
         const reminderActivities = todos
             .filter(t => ["homework", "quiz", "other"].includes(t.type))
@@ -475,20 +480,81 @@ function closeDayModal() {
 }
 
 const DAY_NOTES_STORAGE_PREFIX = "sat_day_notes_";
+const DAY_NOTES_MIGRATED_KEY = "sat_day_notes_migrated_v1";
 
 function getDayNotes(dateText) {
-    try {
-        const raw = localStorage.getItem(DAY_NOTES_STORAGE_PREFIX + dateText);
-        return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-        return [];
-    }
+    return (window._dayNotes || []).filter(n => n.noteDate === dateText);
 }
 
-function setDayNotes(dateText, notes) {
+function collectLocalDayNotes() {
+    const notes = [];
+
     try {
-        localStorage.setItem(DAY_NOTES_STORAGE_PREFIX + dateText, JSON.stringify(notes));
-    } catch (e) {}
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key || !key.startsWith(DAY_NOTES_STORAGE_PREFIX)) continue;
+
+            const dateText = key.slice(DAY_NOTES_STORAGE_PREFIX.length);
+            let stored = [];
+
+            try {
+                stored = JSON.parse(localStorage.getItem(key) || "[]");
+            } catch (e) {
+                stored = [];
+            }
+
+            (stored || []).forEach(item => {
+                const text = String(item?.text || "").trim();
+                if (!text) return;
+                notes.push({ noteDate: dateText, text });
+            });
+        }
+    } catch (e) {
+        return notes;
+    }
+
+    return notes;
+}
+
+async function migrateLocalDayNotesIfNeeded() {
+    try {
+        if (localStorage.getItem(DAY_NOTES_MIGRATED_KEY) === "1") return;
+    } catch (e) {
+        return;
+    }
+
+    const localNotes = collectLocalDayNotes();
+    if (!localNotes.length) {
+        try {
+            localStorage.setItem(DAY_NOTES_MIGRATED_KEY, "1");
+        } catch (e) {}
+        return;
+    }
+
+    const existing = new Set(
+        (window._dayNotes || []).map(n => `${n.noteDate}::${n.text}`)
+    );
+
+    const toUpload = localNotes.filter(n => !existing.has(`${n.noteDate}::${n.text}`));
+
+    try {
+        for (const note of toUpload) {
+            const response = await fetch(`${API_URL}/day-notes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(note)
+            });
+
+            if (response.ok) {
+                const created = await response.json();
+                window._dayNotes = [...(window._dayNotes || []), created];
+            }
+        }
+
+        localStorage.setItem(DAY_NOTES_MIGRATED_KEY, "1");
+    } catch (err) {
+        console.error("Day notes migration error:", err);
+    }
 }
 
 function buildDayModalHtml(dateText) {
@@ -575,7 +641,7 @@ function buildDayModalHtml(dateText) {
     `;
 }
 
-function submitDayModalNote(dateText) {
+async function submitDayModalNote(dateText) {
     const textarea = document.getElementById("dayModalNoteText");
     const text = textarea.value.trim();
 
@@ -584,20 +650,48 @@ function submitDayModalNote(dateText) {
         return;
     }
 
-    const notes = getDayNotes(dateText);
-    notes.push({ id: String(Date.now()), text });
-    setDayNotes(dateText, notes);
+    try {
+        const response = await fetch(`${API_URL}/day-notes`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ noteDate: dateText, text })
+        });
 
-    showToast("Note added.", "success");
-    renderCalendar();
-    openCalendarDayModal(dateText);
+        if (!response.ok) {
+            showToast("Note could not be saved.", "error");
+            return;
+        }
+
+        const created = await response.json();
+        window._dayNotes = [...(window._dayNotes || []), created];
+
+        showToast("Note added.", "success");
+        renderCalendar();
+        openCalendarDayModal(dateText);
+    } catch (err) {
+        console.error("Day Note Save Error:", err);
+        showToast("Note could not be saved.", "error");
+    }
 }
 
-function deleteDayNote(dateText, noteId) {
-    const notes = getDayNotes(dateText).filter(n => n.id !== noteId);
-    setDayNotes(dateText, notes);
-    renderCalendar();
-    openCalendarDayModal(dateText);
+async function deleteDayNote(dateText, noteId) {
+    try {
+        const response = await fetch(`${API_URL}/day-notes/${noteId}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            showToast("Note could not be deleted.", "error");
+            return;
+        }
+
+        window._dayNotes = (window._dayNotes || []).filter(n => String(n.id) !== String(noteId));
+        renderCalendar();
+        openCalendarDayModal(dateText);
+    } catch (err) {
+        console.error("Day Note Delete Error:", err);
+        showToast("Note could not be deleted.", "error");
+    }
 }
 
 async function toggleDayModalDeadlineDone(type, id, isDone, dateText) {

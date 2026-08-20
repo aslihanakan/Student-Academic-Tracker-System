@@ -516,6 +516,20 @@ function initializeDatabase() {
             });
 
             db.run(`
+                CREATE TABLE IF NOT EXISTS day_notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    userId INTEGER NOT NULL,
+                    noteDate TEXT NOT NULL,
+                    text TEXT NOT NULL,
+                    createdAt TEXT NOT NULL
+                        DEFAULT (datetime('now')),
+                    FOREIGN KEY (userId)
+                        REFERENCES users(id)
+                        ON DELETE CASCADE
+                )
+            `);
+
+            db.run(`
                 CREATE TABLE IF NOT EXISTS dashboard_summary (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     totalStudyHours REAL DEFAULT 0,

@@ -12,6 +12,7 @@ const projectRoutes = require("./routes/projectRoutes");
 const studySessionRoutes = require("./routes/studySessionRoutes");
 const todoRoutes = require("./routes/todoRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const dayNoteRoutes = require("./routes/dayNoteRoutes");
 
 const { requireAuth } = require("./middleware/authMiddleware");
 
@@ -132,6 +133,12 @@ app.use(
     "/api/dashboard",
     requireAuth,
     dashboardRoutes
+);
+
+app.use(
+    "/api/day-notes",
+    requireAuth,
+    dayNoteRoutes
 );
 
 
