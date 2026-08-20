@@ -168,11 +168,51 @@ function sumExtraGradeWeights(list) {
     }, 0);
 }
 
+function normalizeListedInGrades(value, defaultValue) {
+    if (value === undefined || value === null || value === "") {
+        return defaultValue;
+    }
+
+    return Number(value) === 0 ? 0 : 1;
+}
+
+/*
+ * ─── COURSE ORIGIN PAGE ("createdFrom") ─────────────────────────
+ * "grades"  -> added/registered from the Grades page, visible everywhere
+ * "exams"   -> quick-added from the Deadlines page, only suggested there
+ * "study"   -> quick-added from the Study Sessions page, only suggested there
+ * "shared"  -> legacy quick-added course (created before this feature
+ *              existed) or any course we can't confidently scope;
+ *              treated as visible everywhere so old data keeps working
+ */
+const VALID_CREATED_FROM = ["grades", "exams", "study", "shared"];
+
+function normalizeCreatedFrom(value, listedInGrades) {
+    // A course that is registered in Grades is always fully shared.
+    if (Number(listedInGrades) === 1) {
+        return "grades";
+    }
+
+    const normalized = String(value || "").trim().toLowerCase();
+
+    if (VALID_CREATED_FROM.indexOf(normalized) !== -1 && normalized !== "grades") {
+        return normalized;
+    }
+
+    // Unknown/unspecified origin for an unlisted course: keep it
+    // visible everywhere rather than accidentally hiding it.
+    return "shared";
+}
+
 function mapCourseRow(row) {
     if (!row) return row;
 
+    const listedInGrades = normalizeListedInGrades(row.listedInGrades, 1);
+
     return Object.assign({}, row, {
-        extraGrades: parseExtraGrades(row.extraGrades)
+        extraGrades: parseExtraGrades(row.extraGrades),
+        listedInGrades: listedInGrades,
+        createdFrom: normalizeCreatedFrom(row.createdFrom, listedInGrades)
     });
 }
 
@@ -180,10 +220,53 @@ function mapCourseRows(rows) {
     return (rows || []).map(mapCourseRow);
 }
 
-function getAllCourses(userId, callback) {
+function getAllCourses(userId, options, callback) {
+    // Backward compatible with the old getAllCourses(userId, includeUnlisted, callback) signature.
+    if (typeof options === "function") {
+        callback = options;
+        options = {};
+    } else if (typeof options === "boolean") {
+        options = { includeUnlisted: options };
+    } else {
+        options = options || {};
+    }
+
+    const includeUnlisted = !!options.includeUnlisted;
+
+    const scope = options.scope
+        ? String(options.scope).trim().toLowerCase()
+        : null;
+
+    let sql;
+    let params;
+
+    if (!includeUnlisted) {
+        sql = "SELECT * FROM courses WHERE userId = ? AND COALESCE(listedInGrades, 1) = 1";
+        params = [userId];
+    } else if (scope && scope !== "grades" && scope !== "shared" && VALID_CREATED_FROM.indexOf(scope) !== -1) {
+        // Grade-registered courses and legacy "shared" courses show up
+        // everywhere. Quick-added courses only show up on the page
+        // (scope) they were created from.
+        sql = `
+            SELECT * FROM courses
+            WHERE userId = ?
+            AND (
+                COALESCE(listedInGrades, 1) = 1
+                OR COALESCE(createdFrom, 'shared') IN (?, 'shared')
+            )
+        `;
+        params = [userId, scope];
+    } else {
+        // No (or unrecognized) scope requested: return everything,
+        // e.g. for the Dashboard's overview or the Grades page's
+        // "promote an existing unlisted course" lookup.
+        sql = "SELECT * FROM courses WHERE userId = ?";
+        params = [userId];
+    }
+
     db.all(
-        "SELECT * FROM courses WHERE userId = ?",
-        [userId],
+        sql,
+        params,
         function (err, rows) {
             if (err) return callback(err);
             callback(null, mapCourseRows(rows));
@@ -217,9 +300,24 @@ function createCourse(
     academicYear,
     semester,
     extraGrades,
+    listedInGrades,
+    createdFrom,
     callback
 ) {
+    if (typeof createdFrom === "function") {
+        callback = createdFrom;
+        createdFrom = undefined;
+    }
+
+    if (typeof listedInGrades === "function") {
+        callback = listedInGrades;
+        listedInGrades = 1;
+        createdFrom = undefined;
+    }
+
     credit = Number(credit);
+    listedInGrades = normalizeListedInGrades(listedInGrades, 1);
+    createdFrom = normalizeCreatedFrom(createdFrom, listedInGrades);
 
     midtermGrade = normalizeGrade(midtermGrade);
     projectGrade = normalizeGrade(projectGrade);
@@ -336,9 +434,11 @@ function createCourse(
             makeupGrade,
             academicYear,
             semester,
-            extraGrades
+            extraGrades,
+            listedInGrades,
+            createdFrom
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.run(
@@ -357,7 +457,9 @@ function createCourse(
             makeupGrade,
             academicYear,
             semester,
-            extraGradesJson
+            extraGradesJson,
+            listedInGrades,
+            createdFrom
         ],
         function (err) {
             if (err) {
@@ -379,7 +481,9 @@ function createCourse(
                 makeupGrade,
                 academicYear,
                 semester,
-                extraGrades: extraGradesList
+                extraGrades: extraGradesList,
+                listedInGrades,
+                createdFrom
             });
         }
     );
@@ -401,9 +505,18 @@ function updateCourse(
     academicYear,
     semester,
     extraGrades,
+    listedInGrades,
+    createdFrom,
     callback
 ) {
+    if (typeof createdFrom === "function") {
+        callback = createdFrom;
+        createdFrom = undefined;
+    }
+
     credit = Number(credit);
+    listedInGrades = normalizeListedInGrades(listedInGrades, 1);
+    createdFrom = normalizeCreatedFrom(createdFrom, listedInGrades);
 
     midtermGrade = normalizeGrade(midtermGrade);
     projectGrade = normalizeGrade(projectGrade);
@@ -521,7 +634,9 @@ function updateCourse(
             makeupGrade = ?,
             academicYear = ?,
             semester = ?,
-            extraGrades = ?
+            extraGrades = ?,
+            listedInGrades = ?,
+            createdFrom = ?
         WHERE id = ?
         AND userId = ?
     `;
@@ -542,6 +657,8 @@ function updateCourse(
             academicYear,
             semester,
             extraGradesJson,
+            listedInGrades,
+            createdFrom,
             id,
             userId
         ],
@@ -571,7 +688,9 @@ function updateCourse(
                 makeupGrade,
                 academicYear,
                 semester,
-                extraGrades: extraGradesList
+                extraGrades: extraGradesList,
+                listedInGrades,
+                createdFrom
             });
         }
     );
@@ -605,6 +724,7 @@ function searchCourses(keyword, userId, callback) {
         SELECT *
         FROM courses
         WHERE userId = ?
+        AND COALESCE(listedInGrades, 1) = 1
         AND (
             courseName LIKE ?
             OR instructorName LIKE ?

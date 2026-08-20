@@ -1,0 +1,154 @@
+/* =========================================================
+   DEADLINES & EXAMS
+========================================================= */
+.deadline-card {
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 11px;
+    margin-bottom: 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.badge-exam {
+    background: rgba(59, 130, 246, 0.14);
+    color: #2563eb;
+}
+
+.badge-project {
+    background: rgba(139, 92, 246, 0.14);
+    color: #7c3aed;
+}
+
+.reminder-type-tag {
+    flex-shrink: 0;
+    padding: 2px 7px;
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #dbeafe;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.deadline-course {
+    color: #102a43;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.deadline-instructor {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.deadline-date-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    font-size: 13px;
+}
+
+.deadline-date {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.progress-bar.full {
+    margin-top: 12px;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 20px;
+}
+
+.status-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 14px 0;
+}
+
+.status-filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+}
+
+.cleanup-old-completed-btn {
+    padding: 7px 14px !important;
+    margin: 0 !important;
+    border: 1px solid #fca5a5;
+    border-radius: 999px;
+    background: #fef2f2 !important;
+    color: #b91c1c !important;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: none !important;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cleanup-old-completed-btn:hover {
+    background: #fee2e2 !important;
+    border-color: #ef4444;
+}
+
+.status-filter-tab {
+    padding: 7px 14px !important;
+    margin: 0 !important;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #ffffff !important;
+    color: #475569 !important;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: none !important;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.status-filter-tab:hover {
+    background: #f1f5f9 !important;
+    transform: none;
+}
+
+.status-filter-tab.active {
+    background: #2563eb !important;
+    border-color: #2563eb;
+    color: #ffffff !important;
+}
+
+.done-checkbox {
+    width: 18px;
+    height: 18px;
+    margin: 0 !important;
+    cursor: pointer;
+    accent-color: #22c55e;
+}
+
+td.done-cell {
+    text-align: center;
+}

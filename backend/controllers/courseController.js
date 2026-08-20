@@ -1,7 +1,15 @@
 const courseService = require("../services/courseService");
 
 function getAllCourses(req, res) {
-    courseService.getAllCourses(req.userId, function (err, courses) {
+    const includeUnlisted = req.query.includeUnlisted === "1";
+
+    // "scope" tells the backend which page is asking (e.g. "exams"
+    // for the Deadlines page, "study" for Study Sessions), so
+    // quick-added courses from other pages are left out of the
+    // suggestion list. Omit it to get everything (Dashboard, Grades).
+    const scope = req.query.scope;
+
+    courseService.getAllCourses(req.userId, { includeUnlisted, scope }, function (err, courses) {
 
         if (err) {
             return res.status(500).json({
@@ -63,6 +71,11 @@ function createCourse(req, res) {
 
     // Optional extra graded items (homework, quizzes, attendance...)
     const extraGrades = req.body.extraGrades;
+    const listedInGrades = req.body.listedInGrades;
+
+    // Which page this course is being quick-added from ("exams",
+    // "study"). Ignored (forced to "grades") when listedInGrades = 1.
+    const createdFrom = req.body.createdFrom;
 
     courseService.createCourse(
         req.userId,
@@ -79,6 +92,8 @@ function createCourse(req, res) {
         academicYear,
         semester,
         extraGrades,
+        listedInGrades,
+        createdFrom,
         function (err, course) {
 
             if (err) {
@@ -118,6 +133,8 @@ function updateCourse(req, res) {
 
     // Optional extra graded items (homework, quizzes, attendance...)
     const extraGrades = req.body.extraGrades;
+    const listedInGrades = req.body.listedInGrades;
+    const createdFrom = req.body.createdFrom;
 
     courseService.updateCourse(
         id,
@@ -135,6 +152,8 @@ function updateCourse(req, res) {
         academicYear,
         semester,
         extraGrades,
+        listedInGrades,
+        createdFrom,
         function (err, course) {
 
             if (err) {

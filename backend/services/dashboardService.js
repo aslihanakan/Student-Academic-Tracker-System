@@ -8,7 +8,7 @@ function getDashboardSummary(userId, callback) {
         nearestTask: null
     };
 
-    db.get("SELECT COUNT(*) AS totalCourses FROM courses WHERE userId = ?", [userId], function (err, courseResult) {
+    db.get("SELECT COUNT(*) AS totalCourses FROM courses WHERE userId = ? AND COALESCE(listedInGrades, 1) = 1", [userId], function (err, courseResult) {
         if (err) return callback(err);
 
         summary.totalCourses = courseResult.totalCourses;

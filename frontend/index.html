@@ -1,1556 +1,405 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Academi Buddy</title>
 
-    <link rel="icon"
-          type="image/png"
-          sizes="32x32"
-          href="favicon-32.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="photos/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="photos/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="photos/favicon-180.png">
 
-    <link rel="icon"
-          type="image/png"
-          sizes="16x16"
-          href="favicon-16.png">
-
-    <link rel="apple-touch-icon"
-          sizes="180x180"
-          href="favicon-180.png">
-
-    <link rel="stylesheet"
-          href="style.css">
-
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/grades.css">
+    <link rel="stylesheet" href="css/deadlines.css">
+    <link rel="stylesheet" href="css/study-sessions.css">
 </head>
-
-
 <body>
-
 
 <!-- =========================================================
      AUTH / LANDING SCREEN
 ========================================================= -->
+<div id="auth-screen" class="auth-screen">
 
-<div id="auth-screen"
-     class="auth-screen">
-
-
-    <!-- =====================================================
-         BACKGROUND VIDEO
-    ====================================================== -->
-
-    <video
-        id="authBackgroundVideo"
-        class="auth-background-video"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="auto">
-
-        <source
-            src="videos/login-background.mp4"
-            type="video/mp4">
-
+    <video id="authBackgroundVideo" class="auth-background-video" autoplay muted loop playsinline preload="auto">
+        <source src="videos/login-background.mp4" type="video/mp4">
         Your browser does not support background video.
-
     </video>
-
-
-    <!-- =====================================================
-         VIDEO DARK OVERLAY
-    ====================================================== -->
 
     <div class="auth-video-overlay"></div>
 
+    <button id="mobileAuthToggle" class="mobile-auth-toggle" type="button" aria-label="Giriş / Kayıt Ol" aria-expanded="false">👤</button>
 
-    <!-- =====================================================
-         MOBILE AUTH TOGGLE
-    ====================================================== -->
+    <div id="landingScreen" class="landing-screen">
 
-    <button
-        id="mobileAuthToggle"
-        class="mobile-auth-toggle"
-        type="button"
-        aria-label="Giriş / Kayıt Ol"
-        aria-expanded="false">
-
-        👤
-
-    </button>
-
-
-    <!-- =====================================================
-         LANDING PAGE
-    ====================================================== -->
-
-    <div id="landingScreen"
-         class="landing-screen">
-
-
-        <!-- =================================================
-             LEFT SIDE
-        ================================================== -->
-
+        <!-- LEFT SIDE -->
         <section class="landing-content">
+            <img src="photos/logo.png" alt="Academi Buddy" class="landing-logo">
+            <div class="landing-brand">Academi Buddy</div>
 
-
-            <!-- LOGO -->
-
-            <img
-                src="logo.png"
-                alt="Academi Buddy"
-                class="landing-logo">
-
-
-            <!-- BRAND -->
-
-            <div class="landing-brand">
-                Academi Buddy
-            </div>
-
-
-            <!-- MAIN TITLE -->
-
-            <h1>
-
-                Manage your
-                <span>academic life in one place.</span>
-
-            </h1>
-
-
-            <!-- DESCRIPTION -->
+            <h1>Manage your <span>academic life in one place.</span></h1>
 
             <p class="landing-description">
-
-                Keep track of your courses, exams, grades
-                and study sessions with ease.
-                Make your academic life more organized,
-                productive and stress-free.
-
+                Keep track of your courses, exams, grades and study sessions with ease.
+                Make your academic life more organized, productive and stress-free.
             </p>
 
-
-            <!-- FEATURES -->
-
             <div class="landing-features">
-
-
-                <!-- FEATURE 1 -->
-
                 <div class="landing-feature">
-
-                    <div class="feature-icon">
-                        📚
-                    </div>
-
+                    <div class="feature-icon">📚</div>
                     <div>
-
-                        <strong>
-                            Course & Grade Tracking
-                        </strong>
-
-                        <span>
-                            Keep all your courses and grades
-                            organized in one place.
-                        </span>
-
+                        <strong>Course & Grade Tracking</strong>
+                        <span>Keep all your courses and grades organized in one place.</span>
                     </div>
-
                 </div>
 
-
-                <!-- FEATURE 2 -->
-
                 <div class="landing-feature">
-
-                    <div class="feature-icon">
-                        📝
-                    </div>
-
+                    <div class="feature-icon">📝</div>
                     <div>
-
-                        <strong>
-                            Exam Tracking
-                        </strong>
-
-                        <span>
-                            Keep track of upcoming exams
-                            and important deadlines.
-                        </span>
-
+                        <strong>Exam Tracking</strong>
+                        <span>Keep track of upcoming exams and important deadlines.</span>
                     </div>
-
                 </div>
 
-
-                <!-- FEATURE 3 -->
-
                 <div class="landing-feature">
-
-                    <div class="feature-icon">
-                        🎯
-                    </div>
-
+                    <div class="feature-icon">🎯</div>
                     <div>
-
-                        <strong>
-                            Grade Calculator
-                        </strong>
-
-                        <span>
-                            Calculate your required final
-                            grade and course results.
-                        </span>
-
+                        <strong>Grade Calculator</strong>
+                        <span>Calculate your required final grade and course results.</span>
                     </div>
-
                 </div>
 
-
-                <!-- FEATURE 4 -->
-
                 <div class="landing-feature">
-
-                    <div class="feature-icon">
-                        ⏱️
-                    </div>
-
+                    <div class="feature-icon">⏱️</div>
                     <div>
-
-                        <strong>
-                            Study Tracking
-                        </strong>
-
-                        <span>
-                            Record your study sessions
-                            and monitor your progress.
-                        </span>
-
+                        <strong>Study Tracking</strong>
+                        <span>Record your study sessions and monitor your progress.</span>
                     </div>
-
                 </div>
-
-
             </div>
-
-
-            <!-- FOOTER -->
 
             <div class="landing-footer">
-
-                <span>
-                    ✦
-                </span>
-
+                <span>✦</span>
                 Make your academic journey easier.
-
             </div>
-
-
         </section>
 
-
-
-        <!-- =================================================
-             RIGHT SIDE
-        ================================================== -->
-
+        <!-- RIGHT SIDE -->
         <section class="landing-auth">
 
-
-            <!-- =================================================
-                 WELCOME CARD
-            ================================================== -->
-
-            <div id="welcomeCard"
-                 class="welcome-card">
-
-
-                <!-- LOGO -->
-
+            <!-- WELCOME CARD -->
+            <div id="welcomeCard" class="welcome-card">
                 <div class="welcome-logo-wrapper">
-
-                    <img
-                        src="logo.png"
-                        alt="Academi Buddy"
-                        class="welcome-logo">
-
+                    <img src="photos/logo.png" alt="Academi Buddy" class="welcome-logo">
                 </div>
 
+                <h2>Welcome to <span>Academi Buddy</span></h2>
 
-                <!-- TITLE -->
-
-                <h2>
-
-                    Welcome to
-
-                    <span>
-                        Academi Buddy
-                    </span>
-
-                </h2>
-
-
-                <!-- DESCRIPTION -->
-
-                <p>
-
-                    Your personal academic companion for
-                    managing courses, grades, exams and
-                    study time.
-
-                </p>
-
-
-                <!-- BUTTONS -->
+                <p>Your personal academic companion for managing courses, grades, exams and study time.</p>
 
                 <div class="welcome-buttons">
-
-                    <button
-                        type="button"
-                        class="welcome-login-button"
-                        onclick="showLoginScreen()">
-
-                        Log In
-
-                    </button>
-
-
-                    <button
-                        type="button"
-                        class="welcome-register-button"
-                        onclick="showRegisterScreen()">
-
-                        Create Account
-
-                    </button>
-
+                    <button type="button" class="welcome-login-button" onclick="showLoginScreen()">Log In</button>
+                    <button type="button" class="welcome-register-button" onclick="showRegisterScreen()">Create Account</button>
                 </div>
-
-
-                <!-- SMALL TEXT -->
 
                 <div class="welcome-note">
-
-                    <span>
-                        ✦
-                    </span>
-
+                    <span>✦</span>
                     Start organizing your academic life today.
-
                 </div>
-
-
             </div>
 
-
-
-            <!-- =================================================
-                 LOGIN / REGISTER CARD
-            ================================================== -->
-
-            <div id="auth-box"
-                 class="auth-box"
-                 style="display:none;">
-
-
-                <!-- LOGO -->
-
-                <img
-                    src="logo.png"
-                    alt="Academi Buddy"
-                    class="auth-logo">
-
-
-                <!-- TITLE -->
-
-                <h1>
-                    Academi Buddy
-                </h1>
-
-
-                <p class="auth-tagline">
-
-                    Sign in to track your courses,
-                    exams and study time.
-
-                </p>
-
-
-                <!-- TABS -->
+            <!-- LOGIN / REGISTER CARD -->
+            <div id="auth-box" class="auth-box" style="display:none;">
+                <img src="photos/logo.png" alt="Academi Buddy" class="auth-logo">
+                <h1>Academi Buddy</h1>
+                <p class="auth-tagline">Sign in to track your courses, exams and study time.</p>
 
                 <div class="auth-tabs">
-
-                    <button
-                        type="button"
-                        id="showLoginTab"
-                        class="auth-tab active">
-
-                        Log In
-
-                    </button>
-
-
-                    <button
-                        type="button"
-                        id="showRegisterTab"
-                        class="auth-tab">
-
-                        Register
-
-                    </button>
-
+                    <button type="button" id="showLoginTab" class="auth-tab active">Log In</button>
+                    <button type="button" id="showRegisterTab" class="auth-tab">Register</button>
                 </div>
 
+                <!-- LOGIN FORM -->
+                <form id="loginForm" class="auth-form" autocomplete="off">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="login-email-field" placeholder="you@example.com" autocomplete="off" autocapitalize="none" spellcheck="false" required>
 
-
-                <!-- =================================================
-                     LOGIN FORM
-                ================================================== -->
-
-                <form
-                    id="loginForm"
-                    class="auth-form"
-                    autocomplete="off">
-
-
-                    <label for="loginEmail">
-                        Email
-                    </label>
-
-
-                    <input
-                        type="email"
-                        id="loginEmail"
-                        name="login-email-field"
-                        placeholder="you@example.com"
-                        autocomplete="off"
-                        autocapitalize="none"
-                        spellcheck="false"
-                        required
-                    >
-
-
-                    <!-- LOGIN PASSWORD -->
-
-                    <label for="loginPassword">
-                        Password
-                    </label>
-
-
+                    <label for="loginPassword">Password</label>
                     <div class="password-input-wrapper">
-
-                        <input
-                            type="password"
-                            id="loginPassword"
-                            name="login-password-field"
-                            placeholder="••••••••"
-                            autocomplete="off"
-                            readonly
-                            required
-                        >
-
-
-                        <button
-                            type="button"
-                            class="password-toggle"
-                            id="loginPasswordToggle"
-                            aria-label="Show password"
-                            title="Show password">
-
-                            <svg
-                                class="password-eye-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                aria-hidden="true">
-
-                                <path
-                                    d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                </path>
-
-                                <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="3"
-                                    stroke="currentColor"
-                                    stroke-width="2">
-                                </circle>
-
-                                <path
-                                    d="M3 3L21 21"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round">
-                                </path>
-
+                        <input type="password" id="loginPassword" name="login-password-field" placeholder="••••••••" autocomplete="off" readonly required>
+                        <button type="button" class="password-toggle" id="loginPasswordToggle" aria-label="Show password" title="Show password">
+                            <svg class="password-eye-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"></circle>
+                                <path d="M3 3L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
                             </svg>
-
                         </button>
-
                     </div>
 
-
-                    <div
-                        id="loginError"
-                        class="auth-error">
-                    </div>
-
-
-                    <button
-                        type="submit"
-                        id="loginSubmitBtn">
-
-                        Log In
-
-                    </button>
-
-
+                    <div id="loginError" class="auth-error"></div>
+                    <button type="submit" id="loginSubmitBtn">Log In</button>
                 </form>
 
+                <!-- REGISTER FORM -->
+                <form id="registerForm" class="auth-form" autocomplete="off" style="display:none;">
+                    <label for="registerName">Full Name</label>
+                    <input type="text" id="registerName" name="registration-full-name" placeholder="Peter Parker" autocomplete="off" required>
 
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="registration-email-address" placeholder="you@example.com" autocomplete="off" autocapitalize="none" spellcheck="false" required>
 
-                <!-- =================================================
-                     REGISTER FORM
-                ================================================== -->
-
-                <form
-                    id="registerForm"
-                    class="auth-form"
-                    autocomplete="off"
-                    style="display:none;">
-
-
-                    <label for="registerName">
-                        Full Name
-                    </label>
-
-
-                    <input
-                        type="text"
-                        id="registerName"
-                        name="registration-full-name"
-                        placeholder="Peter Parker"
-                        autocomplete="off"
-                        required
-                    >
-
-
-                    <label for="registerEmail">
-                        Email
-                    </label>
-
-
-                    <input
-                        type="email"
-                        id="registerEmail"
-                        name="registration-email-address"
-                        placeholder="you@example.com"
-                        autocomplete="off"
-                        autocapitalize="none"
-                        spellcheck="false"
-                        required
-                    >
-
-
-                    <!-- REGISTER PASSWORD -->
-
-                    <label for="registerPassword">
-                        Password
-                    </label>
-
-
+                    <label for="registerPassword">Password</label>
                     <div class="password-input-wrapper">
-
-                        <input
-                            type="password"
-                            id="registerPassword"
-                            name="registration-password-field"
-                            placeholder="At least 6 characters"
-                            autocomplete="new-password"
-                            readonly
-                            required
-                        >
-
-
-                        <button
-                            type="button"
-                            class="password-toggle"
-                            id="registerPasswordToggle"
-                            aria-label="Show password"
-                            title="Show password">
-
-                            <svg
-                                class="password-eye-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                aria-hidden="true">
-
-                                <path
-                                    d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                </path>
-
-                                <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="3"
-                                    stroke="currentColor"
-                                    stroke-width="2">
-                                </circle>
-
-                                <path
-                                    d="M3 3L21 21"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round">
-                                </path>
-
+                        <input type="password" id="registerPassword" name="registration-password-field" placeholder="At least 6 characters" autocomplete="new-password" readonly required>
+                        <button type="button" class="password-toggle" id="registerPasswordToggle" aria-label="Show password" title="Show password">
+                            <svg class="password-eye-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"></circle>
+                                <path d="M3 3L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
                             </svg>
-
                         </button>
-
                     </div>
 
-
-                    <div
-                        id="registerError"
-                        class="auth-error">
-                    </div>
-
-
-                    <button
-                        type="submit"
-                        id="registerSubmitBtn">
-
-                        Create Account
-
-                    </button>
-
-
+                    <div id="registerError" class="auth-error"></div>
+                    <button type="submit" id="registerSubmitBtn">Create Account</button>
                 </form>
 
-
-                <!-- BACK -->
-
-                <button
-                    type="button"
-                    class="auth-back-button"
-                    onclick="showLandingScreen()">
-
-                    ← Back
-
-                </button>
-
-
+                <button type="button" class="auth-back-button" onclick="showLandingScreen()">← Back</button>
             </div>
 
-
         </section>
-
-
     </div>
-
-
 </div>
-
 
 
 <!-- =========================================================
      MAIN APPLICATION
 ========================================================= -->
+<div class="layout" id="mainLayout" style="display:none;">
 
-<div
-    class="layout"
-    id="mainLayout"
-    style="display:none;">
-
-
-    <!-- =====================================================
-         MOBILE TOP BAR
-    ====================================================== -->
-
-    <div
-        class="mobile-topbar"
-        id="mobileTopbar">
-
-
-        <button
-            id="sidebarToggleBtn"
-            class="hamburger-btn"
-            type="button"
-            aria-label="Menüyü aç/kapat"
-            aria-expanded="false">
-
-            <span></span>
-            <span></span>
-            <span></span>
-
+    <div class="mobile-topbar" id="mobileTopbar">
+        <button id="sidebarToggleBtn" class="hamburger-btn" type="button" aria-label="Menüyü aç/kapat" aria-expanded="false">
+            <span></span><span></span><span></span>
         </button>
-
-
-        <img
-            src="logo.png"
-            alt="Academi Buddy"
-            class="mobile-topbar-logo">
-
-
-        <span class="mobile-topbar-title">
-            Academi Buddy
-        </span>
-
-
+        <img src="photos/logo.png" alt="Academi Buddy" class="mobile-topbar-logo">
+        <span class="mobile-topbar-title">Academi Buddy</span>
     </div>
 
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
+    <aside class="sidebar" id="mainSidebar">
+        <button id="sidebarCloseBtn" class="sidebar-close-btn" type="button" aria-label="Menüyü kapat">&times;</button>
 
-    <!-- =====================================================
-         SIDEBAR OVERLAY
-    ====================================================== -->
+        <img src="photos/logo.png" alt="Academi Buddy" class="sidebar-logo">
+        <h2>Academi Buddy</h2>
 
-    <div
-        class="sidebar-overlay"
-        id="sidebarOverlay">
-    </div>
+        <div id="sidebarUser" class="sidebar-user"></div>
 
-
-
-    <!-- =====================================================
-         SIDEBAR
-    ====================================================== -->
-
-    <aside
-        class="sidebar"
-        id="mainSidebar">
-
-
-        <button
-            id="sidebarCloseBtn"
-            class="sidebar-close-btn"
-            type="button"
-            aria-label="Menüyü kapat">
-
-            &times;
-
-        </button>
-
-
-        <img
-            src="logo.png"
-            alt="Academi Buddy"
-            class="sidebar-logo">
-
-
-        <h2>
-            Academi Buddy
-        </h2>
-
-
-        <div
-            id="sidebarUser"
-            class="sidebar-user">
-        </div>
-
-
-        <button
-            type="button"
-            id="dashboardBtn">
-
-            Dashboard
-
-        </button>
-
-
-        <button
-            type="button"
-            id="coursesBtn">
-
-            Grades
-
-        </button>
-
-
-        <button
-            type="button"
-            id="examsBtn">
-
-            Deadlines
-
-        </button>
-
-
-        <button
-            type="button"
-            id="studyBtn">
-
-            Study Sessions
-
-        </button>
-
-
-        <button
-            type="button"
-            id="logoutBtn"
-            class="logout-btn">
-
-            Log Out
-
-        </button>
-
-
+        <button type="button" id="dashboardBtn">Dashboard</button>
+        <button type="button" id="coursesBtn">Grades</button>
+        <button type="button" id="examsBtn">Deadlines</button>
+        <button type="button" id="studyBtn">Study Sessions</button>
+        <button type="button" id="logoutBtn" class="logout-btn">Log Out</button>
     </aside>
 
-
-
-    <!-- =====================================================
-         MAIN CONTENT
-    ====================================================== -->
-
     <section class="main-area">
-
-
-        <div
-            id="sticky-header"
-            class="sticky-header">
-        </div>
-
-
+        <div id="sticky-header" class="sticky-header"></div>
         <main id="app"></main>
-
-
     </section>
 
-
 </div>
-
 
 
 <!-- =========================================================
      LANDING FUNCTIONS
 ========================================================= -->
-
 <script>
 
-
-/* =========================================================
-   SHOW LANDING SCREEN
-========================================================= */
-
 function showLandingScreen() {
+    const welcomeCard = document.getElementById("welcomeCard");
+    const authBox = document.getElementById("auth-box");
 
-    const welcomeCard =
-        document.getElementById("welcomeCard");
-
-    const authBox =
-        document.getElementById("auth-box");
-
-
-    if (welcomeCard) {
-        welcomeCard.style.display = "block";
-    }
-
-
-    if (authBox) {
-        authBox.style.display = "none";
-    }
-
+    if (welcomeCard) welcomeCard.style.display = "block";
+    if (authBox) authBox.style.display = "none";
 }
-
-
-
-/* =========================================================
-   SHOW LOGIN SCREEN
-========================================================= */
 
 function showLoginScreen() {
+    const welcomeCard = document.getElementById("welcomeCard");
+    const authBox = document.getElementById("auth-box");
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+    const loginTab = document.getElementById("showLoginTab");
+    const registerTab = document.getElementById("showRegisterTab");
 
-    const welcomeCard =
-        document.getElementById("welcomeCard");
-
-    const authBox =
-        document.getElementById("auth-box");
-
-    const loginForm =
-        document.getElementById("loginForm");
-
-    const registerForm =
-        document.getElementById("registerForm");
-
-    const loginTab =
-        document.getElementById("showLoginTab");
-
-    const registerTab =
-        document.getElementById("showRegisterTab");
-
-
-    if (welcomeCard) {
-        welcomeCard.style.display = "none";
-    }
-
-
-    if (authBox) {
-        authBox.style.display = "block";
-    }
-
-
-    if (loginForm) {
-        loginForm.style.display = "flex";
-    }
-
-
-    if (registerForm) {
-        registerForm.style.display = "none";
-    }
-
-
-    if (loginTab) {
-        loginTab.classList.add("active");
-    }
-
-
-    if (registerTab) {
-        registerTab.classList.remove("active");
-    }
-
+    if (welcomeCard) welcomeCard.style.display = "none";
+    if (authBox) authBox.style.display = "block";
+    if (loginForm) loginForm.style.display = "flex";
+    if (registerForm) registerForm.style.display = "none";
+    if (loginTab) loginTab.classList.add("active");
+    if (registerTab) registerTab.classList.remove("active");
 
     setTimeout(function () {
-
-        const email =
-            document.getElementById("loginEmail");
-
-        if (email) {
-            email.focus();
-        }
-
+        const email = document.getElementById("loginEmail");
+        if (email) email.focus();
     }, 150);
-
 }
-
-
-
-/* =========================================================
-   SHOW REGISTER SCREEN
-========================================================= */
 
 function showRegisterScreen() {
+    const welcomeCard = document.getElementById("welcomeCard");
+    const authBox = document.getElementById("auth-box");
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+    const loginTab = document.getElementById("showLoginTab");
+    const registerTab = document.getElementById("showRegisterTab");
 
-    const welcomeCard =
-        document.getElementById("welcomeCard");
-
-    const authBox =
-        document.getElementById("auth-box");
-
-    const loginForm =
-        document.getElementById("loginForm");
-
-    const registerForm =
-        document.getElementById("registerForm");
-
-    const loginTab =
-        document.getElementById("showLoginTab");
-
-    const registerTab =
-        document.getElementById("showRegisterTab");
-
-
-    if (welcomeCard) {
-        welcomeCard.style.display = "none";
-    }
-
-
-    if (authBox) {
-        authBox.style.display = "block";
-    }
-
-
-    if (loginForm) {
-        loginForm.style.display = "none";
-    }
-
-
-    if (registerForm) {
-        registerForm.style.display = "flex";
-    }
-
-
-    if (loginTab) {
-        loginTab.classList.remove("active");
-    }
-
-
-    if (registerTab) {
-        registerTab.classList.add("active");
-    }
-
+    if (welcomeCard) welcomeCard.style.display = "none";
+    if (authBox) authBox.style.display = "block";
+    if (loginForm) loginForm.style.display = "none";
+    if (registerForm) registerForm.style.display = "flex";
+    if (loginTab) loginTab.classList.remove("active");
+    if (registerTab) registerTab.classList.add("active");
 
     setTimeout(function () {
-
-        const name =
-            document.getElementById("registerName");
-
-        if (name) {
-            name.focus();
-        }
-
+        const name = document.getElementById("registerName");
+        if (name) name.focus();
     }, 150);
-
 }
 
+document.addEventListener("DOMContentLoaded", function () {
 
+    /* ---- LOGIN / REGISTER TABS ---- */
+    const loginTab = document.getElementById("showLoginTab");
+    const registerTab = document.getElementById("showRegisterTab");
 
-/* =========================================================
-   DOM CONTENT LOADED
-========================================================= */
+    if (loginTab) loginTab.addEventListener("click", showLoginScreen);
+    if (registerTab) registerTab.addEventListener("click", showRegisterScreen);
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+    /* ---- PASSWORD SHOW / HIDE ---- */
+    function setupPasswordToggle(inputId, buttonId) {
+        const passwordInput = document.getElementById(inputId);
+        const toggleButton = document.getElementById(buttonId);
+        if (!passwordInput || !toggleButton) return;
 
+        // Google autofill engelleme: alan başlangıçta readonly, tıklayınca aktifleşir
+        passwordInput.addEventListener("focus", function () {
+            passwordInput.removeAttribute("readonly");
+        }, { once: true });
 
-        /* =================================================
-           LOGIN / REGISTER TABS
-        ================================================= */
-
-
-        const loginTab =
-            document.getElementById("showLoginTab");
-
-
-        const registerTab =
-            document.getElementById("showRegisterTab");
-
-
-        if (loginTab) {
-
-            loginTab.addEventListener(
-                "click",
-                showLoginScreen
-            );
-
+        function showClosedEye() {
+            toggleButton.setAttribute("aria-label", "Show password");
+            toggleButton.setAttribute("title", "Show password");
+            toggleButton.innerHTML = `
+                <svg class="password-eye-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"></circle>
+                    <path d="M3 3L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>`;
         }
 
-
-        if (registerTab) {
-
-            registerTab.addEventListener(
-                "click",
-                showRegisterScreen
-            );
-
+        function showOpenEye() {
+            toggleButton.setAttribute("aria-label", "Hide password");
+            toggleButton.setAttribute("title", "Hide password");
+            toggleButton.innerHTML = `
+                <svg class="password-eye-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"></circle>
+                </svg>`;
         }
 
+        passwordInput.type = "password";
+        showClosedEye();
 
+        toggleButton.addEventListener("click", function () {
+            passwordInput.removeAttribute("readonly");
 
-        /* =================================================
-           PASSWORD SHOW / HIDE
-
-           ÇİZGİLİ GÖZ
-           = ŞİFRE KAPALI
-
-           ÇİZGİSİZ GÖZ
-           = ŞİFRE AÇIK
-        ================================================= */
-
-
-        function setupPasswordToggle(
-            inputId,
-            buttonId
-        ) {
-
-            const passwordInput =
-                document.getElementById(inputId);
-
-            const toggleButton =
-                document.getElementById(buttonId);
-
-
-            if (
-                !passwordInput ||
-                !toggleButton
-            ) {
-                return;
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                showOpenEye();
+            } else {
+                passwordInput.type = "password";
+                showClosedEye();
             }
-
-
-            /* =========================================
-               GOOGLE AUTOFILL ENGELLEME
-
-               Alan başlangıçta readonly.
-               Kullanıcı tıklayınca aktifleşir.
-            ========================================= */
-
-            passwordInput.addEventListener(
-                "focus",
-                function () {
-
-                    passwordInput.removeAttribute(
-                        "readonly"
-                    );
-
-                },
-                {
-                    once: true
-                }
-            );
-
-
-            /* =========================================
-               ÇİZGİLİ GÖZ
-               ŞİFRE KAPALI
-            ========================================= */
-
-            function showClosedEye() {
-
-                toggleButton.setAttribute(
-                    "aria-label",
-                    "Show password"
-                );
-
-
-                toggleButton.setAttribute(
-                    "title",
-                    "Show password"
-                );
-
-
-                toggleButton.innerHTML = `
-
-                    <svg
-                        class="password-eye-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        aria-hidden="true">
-
-                        <path
-                            d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                        </path>
-
-                        <circle
-                            cx="12"
-                            cy="12"
-                            r="3"
-                            stroke="currentColor"
-                            stroke-width="2">
-                        </circle>
-
-                        <path
-                            d="M3 3L21 21"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round">
-                        </path>
-
-                    </svg>
-
-                `;
-
-            }
-
-
-
-            /* =========================================
-               ÇİZGİSİZ GÖZ
-               ŞİFRE AÇIK
-            ========================================= */
-
-            function showOpenEye() {
-
-                toggleButton.setAttribute(
-                    "aria-label",
-                    "Hide password"
-                );
-
-
-                toggleButton.setAttribute(
-                    "title",
-                    "Hide password"
-                );
-
-
-                toggleButton.innerHTML = `
-
-                    <svg
-                        class="password-eye-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        aria-hidden="true">
-
-                        <path
-                            d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                        </path>
-
-                        <circle
-                            cx="12"
-                            cy="12"
-                            r="3"
-                            stroke="currentColor"
-                            stroke-width="2">
-                        </circle>
-
-                    </svg>
-
-                `;
-
-            }
-
-
-
-            /* =========================================
-               BAŞLANGIÇ
-
-               ŞİFRE KAPALI
-               ÇİZGİLİ GÖZ
-            ========================================= */
-
-            passwordInput.type = "password";
-
-            showClosedEye();
-
-
-
-            /* =========================================
-               GÖZ BUTONU
-            ========================================= */
-
-            toggleButton.addEventListener(
-                "click",
-                function () {
-
-                    /*
-                     * Kullanıcı göz butonuna basarsa
-                     * password alanının readonly durumunu
-                     * kaldır.
-                     */
-
-                    passwordInput.removeAttribute(
-                        "readonly"
-                    );
-
-
-                    /*
-                     * ŞİFRE KAPALIYSA
-                     * → AÇ
-                     * → ÇİZGİYİ KALDIR
-                     */
-
-                    if (
-                        passwordInput.type === "password"
-                    ) {
-
-                        passwordInput.type = "text";
-
-                        showOpenEye();
-
-                    }
-
-
-                    /*
-                     * ŞİFRE AÇIKSA
-                     * → KAPAT
-                     * → ÇİZGİYİ EKLE
-                     */
-
-                    else {
-
-                        passwordInput.type = "password";
-
-                        showClosedEye();
-
-                    }
-
-                }
-            );
-
-        }
-
-
-
-        /* =================================================
-           LOGIN PASSWORD
-        ================================================= */
-
-        setupPasswordToggle(
-            "loginPassword",
-            "loginPasswordToggle"
-        );
-
-
-
-        /* =================================================
-           REGISTER PASSWORD
-        ================================================= */
-
-        setupPasswordToggle(
-            "registerPassword",
-            "registerPasswordToggle"
-        );
-
-
-
-        /* =================================================
-           MOBILE AUTH TOGGLE
-        ================================================= */
-
-        const mobileAuthToggle =
-            document.getElementById(
-                "mobileAuthToggle"
-            );
-
-
-        const landingAuth =
-            document.querySelector(
-                ".landing-auth"
-            );
-
-
-        function closeMobileAuth() {
-
-            if (landingAuth) {
-
-                landingAuth.classList.remove(
-                    "is-open"
-                );
-
-            }
-
-
-            if (mobileAuthToggle) {
-
-                mobileAuthToggle.classList.remove(
-                    "is-active"
-                );
-
-
-                mobileAuthToggle.setAttribute(
-                    "aria-expanded",
-                    "false"
-                );
-
-            }
-
-        }
-
-
-        function toggleMobileAuth() {
-
-            if (!landingAuth) {
-                return;
-            }
-
-
-            const isOpen =
-                landingAuth.classList.toggle(
-                    "is-open"
-                );
-
-
-            if (mobileAuthToggle) {
-
-                mobileAuthToggle.classList.toggle(
-                    "is-active",
-                    isOpen
-                );
-
-
-                mobileAuthToggle.setAttribute(
-                    "aria-expanded",
-                    isOpen
-                        ? "true"
-                        : "false"
-                );
-
-            }
-
-        }
-
-
-        if (mobileAuthToggle) {
-
-            mobileAuthToggle.addEventListener(
-                "click",
-                function (e) {
-
-                    e.stopPropagation();
-
-                    toggleMobileAuth();
-
-                }
-            );
-
-        }
-
-
-
-        /* =================================================
-           CLOSE MOBILE AUTH WHEN CLICKING OUTSIDE
-        ================================================= */
-
-        document.addEventListener(
-            "click",
-            function (e) {
-
-                if (
-                    !landingAuth ||
-                    !landingAuth.classList.contains(
-                        "is-open"
-                    )
-                ) {
-                    return;
-                }
-
-
-                const clickedInsidePanel =
-                    landingAuth.contains(
-                        e.target
-                    );
-
-
-                const clickedToggleBtn =
-                    mobileAuthToggle &&
-                    mobileAuthToggle.contains(
-                        e.target
-                    );
-
-
-                if (
-                    !clickedInsidePanel &&
-                    !clickedToggleBtn
-                ) {
-
-                    closeMobileAuth();
-
-                }
-
-            }
-        );
-
-
-
-        /* =================================================
-           CLOSE MOBILE AUTH ON DESKTOP RESIZE
-        ================================================= */
-
-        window.addEventListener(
-            "resize",
-            function () {
-
-                if (
-                    window.innerWidth > 768
-                ) {
-
-                    closeMobileAuth();
-
-                }
-
-            }
-        );
-
-
-
-        /* =================================================
-           BACKGROUND VIDEO
-        ================================================= */
-
-        const video =
-            document.getElementById(
-                "authBackgroundVideo"
-            );
-
-
-        if (video) {
-
-            video.muted = true;
-
-
-            video.setAttribute(
-                "playsinline",
-                ""
-            );
-
-
-            const playVideo =
-                function () {
-
-                    video
-                        .play()
-                        .catch(
-                            function (error) {
-
-                                console.log(
-                                    "Background video could not autoplay:",
-                                    error
-                                );
-
-                            }
-                        );
-
-                };
-
-
-            playVideo();
-
-
-            document.addEventListener(
-                "click",
-                function () {
-
-                    if (video.paused) {
-
-                        playVideo();
-
-                    }
-
-                },
-                {
-                    once: true
-                }
-            );
-
-        }
-
-
+        });
     }
-);
+
+    setupPasswordToggle("loginPassword", "loginPasswordToggle");
+    setupPasswordToggle("registerPassword", "registerPasswordToggle");
+
+    /* ---- MOBILE AUTH TOGGLE ---- */
+    const mobileAuthToggle = document.getElementById("mobileAuthToggle");
+    const landingAuth = document.querySelector(".landing-auth");
+
+    function closeMobileAuth() {
+        if (landingAuth) landingAuth.classList.remove("is-open");
+        if (mobileAuthToggle) {
+            mobileAuthToggle.classList.remove("is-active");
+            mobileAuthToggle.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    function toggleMobileAuth() {
+        if (!landingAuth) return;
+        const isOpen = landingAuth.classList.toggle("is-open");
+        if (mobileAuthToggle) {
+            mobileAuthToggle.classList.toggle("is-active", isOpen);
+            mobileAuthToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        }
+    }
+
+    if (mobileAuthToggle) {
+        mobileAuthToggle.addEventListener("click", function (e) {
+            e.stopPropagation();
+            toggleMobileAuth();
+        });
+    }
+
+    document.addEventListener("click", function (e) {
+        if (!landingAuth || !landingAuth.classList.contains("is-open")) return;
+
+        const clickedInsidePanel = landingAuth.contains(e.target);
+        const clickedToggleBtn = mobileAuthToggle && mobileAuthToggle.contains(e.target);
+
+        if (!clickedInsidePanel && !clickedToggleBtn) closeMobileAuth();
+    });
+
+    window.addEventListener("resize", function () {
+        if (window.innerWidth > 768) closeMobileAuth();
+    });
+
+    /* ---- BACKGROUND VIDEO ---- */
+    const video = document.getElementById("authBackgroundVideo");
+
+    if (video) {
+        video.muted = true;
+        video.setAttribute("playsinline", "");
+
+        const playVideo = function () {
+            video.play().catch(function (error) {
+                console.log("Background video could not autoplay:", error);
+            });
+        };
+
+        playVideo();
+
+        document.addEventListener("click", function () {
+            if (video.paused) playVideo();
+        }, { once: true });
+    }
+
+});
 
 </script>
 
-
-
-<!-- =========================================================
-     EXISTING JAVASCRIPT
-========================================================= -->
-
-<script src="auth.js?v=2"></script>
-
-<script src="app.js?v=106"></script>
-
+<!-- EXISTING JAVASCRIPT -->
+<script src="js/auth.js?v=2"></script>
+<script src="js/common.js?v=1"></script>
+<script src="js/courses.js?v=1"></script>
+<script src="js/exams.js?v=1"></script>
+<script src="js/dashboard.js?v=1"></script>
+<script src="js/study.js?v=1"></script>
+<script src="js/main.js?v=1"></script>
 
 </body>
-
 </html>

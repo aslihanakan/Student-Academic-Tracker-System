@@ -1,0 +1,29 @@
+/* =========================================================
+   GRADES / COURSES & TOOLS
+========================================================= */
+.form-box.filter-box,
+.form-box.tool-box {
+    background: #ffffff;
+}
+
+.tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-row select {
+    width: auto;
+    flex: 1 1 180px;
+}
+
+.filter-row button {
+    margin: 0;
+}

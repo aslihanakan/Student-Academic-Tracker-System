@@ -335,6 +335,51 @@ function initializeDatabase() {
                 );
             });
 
+            // Courses created from Study/Deadlines stay hidden on Grades
+            ensureColumn("courses", "listedInGrades", "INTEGER DEFAULT 1", function (err) {
+                if (err) {
+                    console.error("Migration error:", err.message);
+                    return;
+                }
+
+                db.run(
+                    `UPDATE courses SET listedInGrades = 1 WHERE listedInGrades IS NULL`,
+                    [],
+                    function (err) {
+                        if (err) {
+                            console.error("Backfill error (listedInGrades):", err.message);
+                        }
+                    }
+                );
+            });
+
+            // Tracks which page a course was created from ("grades",
+            // "exams" [Deadlines page], or "study" [Study Sessions
+            // page]), so a quick-added course only shows up as a
+            // suggestion on the page it came from. Grade-registered
+            // courses (listedInGrades = 1) and legacy quick-added
+            // courses from before this column existed ("shared")
+            // remain visible on every page.
+            ensureColumn("courses", "createdFrom", "TEXT DEFAULT 'grades'", function (err) {
+                if (err) {
+                    console.error("Migration error:", err.message);
+                    return;
+                }
+
+                db.run(
+                    `UPDATE courses
+                     SET createdFrom = 'shared'
+                     WHERE COALESCE(listedInGrades, 1) = 0
+                     AND (createdFrom IS NULL OR createdFrom = 'grades')`,
+                    [],
+                    function (err) {
+                        if (err) {
+                            console.error("Backfill error (createdFrom):", err.message);
+                        }
+                    }
+                );
+            });
+
             const tablesNeedingUserId = [
                 "courses",
                 "exams",

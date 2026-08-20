@@ -1,0 +1,51 @@
+/* =========================================================
+   STUDY SESSIONS
+========================================================= */
+.study-day-panel {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    padding: 22px 24px;
+}
+
+.study-day-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.study-day-title {
+    text-align: center;
+}
+
+.study-day-title h2 {
+    margin-bottom: 2px;
+}
+
+.study-day-title p {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 12.5px;
+}
+
+.single-session-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.empty-day-box {
+    padding: 30px 10px;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.empty-day-box h3 {
+    color: #64748b;
+    margin-bottom: 6px;
+}
