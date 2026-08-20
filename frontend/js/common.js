@@ -1,6 +1,10 @@
 console.log("APP JS LOADED");
 
-const API_URL = "/api";
+// Not: sabit "/api" yerine auth.js'deki API_BASE_URL kullanılıyor.
+// Vercel'de frontend ve backend zaten aynı domain'den servis edildiği
+// için bu her zaman relative "/api" olarak çözülür, ama local'de
+// Live Server (3000) kullanıldığında da doğru backend'e gider.
+const API_URL = API_BASE_URL + "/api";
 
 /* ─── HELPERS ─────────────────────────────────────────────────────────────────*/
 

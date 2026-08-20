@@ -26,28 +26,26 @@ function getApiBaseUrl() {
     const hostname = window.location.hostname;
 
     /*
-     * VS Code Live Server / local frontend
+     * VS Code Live Server / local frontend.
+     *
+     * Not: hostname kontrolü kaldırıldı, çünkü mobil cihazdan
+     * bilgisayarın yerel ağ IP'si (ör. 192.168.x.x) üzerinden
+     * bağlanıldığında hostname "localhost" olmuyor. Bunun yerine
+     * PORT'a bakıyoruz: sayfa 3000'den açıldıysa (Live Server),
+     * backend'in AYNI HOST üzerinde 5000 portunda çalıştığını
+     * varsayıyoruz. Böylece hem bilgisayardan hem mobilden
+     * doğru backend adresine gidilir.
      */
-    if (
-        hostname === "127.0.0.1" ||
-        hostname === "localhost"
-    ) {
+    if (window.location.port === "3000") {
+        return `${window.location.protocol}//${hostname}:5000`;
+    }
 
-        /*
-         * Eğer sayfa 3000 portundan açıldıysa
-         * backend 5000 portunda çalışıyor.
-         */
-        if (window.location.port === "3000") {
-            return "http://localhost:5000";
-        }
-
-        /*
-         * Sayfa zaten Express tarafından 5000
-         * üzerinden servis ediliyorsa.
-         */
-        if (window.location.port === "5000") {
-            return "";
-        }
+    /*
+     * Sayfa zaten Express tarafından 5000
+     * üzerinden servis ediliyorsa.
+     */
+    if (window.location.port === "5000") {
+        return "";
     }
 
 
