@@ -169,34 +169,129 @@ function setStoredLastTerm(value) {
     } catch (e) {}
 }
 
-const TERM_FORMAT_REGEX = /^(\d{4})-(\d{4}) (Fall|Spring|Summer)$/i;
-const TERM_FORMAT_EXAMPLE = "2025-2026 Fall";
+const TERM_FORMAT_EXAMPLE = "2026-2027 4th Grade Fall Term";
+const TERM_PARSER_REGEX = /^(\d{4})-(\d{4})\s+(?:(\d+)\.?\s*(?:Sınıf|sinif|Grade|th Grade|st Grade|nd Grade|rd Grade|Year|th Year|st Year|nd Year|rd Year)?\s+)?(Güz|Guz|Bahar|Yaz|Fall|Spring|Summer|Autumn)(?:\s*(?:Dönemi|Donemi|Term|Semester))?$/i;
 
-function isValidTermFormat(text) {
-    const match = TERM_FORMAT_REGEX.exec((text || "").trim());
-    if (!match) return false;
+function parseTermInfo(text) {
+    const trimmed = String(text || "").trim();
+    const match = TERM_PARSER_REGEX.exec(trimmed);
+    if (!match) return null;
 
     const startYear = parseInt(match[1], 10);
     const endYear = parseInt(match[2], 10);
 
-    return endYear === startYear + 1;
+    if (endYear !== startYear + 1) return null;
+
+    const gradeNumber = match[3] ? parseInt(match[3], 10) : null;
+    const seasonRaw = match[4].toLowerCase();
+
+    let seasonName = "Fall Term";
+
+    if (seasonRaw === "güz" || seasonRaw === "guz" || seasonRaw === "fall" || seasonRaw === "autumn") {
+        seasonName = "Fall Term";
+    } else if (seasonRaw === "bahar" || seasonRaw === "spring") {
+        seasonName = "Spring Term";
+    } else if (seasonRaw === "yaz" || seasonRaw === "summer") {
+        seasonName = "Summer Term";
+    }
+
+    let gradePrefix = "";
+    if (gradeNumber) {
+        const suffix = (gradeNumber === 1 ? "st" : gradeNumber === 2 ? "nd" : gradeNumber === 3 ? "rd" : "th");
+        gradePrefix = `${gradeNumber}${suffix} Grade `;
+    }
+
+    return `${startYear}-${endYear} ${gradePrefix}${seasonName}`.replace(/\s+/g, " ").trim();
+}
+
+function isValidTermFormat(text) {
+    return parseTermInfo(text) !== null;
 }
 
 function normalizeTermInput(text) {
-    const trimmed = (text || "").trim();
-    const match = TERM_FORMAT_REGEX.exec(trimmed);
+    const parsed = parseTermInfo(text);
+    return parsed !== null ? parsed : (text || "").trim();
+}
 
-    if (!match) return trimmed;
+function getTermParts(termStr) {
+    const raw = String(termStr || "").trim();
+    const match = TERM_PARSER_REGEX.exec(raw);
+
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    const fallbackYear = curMonth >= 9 ? `${curYear}-${curYear + 1}` : `${curYear - 1}-${curYear}`;
+    const fallbackSeason = curMonth >= 9 ? "Fall Term" : (curMonth >= 6 ? "Summer Term" : "Spring Term");
+
+    let fallbackGrade = "4th Grade";
+    const storedUser = typeof getStoredUser === "function" ? getStoredUser() : null;
+    if (storedUser?.gradeLevel) {
+        const mGrade = /(\d+)/.exec(storedUser.gradeLevel);
+        if (mGrade) {
+            const num = parseInt(mGrade[1], 10);
+            const suf = num === 1 ? "st" : num === 2 ? "nd" : num === 3 ? "rd" : "th";
+            fallbackGrade = `${num}${suf} Grade`;
+        } else if (storedUser.gradeLevel.toLowerCase().includes("prep")) {
+            fallbackGrade = "Prep Year";
+        }
+    }
+
+    if (!match) {
+        return { year: fallbackYear, grade: fallbackGrade, season: fallbackSeason };
+    }
 
     const startYear = parseInt(match[1], 10);
     const endYear = parseInt(match[2], 10);
+    const yearStr = `${startYear}-${endYear}`;
 
-    if (endYear !== startYear + 1) return trimmed;
+    const gradeNumber = match[3] ? parseInt(match[3], 10) : null;
+    let gradeStr = "Other";
+    if (gradeNumber) {
+        const suf = gradeNumber === 1 ? "st" : gradeNumber === 2 ? "nd" : gradeNumber === 3 ? "rd" : "th";
+        gradeStr = `${gradeNumber}${suf} Grade`;
+    } else if (raw.toLowerCase().includes("prep") || raw.toLowerCase().includes("hazırlık")) {
+        gradeStr = "Prep Year";
+    }
 
-    const season = match[3].toLowerCase();
-    const canonicalSeason = season.charAt(0).toUpperCase() + season.slice(1);
+    const seasonRaw = match[4].toLowerCase();
+    let seasonStr = "Fall Term";
+    if (seasonRaw === "bahar" || seasonRaw === "spring") {
+        seasonStr = "Spring Term";
+    } else if (seasonRaw === "yaz" || seasonRaw === "summer") {
+        seasonStr = "Summer Term";
+    }
 
-    return `${match[1]}-${match[2]} ${canonicalSeason}`;
+    return { year: yearStr, grade: gradeStr, season: seasonStr };
+}
+
+function assembleTerm(year, grade, season) {
+    const y = (year || "2026-2027").trim();
+    const g = (grade || "").trim();
+    const s = (season || "Fall Term").trim();
+
+    let gradePart = "";
+    if (g && g !== "Other" && g !== "None") {
+        gradePart = `${g} `;
+    }
+
+    return `${y} ${gradePart}${s}`.replace(/\s+/g, " ").trim();
+}
+
+function onTermControlsChange() {
+    const yearInput = document.getElementById("termYearInput");
+    const gradeSelect = document.getElementById("termGradeSelect");
+    const seasonSelect = document.getElementById("termSeasonSelect");
+    const hiddenInput = document.getElementById("academicYear");
+    const previewEl = document.getElementById("termFormattedPreview");
+
+    if (!yearInput || !gradeSelect || !seasonSelect || !hiddenInput) return;
+
+    const term = assembleTerm(yearInput.value, gradeSelect.value, seasonSelect.value);
+    hiddenInput.value = term;
+    if (previewEl) {
+        previewEl.textContent = term;
+    }
+    rememberActiveTerm(term);
 }
 
 function groupCoursesByTerm(courses) {
@@ -267,7 +362,7 @@ function buildCourseRow(c, termLabel) {
                         ${c.id},
                         '${escapeForOnclick(c.courseName)}',
                         '${escapeForOnclick(c.instructorName)}',
-                        '${escapeForOnclick(c.credit)}',
+                        ${c.credit},
                         '${escapeForOnclick(c.midtermGrade ?? "")}',
                         '${escapeForOnclick(c.projectGrade ?? "")}',
                         '${escapeForOnclick(c.finalGrade ?? "")}',
@@ -312,8 +407,14 @@ async function loadCourses() {
 
         const defaultTerm = realTermKeys.length > 0 ? realTermKeys[0] : (termKeys[0] || "");
         const termOptions = termKeys.map(label => `<option value="${escapeHtml(label)}" ${label === defaultTerm ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
-        const activeTermText = getStoredLastTerm();
-        const termDatalistOptions = [...termGroups.keys()].filter(label => label !== "No Term Assigned").map(label => `<option value="${escapeHtml(label)}"></option>`).join("");
+        const activeTermText = getStoredLastTerm() || (courses[0]?.academicYear ? normalizeTermInput(courses[0].academicYear) : "2026-2027 4th Grade Fall Term");
+        const currentParts = getTermParts(activeTermText);
+        const activeTermValue = assembleTerm(currentParts.year, currentParts.grade, currentParts.season);
+        
+        const gradeList = ["4th Grade", "1st Grade", "2nd Grade", "3rd Grade", "Prep Year", "Other"];
+        const gradeOptions = gradeList.map(g => `<option value="${escapeHtml(g)}" ${g === currentParts.grade ? "selected" : ""}>${escapeHtml(g)}</option>`).join("");
+        const seasonList = ["Fall Term", "Spring Term", "Summer Term"];
+        const seasonOptions = seasonList.map(s => `<option value="${escapeHtml(s)}" ${s === currentParts.season ? "selected" : ""}>${escapeHtml(s)}</option>`).join("");
 
         const rows = courses.length
             ? [...termGroups.entries()].map(([label, group]) => `
@@ -334,21 +435,62 @@ async function loadCourses() {
                     <span class="form-box-chevron">▾</span>
                 </div>
 
-                <div style="margin-bottom:14px; padding:10px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;">
-                    <label for="academicYear" style="font-size:12px; color:#1e40af; display:block; margin-bottom:4px; font-weight:700;">
-                        📅 Current Term (required) - format: YYYY-YYYY Fall/Spring/Summer (e.g. 2025-2026 Fall)
-                    </label>
-                    <input
-                        type="text"
-                        id="academicYear"
-                        list="termHistoryList"
-                        placeholder="e.g. 2025-2026 Fall"
-                        value="${escapeHtml(activeTermText)}"
-                        oninput="rememberActiveTerm(this.value)"
-                        required
-                        style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #93c5fd; font-size:14px; background:#fff; color:#1e293b;"
-                    >
-                    <datalist id="termHistoryList">${termDatalistOptions}</datalist>
+                <div style="margin-bottom:12px; padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                        <label style="font-size:12px; color:#64748b; font-weight:600;">
+                            Academic Term &amp; Class
+                        </label>
+                        <span style="font-size:12px; color:#94a3b8; font-weight:500;">
+                            Preview: <strong id="termFormattedPreview" style="color:#64748b; font-weight:600;">${escapeHtml(activeTermValue)}</strong>
+                        </span>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px;">
+                        <div>
+                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Academic Year</label>
+                            <input
+                                type="text"
+                                id="termYearInput"
+                                list="termYearList"
+                                placeholder="e.g. 2026-2027"
+                                value="${escapeHtml(currentParts.year)}"
+                                oninput="onTermControlsChange()"
+                                style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0; background:#ffffff; font-size:13px; font-weight:500; color:#475569;"
+                            >
+                            <datalist id="termYearList">
+                                <option value="2024-2025"></option>
+                                <option value="2025-2026"></option>
+                                <option value="2026-2027"></option>
+                                <option value="2027-2028"></option>
+                                <option value="2028-2029"></option>
+                                <option value="2029-2030"></option>
+                                <option value="2030-2031"></option>
+                                <option value="2031-2032"></option>
+                            </datalist>
+                        </div>
+                        <div>
+                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Class / Year</label>
+                            <select
+                                id="termGradeSelect"
+                                onchange="onTermControlsChange()"
+                                style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0; background:#ffffff; font-size:13px; font-weight:500; color:#475569;"
+                            >
+                                ${gradeOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Semester / Term</label>
+                            <select
+                                id="termSeasonSelect"
+                                onchange="onTermControlsChange()"
+                                style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0; background:#ffffff; font-size:13px; font-weight:500; color:#475569;"
+                            >
+                                ${seasonOptions}
+                            </select>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="academicYear" value="${escapeHtml(activeTermValue)}">
                 </div>
 
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px;">
@@ -441,6 +583,11 @@ async function loadCourses() {
         `;
 
         updateRequiredFinalPreview();
+
+        if (typeof autoFormatInput === "function") {
+            autoFormatInput(document.getElementById("courseName"), "title");
+            autoFormatInput(document.getElementById("instructorName"), "title");
+        }
 
         if (defaultTerm) {
             filterCoursesByTerm(defaultTerm);
@@ -802,7 +949,7 @@ async function saveCourse() {
     }
 
     if (!course.academicYear || !isValidTermFormat(course.academicYear)) {
-        showToast(`Please enter the current term, in the format "${TERM_FORMAT_EXAMPLE}" (year-year, space, then Fall/Spring/Summer).`, "warning");
+        showToast(`Please enter the current term, in the format "${TERM_FORMAT_EXAMPLE}".`, "warning");
         return;
     }
 
@@ -887,10 +1034,25 @@ function editCourse(
     document.getElementById("courseName").value = courseName;
     document.getElementById("instructorName").value = instructorName;
     document.getElementById("credit").value = credit;
-    document.getElementById("academicYear").value =
-        ((academicYear && academicYear !== "Unspecified") || (semester && semester !== "Unspecified"))
-            ? getTermLabel({ academicYear, semester })
-            : "";
+    const rawTerm = ((academicYear && academicYear !== "Unspecified") || (semester && semester !== "Unspecified"))
+        ? getTermLabel({ academicYear, semester })
+        : "";
+    const termParts = getTermParts(rawTerm);
+
+    const yearInput = document.getElementById("termYearInput");
+    const gradeSelect = document.getElementById("termGradeSelect");
+    const seasonSelect = document.getElementById("termSeasonSelect");
+
+    if (yearInput) {
+        yearInput.value = termParts.year;
+    }
+    if (gradeSelect) {
+        gradeSelect.value = termParts.grade;
+    }
+    if (seasonSelect) {
+        seasonSelect.value = termParts.season;
+    }
+    onTermControlsChange();
 
     document.getElementById("midtermGrade").value = midtermGrade;
     document.getElementById("projectGrade").value = projectGrade;
@@ -935,7 +1097,7 @@ function editCourse(
         }
 
         if (!updated.academicYear || !isValidTermFormat(updated.academicYear)) {
-            showToast(`Please enter the current term, in the format "${TERM_FORMAT_EXAMPLE}" (year-year, space, then Fall/Spring/Summer).`, "warning");
+            showToast(`Please enter the current term, in the format "${TERM_FORMAT_EXAMPLE}".`, "warning");
             return;
         }
 

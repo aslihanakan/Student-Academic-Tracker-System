@@ -153,19 +153,18 @@ window.fetch = function (input, init) {
     const isApiCall =
         url.includes("/api/");
 
-
-    const isAuthCall =
-        url.includes("/api/auth/");
-
+    const isPublicAuthCall =
+        url.includes("/api/auth/login") ||
+        url.includes("/api/auth/register") ||
+        url.includes("/api/auth/avatars");
 
     const token =
         getToken();
 
-
     if (
         token &&
         isApiCall &&
-        !isAuthCall
+        !isPublicAuthCall
     ) {
 
         const headers =
@@ -178,12 +177,10 @@ window.fetch = function (input, init) {
                 )
             );
 
-
         headers.set(
             "Authorization",
             "Bearer " + token
         );
-
 
         init.headers = headers;
 
@@ -202,7 +199,7 @@ window.fetch = function (input, init) {
         if (
             response.status === 401 &&
             isApiCall &&
-            !isAuthCall
+            !isPublicAuthCall
         ) {
 
             clearSession();
@@ -247,6 +244,60 @@ function showAuthScreen() {
 }
 
 
+function renderSidebarUser(user) {
+    if (!user) return;
+
+    const sidebarUser = document.getElementById("sidebarUser");
+    const mainLogo = document.getElementById("sidebarMainLogo");
+    const logoWrapper = document.getElementById("sidebarLogoWrapper");
+
+    if (mainLogo) {
+        if (!user.avatar || user.avatar === "default" || user.avatar === "pp.png" || user.avatar === "icons/pp.png") {
+            mainLogo.src = "icons/pp.png";
+        } else if (user.avatar === "logo.png" || user.avatar === "photos/logo.png") {
+            mainLogo.src = "photos/logo.png";
+        } else {
+            mainLogo.src = user.avatar.startsWith("icons/") || user.avatar.startsWith("photos/")
+                ? user.avatar
+                : "icons/" + user.avatar;
+        }
+    }
+
+    if (logoWrapper) {
+        logoWrapper.onclick = function () {
+            if (typeof loadSettingsPage === "function") {
+                loadSettingsPage();
+            }
+        };
+    }
+
+    if (sidebarUser) {
+        const userName = user.name || user.email || "Student";
+        const gradeText = user.gradeLevel && user.gradeLevel !== "Other" ? escapeHtml(user.gradeLevel) : "";
+        const deptText = user.department ? escapeHtml(user.department) : "";
+
+        sidebarUser.innerHTML = `
+            <div class="sidebar-user-name">${escapeHtml(userName)}</div>
+            ${gradeText || deptText ? `
+                <div class="sidebar-user-dept">
+                    ${gradeText}${gradeText && deptText ? " · " : ""}${deptText}
+                </div>
+            ` : ""}
+        `;
+    }
+}
+
+function updateCurrentUser(updatedUser) {
+    if (!updatedUser) return;
+
+    const current = getStoredUser() || {};
+    const merged = { ...current, ...updatedUser };
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(merged));
+    renderSidebarUser(merged);
+}
+
+window.updateCurrentUser = updateCurrentUser;
+
 function showMainApp(user) {
 
     const authScreen =
@@ -270,25 +321,7 @@ function showMainApp(user) {
         mainLayout.style.display = "flex";
     }
 
-
-    const sidebarUser =
-        document.getElementById(
-            "sidebarUser"
-        );
-
-
-    if (
-        sidebarUser &&
-        user
-    ) {
-
-        sidebarUser.textContent =
-            user.name ||
-            user.email ||
-            "";
-
-    }
-
+    renderSidebarUser(user);
 
     if (
         typeof window.onAuthenticated ===
@@ -711,6 +744,22 @@ document
                     .value;
 
 
+            const gradeLevel =
+                document
+                    .getElementById(
+                        "registerGrade"
+                    )
+                    ? document.getElementById("registerGrade").value
+                    : "";
+
+            const department =
+                document
+                    .getElementById(
+                        "registerDepartment"
+                    )
+                    ? document.getElementById("registerDepartment").value.trim()
+                    : "";
+
             const submitBtn =
                 document.getElementById(
                     "registerSubmitBtn"
@@ -734,6 +783,17 @@ document
                 setAuthError(
                     "registerError",
                     "Please enter your email address."
+                );
+
+                return;
+
+            }
+
+            if (!gradeLevel) {
+
+                setAuthError(
+                    "registerError",
+                    "Please select your class / grade."
                 );
 
                 return;
@@ -777,7 +837,10 @@ document
                             body: JSON.stringify({
                                 name,
                                 email,
-                                password
+                                password,
+                                gradeLevel,
+                                department: department || "",
+                                avatar: "default"
                             })
                         }
                     );

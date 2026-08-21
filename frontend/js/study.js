@@ -80,6 +80,11 @@ async function loadStudyPage(resetToToday = true) {
 
         document.getElementById("filterDate").value = selectedStudyDate;
         renderSessionsBySelectedDate();
+
+        if (typeof autoFormatInput === "function") {
+            autoFormatInput(document.getElementById("studyCourseName"), "title");
+            autoFormatInput(document.getElementById("studyTopic"), "sentence");
+        }
     } catch (err) {
         console.error("Study Page Load Error:", err);
         document.getElementById("app").innerHTML = `<p>Study sessions could not be loaded.</p>`;

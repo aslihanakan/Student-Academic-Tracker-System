@@ -218,10 +218,35 @@ function initializeDatabase() {
                     name TEXT NOT NULL,
                     email TEXT NOT NULL UNIQUE,
                     passwordHash TEXT NOT NULL,
+                    gradeLevel TEXT,
+                    department TEXT,
+                    avatar TEXT DEFAULT 'pp.png',
                     createdAt TEXT NOT NULL
                         DEFAULT (datetime('now'))
                 )
             `);
+
+            ensureColumn("users", "gradeLevel", "TEXT", function (err) {
+                if (err) console.error("Migration error (users.gradeLevel):", err.message);
+            });
+
+            ensureColumn("users", "department", "TEXT", function (err) {
+                if (err) console.error("Migration error (users.department):", err.message);
+            });
+
+            ensureColumn("users", "avatar", "TEXT DEFAULT 'pp.png'", function (err) {
+                if (err) {
+                    console.error("Migration error (users.avatar):", err.message);
+                    return;
+                }
+                db.run(
+                    `UPDATE users SET avatar = 'pp.png' WHERE avatar IS NULL OR avatar = '' OR avatar = 'default'`,
+                    [],
+                    function (err) {
+                        if (err) console.error("Backfill error (users.avatar):", err.message);
+                    }
+                );
+            });
 
             db.run(`
                 CREATE UNIQUE INDEX IF NOT EXISTS

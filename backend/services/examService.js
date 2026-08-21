@@ -13,7 +13,22 @@ function getAllExams(userId, callback) {
     db.all(sql, [userId], callback);
 }
 
+function toTitleCase(value) {
+    if (value === null || value === undefined) return value;
+    const str = String(value).trim();
+    if (!str) return str;
+    return str
+        .split(/\s+/)
+        .map(word => {
+            if (!word) return word;
+            return word.charAt(0).toLocaleUpperCase("tr-TR") + word.slice(1).toLocaleLowerCase("tr-TR");
+        })
+        .join(" ");
+}
+
 function createExam(userId, courseId, examName, examDate, examType, score, callback) {
+    examName = toTitleCase(examName);
+
     if (!courseId || !examName || !examDate || !examType) {
         return callback(new Error("Course, exam name, exam date and exam type are required."));
     }
@@ -53,6 +68,8 @@ function createExam(userId, courseId, examName, examDate, examType, score, callb
 }
 
 function updateExam(id, userId, courseId, examName, examDate, examType, score, callback) {
+    examName = toTitleCase(examName);
+
     if (!courseId || !examName || !examDate || !examType) {
         return callback(new Error("Course, exam name, exam date and exam type are required."));
     }

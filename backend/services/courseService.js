@@ -29,12 +29,12 @@ function isValidWeight(value) {
     return Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
-const TERM_FORMAT_REGEX = /^(\d{4})-(\d{4}) (Fall|Spring|Summer)$/i;
-const TERM_FORMAT_EXAMPLE = "2025-2026 Fall";
+const TERM_FORMAT_EXAMPLE = "2026-2027 4th Grade Fall Term";
+const TERM_PARSER_REGEX = /^(\d{4})-(\d{4})\s+(?:(\d+)\.?\s*(?:Sınıf|sinif|Grade|th Grade|st Grade|nd Grade|rd Grade|Year|th Year|st Year|nd Year|rd Year)?\s+)?(Güz|Guz|Bahar|Yaz|Fall|Spring|Summer|Autumn)(?:\s*(?:Dönemi|Donemi|Term|Semester))?$/i;
 
-function canonicalizeTermFormat(text) {
-    const match = TERM_FORMAT_REGEX.exec(String(text || "").trim());
-
+function parseTermInfo(text) {
+    const trimmed = String(text || "").trim();
+    const match = TERM_PARSER_REGEX.exec(trimmed);
     if (!match) return null;
 
     const startYear = parseInt(match[1], 10);
@@ -42,11 +42,30 @@ function canonicalizeTermFormat(text) {
 
     if (endYear !== startYear + 1) return null;
 
-    const season = match[3].toLowerCase();
-    const canonicalSeason =
-        season.charAt(0).toUpperCase() + season.slice(1);
+    const gradeNumber = match[3] ? parseInt(match[3], 10) : null;
+    const seasonRaw = match[4].toLowerCase();
 
-    return `${match[1]}-${match[2]} ${canonicalSeason}`;
+    let seasonName = "Fall Term";
+
+    if (seasonRaw === "güz" || seasonRaw === "guz" || seasonRaw === "fall" || seasonRaw === "autumn") {
+        seasonName = "Fall Term";
+    } else if (seasonRaw === "bahar" || seasonRaw === "spring") {
+        seasonName = "Spring Term";
+    } else if (seasonRaw === "yaz" || seasonRaw === "summer") {
+        seasonName = "Summer Term";
+    }
+
+    let gradePrefix = "";
+    if (gradeNumber) {
+        const suffix = (gradeNumber === 1 ? "st" : gradeNumber === 2 ? "nd" : gradeNumber === 3 ? "rd" : "th");
+        gradePrefix = `${gradeNumber}${suffix} Grade `;
+    }
+
+    return `${startYear}-${endYear} ${gradePrefix}${seasonName}`.replace(/\s+/g, " ").trim();
+}
+
+function canonicalizeTermFormat(text) {
+    return parseTermInfo(text);
 }
 
 function normalizeTermField(value) {
@@ -61,14 +80,7 @@ function normalizeTermField(value) {
 }
 
 function isValidTermFormat(text) {
-    const match = TERM_FORMAT_REGEX.exec(String(text || "").trim());
-
-    if (!match) return false;
-
-    const startYear = parseInt(match[1], 10);
-    const endYear = parseInt(match[2], 10);
-
-    return endYear === startYear + 1;
+    return parseTermInfo(text) !== null;
 }
 
 /*
@@ -341,6 +353,9 @@ function createCourse(
 
     const extraGradesList = extra.list;
 
+    courseName = toTitleCase(courseName);
+    instructorName = toTitleCase(instructorName);
+
     if (!courseName || !instructorName || !credit) {
         return callback(
             new Error(
@@ -540,6 +555,9 @@ function updateCourse(
     }
 
     const extraGradesList = extra.list;
+
+    courseName = toTitleCase(courseName);
+    instructorName = toTitleCase(instructorName);
 
     if (!courseName || !instructorName || !credit) {
         return callback(
@@ -763,5 +781,8 @@ module.exports = {
     updateCourse,
     deleteCourse,
     searchCourses,
-    verifyCourseOwnership
+    verifyCourseOwnership,
+    isValidTermFormat,
+    canonicalizeTermFormat,
+    TERM_FORMAT_EXAMPLE
 };

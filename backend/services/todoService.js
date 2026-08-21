@@ -27,7 +27,16 @@ function getNearestTodo(userId, callback) {
     });
 }
 
+function formatSentenceCase(str) {
+    if (!str || typeof str !== "string") return "";
+    const trimmed = str.trim().replace(/\s+/g, " ");
+    if (!trimmed) return "";
+    return trimmed.charAt(0).toLocaleUpperCase("tr-TR") + trimmed.slice(1);
+}
+
 function createTodo(userId, courseId, type, title, dueDate, callback) {
+    title = formatSentenceCase(title);
+
     if (!courseId || !type || !title || !dueDate) {
         return callback(new Error("Course, type, title and due date are required."));
     }

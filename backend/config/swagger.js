@@ -54,7 +54,23 @@ const options = {
                     properties: {
                         name: { type: "string", example: "Ayşe Yılmaz" },
                         email: { type: "string", format: "email", example: "ayse@example.com" },
-                        password: { type: "string", format: "password", minLength: 6, example: "sifre123" }
+                        password: { type: "string", format: "password", minLength: 6, example: "sifre123" },
+                        gradeLevel: { type: "string", example: "4. Sınıf" },
+                        department: { type: "string", example: "Bilgisayar Mühendisliği" },
+                        avatar: { type: "string", example: "1.jpg" }
+                    }
+                },
+
+                UpdateProfileInput: {
+                    type: "object",
+                    properties: {
+                        name: { type: "string", example: "Ayşe Yılmaz" },
+                        email: { type: "string", format: "email", example: "ayse@example.com" },
+                        gradeLevel: { type: "string", example: "4. Sınıf" },
+                        department: { type: "string", example: "Bilgisayar Mühendisliği" },
+                        avatar: { type: "string", example: "1.jpg" },
+                        currentPassword: { type: "string", format: "password", example: "eskiSifre123" },
+                        newPassword: { type: "string", format: "password", minLength: 6, example: "yeniSifre123" }
                     }
                 },
 
@@ -79,7 +95,10 @@ const options = {
                             properties: {
                                 id: { type: "integer", example: 1 },
                                 name: { type: "string", example: "Ayşe Yılmaz" },
-                                email: { type: "string", example: "ayse@example.com" }
+                                email: { type: "string", example: "ayse@example.com" },
+                                gradeLevel: { type: "string", example: "4. Sınıf" },
+                                department: { type: "string", example: "Bilgisayar Mühendisliği" },
+                                avatar: { type: "string", example: "1.jpg" }
                             }
                         }
                     }

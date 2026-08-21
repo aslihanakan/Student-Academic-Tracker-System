@@ -14,23 +14,61 @@ function formatEmpty(value) {
 }
 
 function toTitleCase(value) {
-    if (value === null || value === undefined) return value;
+    if (value === null || value === undefined) return "";
 
-    const str = String(value).trim();
-    if (!str) return str;
+    const str = String(value).trim().replace(/\s+/g, " ");
+    if (!str) return "";
 
     return str
-        .split(/\s+/)
+        .split(" ")
         .map(function (word) {
-            if (!word) return word;
+            if (!word) return "";
 
-            const first = word.charAt(0).toLocaleUpperCase("tr-TR");
-            const rest = word.slice(1).toLocaleLowerCase("tr-TR");
-
-            return first + rest;
+            return word.split("-").map(function (sub) {
+                if (!sub) return "";
+                const first = sub.charAt(0).toLocaleUpperCase("tr-TR");
+                const rest = sub.slice(1).toLocaleLowerCase("tr-TR");
+                return first + rest;
+            }).join("-");
         })
         .join(" ");
 }
+
+function formatTitleCase(value) {
+    return toTitleCase(value);
+}
+
+function toSentenceCase(value) {
+    if (value === null || value === undefined) return "";
+    const str = String(value).trim().replace(/\s+/g, " ");
+    if (!str) return "";
+    return str.charAt(0).toLocaleUpperCase("tr-TR") + str.slice(1);
+}
+
+function normalizeEmail(value) {
+    if (!value) return "";
+    return String(value).trim().toLowerCase();
+}
+
+function autoFormatInput(inputEl, formatType) {
+    if (!inputEl) return;
+    inputEl.addEventListener("blur", function () {
+        if (!this.value) return;
+        if (formatType === "title" || formatType === "name") {
+            this.value = toTitleCase(this.value);
+        } else if (formatType === "email") {
+            this.value = normalizeEmail(this.value);
+        } else if (formatType === "sentence") {
+            this.value = toSentenceCase(this.value);
+        }
+    });
+}
+
+window.toTitleCase = toTitleCase;
+window.formatTitleCase = formatTitleCase;
+window.toSentenceCase = toSentenceCase;
+window.normalizeEmail = normalizeEmail;
+window.autoFormatInput = autoFormatInput;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -314,6 +352,11 @@ const PAGE_META = {
         title: "Study Sessions",
         subtitle: "Record and review your daily study time.",
         icon: "⏱️"
+    },
+    settings: {
+        title: "Settings",
+        subtitle: "Update your profile, grade, department, and avatar icon.",
+        iconHtml: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#60a5fa;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`
     }
 };
 
@@ -323,9 +366,13 @@ function updateStickyHeader(pageKey) {
 
     if (!header) return;
 
+    const iconContent = meta.iconHtml
+        ? `<span class="sticky-header-icon" style="display:inline-flex; align-items:center; justify-content:center;">${meta.iconHtml}</span>`
+        : `<span class="sticky-header-icon">${meta.icon}</span>`;
+
     header.innerHTML = `
         <div class="sticky-header-left">
-            <span class="sticky-header-icon">${meta.icon}</span>
+            ${iconContent}
             <div>
                 <div class="sticky-header-title">
                     ${escapeHtml(meta.title)}
@@ -408,9 +455,22 @@ function getDefaultAcademicTerm() {
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    if (month >= 9) return `${year}-${year + 1} Fall`;
-    if (month >= 6) return `${year - 1}-${year} Summer`;
-    return `${year - 1}-${year} Spring`;
+    const storedUser = typeof getStoredUser === "function" ? getStoredUser() : null;
+    const gradeMatch = storedUser?.gradeLevel ? /(\d+)/.exec(storedUser.gradeLevel) : null;
+    let gradePrefix = "4th Grade ";
+    if (gradeMatch) {
+        const num = parseInt(gradeMatch[1], 10);
+        const suf = num === 1 ? "st" : num === 2 ? "nd" : num === 3 ? "rd" : "th";
+        gradePrefix = `${num}${suf} Grade `;
+    } else if (storedUser?.gradeLevel?.toLowerCase().includes("prep")) {
+        gradePrefix = "Prep Year ";
+    } else if (storedUser?.gradeLevel === "Other") {
+        gradePrefix = "";
+    }
+
+    if (month >= 9) return `${year}-${year + 1} ${gradePrefix}Fall Term`.trim();
+    if (month >= 6) return `${year - 1}-${year} ${gradePrefix}Summer Term`.trim();
+    return `${year - 1}-${year} ${gradePrefix}Spring Term`.trim();
 }
 
 /*

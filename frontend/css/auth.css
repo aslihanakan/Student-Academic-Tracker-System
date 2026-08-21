@@ -447,7 +447,8 @@
     margin-top: 8px;
 }
 
-.auth-form input {
+.auth-form input,
+.auth-form select {
     width: 100%;
     padding: 12px 13px;
     margin: 0;
@@ -459,17 +460,29 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
+.auth-form select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%2364748b' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    padding-right: 36px;
+}
+
 .auth-form input::placeholder {
     color: #94a3b8;
 }
 
-.auth-form input:hover {
+.auth-form input:hover,
+.auth-form select:hover {
     border-color: #94a3b8;
 }
 
-.auth-form input:focus {
+.auth-form input:focus,
+.auth-form select:focus {
     outline: none;
-    border-color: #60a5fa;
     background: #ffffff;
     box-shadow:
         0 0 0 3px rgba(59, 130, 246, 0.10),

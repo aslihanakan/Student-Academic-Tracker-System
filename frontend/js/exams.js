@@ -300,6 +300,16 @@ async function loadExamsPage() {
         renderExamsTableBody();
         renderProjectsTableBody();
         renderActivitiesTableBody();
+
+        if (typeof autoFormatInput === "function") {
+            autoFormatInput(document.getElementById("examCourseName"), "title");
+            autoFormatInput(document.getElementById("examTeacherName"), "title");
+            autoFormatInput(document.getElementById("projectCourseName"), "title");
+            autoFormatInput(document.getElementById("projectTopic"), "title");
+            autoFormatInput(document.getElementById("projectTeacherName"), "title");
+            autoFormatInput(document.getElementById("activityCourseName"), "title");
+            autoFormatInput(document.getElementById("activityTitle"), "sentence");
+        }
     } catch (err) {
         console.error("Exams Page Error:", err);
         document.getElementById("app").innerHTML = `<p>Exams and projects could not be loaded.</p>`;

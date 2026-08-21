@@ -13,7 +13,22 @@ function getAllProjects(userId, callback) {
     db.all(sql, [userId], callback);
 }
 
+function toTitleCase(value) {
+    if (value === null || value === undefined) return value;
+    const str = String(value).trim();
+    if (!str) return str;
+    return str
+        .split(/\s+/)
+        .map(word => {
+            if (!word) return word;
+            return word.charAt(0).toLocaleUpperCase("tr-TR") + word.slice(1).toLocaleLowerCase("tr-TR");
+        })
+        .join(" ");
+}
+
 function createProject(userId, courseId, projectName, dueDate, description, score, status, callback) {
+    projectName = toTitleCase(projectName);
+
     if (!courseId || !projectName || !dueDate) {
         return callback(new Error("Course, project name and due date are required."));
     }
@@ -55,6 +70,8 @@ function createProject(userId, courseId, projectName, dueDate, description, scor
 }
 
 function updateProject(id, userId, courseId, projectName, dueDate, description, score, status, callback) {
+    projectName = toTitleCase(projectName);
+
     if (!courseId || !projectName || !dueDate) {
         return callback(new Error("Course, project name and due date are required."));
     }
