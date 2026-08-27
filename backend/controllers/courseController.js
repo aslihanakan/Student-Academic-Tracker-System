@@ -3,10 +3,6 @@ const courseService = require("../services/courseService");
 function getAllCourses(req, res) {
     const includeUnlisted = req.query.includeUnlisted === "1";
 
-    // "scope" tells the backend which page is asking (e.g. "exams"
-    // for the Deadlines page, "study" for Study Sessions), so
-    // quick-added courses from other pages are left out of the
-    // suggestion list. Omit it to get everything (Dashboard, Grades).
     const scope = req.query.scope;
 
     courseService.getAllCourses(req.userId, { includeUnlisted, scope }, function (err, courses) {
@@ -57,24 +53,23 @@ function createCourse(req, res) {
     const projectGrade = req.body.projectGrade;
     const finalGrade = req.body.finalGrade;
 
-    // User-defined weights
+   
     const midtermWeight = req.body.midtermWeight;
     const projectWeight = req.body.projectWeight;
     const passingGrade = req.body.passingGrade;
 
-    // Makeup ("büt") exam grade, entered after a course is failed
+    
     const makeupGrade = req.body.makeupGrade;
 
-    // Term info (e.g. "2025-2026" and "Fall")
+    
     const academicYear = req.body.academicYear;
     const semester = req.body.semester;
 
-    // Optional extra graded items (homework, quizzes, attendance...)
+    
     const extraGrades = req.body.extraGrades;
     const listedInGrades = req.body.listedInGrades;
 
-    // Which page this course is being quick-added from ("exams",
-    // "study"). Ignored (forced to "grades") when listedInGrades = 1.
+   
     const createdFrom = req.body.createdFrom;
 
     courseService.createCourse(
@@ -119,19 +114,17 @@ function updateCourse(req, res) {
     const projectGrade = req.body.projectGrade;
     const finalGrade = req.body.finalGrade;
 
-    // User-defined weights
+    
     const midtermWeight = req.body.midtermWeight;
     const projectWeight = req.body.projectWeight;
     const passingGrade = req.body.passingGrade;
 
-    // Makeup ("büt") exam grade, entered after a course is failed
+    
     const makeupGrade = req.body.makeupGrade;
-
-    // Term info (e.g. "2025-2026" and "Fall")
+ 
     const academicYear = req.body.academicYear;
     const semester = req.body.semester;
 
-    // Optional extra graded items (homework, quizzes, attendance...)
     const extraGrades = req.body.extraGrades;
     const listedInGrades = req.body.listedInGrades;
     const createdFrom = req.body.createdFrom;

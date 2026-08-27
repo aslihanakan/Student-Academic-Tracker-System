@@ -9,6 +9,14 @@
     <link rel="icon" type="image/png" sizes="16x16" href="photos/favicon-16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="photos/favicon-180.png">
 
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020817">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Academi Buddy">
+
     <link rel="stylesheet" href="css/common.css?v=10">
     <link rel="stylesheet" href="css/auth.css?v=10">
     <link rel="stylesheet" href="css/dashboard.css?v=10">
@@ -429,6 +437,22 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="js/study.js?v=12"></script>
 <script src="js/settings.js?v=12"></script>
 <script src="js/main.js?v=12"></script>
+
+<!-- PWA: Service Worker kaydı -->
+<script>
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+            navigator.serviceWorker
+                .register("/service-worker.js")
+                .then(function (reg) {
+                    console.log("Service worker registered:", reg.scope);
+                })
+                .catch(function (err) {
+                    console.log("Service worker registration failed:", err);
+                });
+        });
+    }
+</script>
 
 </body>
 </html>

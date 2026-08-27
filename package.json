@@ -1,6 +1,9 @@
 {
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node backend/server.js",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "cap:open:android": "npx cap open android"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
@@ -10,5 +13,10 @@
     "jsonwebtoken": "^9.0.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
   }
 }

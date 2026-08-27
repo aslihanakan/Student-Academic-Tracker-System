@@ -1,0 +1,12 @@
+{
+  "appId": "com.academibuddy.app",
+  "appName": "Academi Buddy",
+  "webDir": "frontend",
+  "server": {
+    "url": "https://YOUR-VERCEL-DOMAIN.vercel.app",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

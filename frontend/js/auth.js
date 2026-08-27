@@ -482,6 +482,30 @@ document
     );
 
 
+/* ─── EMAIL AUTO-TRIM HELPER ─────────────────────────────────────────────── */
+["loginEmail", "registerEmail"].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", function () {
+        if (this.value.startsWith(" ") || this.value.endsWith(" ")) {
+            this.value = this.value.trim();
+        }
+    });
+    el.addEventListener("blur", function () {
+        this.value = this.value.trim();
+    });
+});
+
+document.getElementById("loginSubmitBtn")?.addEventListener("click", function () {
+    const el = document.getElementById("loginEmail");
+    if (el) el.value = el.value.trim();
+});
+
+document.getElementById("registerSubmitBtn")?.addEventListener("click", function () {
+    const el = document.getElementById("registerEmail");
+    if (el) el.value = el.value.trim();
+});
+
 /* ─── LOGIN ────────────────────────────────────────────────────────────────── */
 
 document
