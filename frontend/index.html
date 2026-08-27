@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Academi Buddy</title>
 
-    <link rel="icon" type="image/png" sizes="32x32" href="photos/favicon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="photos/favicon-16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="photos/favicon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="photos/favicon-32.png?v=3">
+    <link rel="icon" type="image/png" sizes="16x16" href="photos/favicon-16.png?v=3">
+    <link rel="apple-touch-icon" href="photos/favicon-180.png?v=3">
+    <link rel="apple-touch-icon" sizes="180x180" href="photos/favicon-180.png?v=3">
+    <link rel="apple-touch-icon-precomposed" href="photos/favicon-180.png?v=3">
 
     <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json?v=3">
     <meta name="theme-color" content="#020817">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -443,7 +445,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
             navigator.serviceWorker
-                .register("/service-worker.js")
+                .register("./service-worker.js")
                 .then(function (reg) {
                     console.log("Service worker registered:", reg.scope);
                 })
