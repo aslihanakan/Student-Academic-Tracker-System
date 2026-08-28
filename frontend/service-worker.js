@@ -1,5 +1,5 @@
-const CACHE_NAME = "academi-buddy-static-v6";
-const API_CACHE_NAME = "academi-buddy-api-v6";
+const CACHE_NAME = "academi-buddy-static-v7";
+const API_CACHE_NAME = "academi-buddy-api-v7";
 
 const STATIC_ASSETS = [
     "./",

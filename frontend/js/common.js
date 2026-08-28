@@ -206,15 +206,32 @@ function getOfflineCache(url) {
         const uid = user ? (user.id || user.email || "user") : "guest";
         const prefix = `${ATS_CACHE_PREFIX}${uid}_`;
 
-        // 1. Courses fallback
-        if (url.includes("/courses")) {
+        const scanCache = (endpoint) => {
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
-                if (k && k.startsWith(prefix) && k.includes("/courses")) {
-                    const item = JSON.parse(localStorage.getItem(k) || "{}");
-                    if (Array.isArray(item.data) && item.data.length > 0) return item.data;
+                if (k && k.startsWith(prefix) && k.includes(endpoint)) {
+                    try {
+                        const item = JSON.parse(localStorage.getItem(k) || "{}");
+                        if (item && item.data !== undefined) return item.data;
+                    } catch (e) {}
                 }
             }
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(ATS_CACHE_PREFIX) && k.includes(endpoint)) {
+                    try {
+                        const item = JSON.parse(localStorage.getItem(k) || "{}");
+                        if (item && item.data !== undefined) return item.data;
+                    } catch (e) {}
+                }
+            }
+            return null;
+        };
+
+        // 1. Courses fallback
+        if (url.includes("/courses")) {
+            const cached = scanCache("/courses");
+            if (Array.isArray(cached) && cached.length > 0) return cached;
             if (window._allCourses && window._allCourses.length > 0) return window._allCourses;
             if (window._currentPageCourses && window._currentPageCourses.length > 0) return window._currentPageCourses;
             if (window._allCoursesForDeadlines && window._allCoursesForDeadlines.length > 0) return window._allCoursesForDeadlines;
@@ -223,75 +240,48 @@ function getOfflineCache(url) {
 
         // 2. Study sessions fallback
         if (url.includes("/study-sessions")) {
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith(prefix) && k.includes("/study-sessions")) {
-                    const item = JSON.parse(localStorage.getItem(k) || "{}");
-                    if (Array.isArray(item.data)) return item.data;
-                }
-            }
+            const cached = scanCache("/study-sessions");
+            if (Array.isArray(cached)) return cached;
             if (window._allSessions) return window._allSessions;
             return [];
         }
 
         // 3. Exams fallback
         if (url.includes("/exams")) {
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith(prefix) && k.includes("/exams")) {
-                    const item = JSON.parse(localStorage.getItem(k) || "{}");
-                    if (Array.isArray(item.data)) return item.data;
-                }
-            }
+            const cached = scanCache("/exams");
+            if (Array.isArray(cached)) return cached;
+            if (window._allExams) return window._allExams;
             return [];
         }
 
         // 4. Projects fallback
         if (url.includes("/projects")) {
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith(prefix) && k.includes("/projects")) {
-                    const item = JSON.parse(localStorage.getItem(k) || "{}");
-                    if (Array.isArray(item.data)) return item.data;
-                }
-            }
+            const cached = scanCache("/projects");
+            if (Array.isArray(cached)) return cached;
+            if (window._allProjects) return window._allProjects;
             return [];
         }
 
         // 5. Todos fallback
         if (url.includes("/todos")) {
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith(prefix) && k.includes("/todos")) {
-                    const item = JSON.parse(localStorage.getItem(k) || "{}");
-                    if (Array.isArray(item.data)) return item.data;
-                }
-            }
+            const cached = scanCache("/todos");
+            if (Array.isArray(cached)) return cached;
+            if (window._dashboardActivities) return window._dashboardActivities;
             return [];
         }
 
         // 6. Day notes fallback
         if (url.includes("/day-notes")) {
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith(prefix) && k.includes("/day-notes")) {
-                    const item = JSON.parse(localStorage.getItem(k) || "{}");
-                    if (Array.isArray(item.data)) return item.data;
-                }
-            }
+            const cached = scanCache("/day-notes");
+            if (Array.isArray(cached)) return cached;
             if (window._dayNotes) return window._dayNotes;
             return [];
         }
 
         // 7. Dashboard fallback
         if (url.includes("/dashboard")) {
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith(prefix) && k.includes("/dashboard")) {
-                    const item = JSON.parse(localStorage.getItem(k) || "{}");
-                    if (item.data) return item.data;
-                }
-            }
+            const cached = scanCache("/dashboard");
+            if (cached) return cached;
             return {
                 stats: { totalCourses: 0, passedCourses: 0, averageGrade: 0 },
                 chartData: [],

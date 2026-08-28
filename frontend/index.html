@@ -20,7 +20,7 @@
     <meta name="apple-mobile-web-app-title" content="Academi Buddy">
 
     <link rel="stylesheet" href="css/common.css?v=10">
-    <link rel="stylesheet" href="css/auth.css?v=10">
+    <link rel="stylesheet" href="css/auth.css?v=11">
     <link rel="stylesheet" href="css/dashboard.css?v=10">
     <link rel="stylesheet" href="css/grades.css?v=10">
     <link rel="stylesheet" href="css/deadlines.css?v=10">
@@ -150,6 +150,7 @@
 
                     <div id="loginError" class="auth-error"></div>
                     <button type="submit" id="loginSubmitBtn">Log In</button>
+                    <button type="button" id="offlineContinueBtn" class="offline-continue-btn" onclick="enterOfflineMode()">⚡ Continue in Offline Mode</button>
                 </form>
 
                 <!-- REGISTER FORM -->
@@ -431,14 +432,14 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <!-- JAVASCRIPT MODULES -->
-<script src="js/auth.js?v=15"></script>
-<script src="js/common.js?v=15"></script>
-<script src="js/courses.js?v=15"></script>
-<script src="js/exams.js?v=15"></script>
-<script src="js/dashboard.js?v=15"></script>
-<script src="js/study.js?v=15"></script>
-<script src="js/settings.js?v=15"></script>
-<script src="js/main.js?v=15"></script>
+<script src="js/auth.js?v=16"></script>
+<script src="js/common.js?v=16"></script>
+<script src="js/courses.js?v=16"></script>
+<script src="js/exams.js?v=16"></script>
+<script src="js/dashboard.js?v=16"></script>
+<script src="js/study.js?v=16"></script>
+<script src="js/settings.js?v=16"></script>
+<script src="js/main.js?v=16"></script>
 
 <!-- PWA: Service Worker Registration & Auto-Update -->
 <script>
