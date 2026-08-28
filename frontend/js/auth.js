@@ -1232,7 +1232,8 @@ async function initAuth() {
 
 /* ─── START AUTH ───────────────────────────────────────────────────────────── */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    initAuth
-);
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAuth);
+} else {
+    initAuth();
+}

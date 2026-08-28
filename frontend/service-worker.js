@@ -1,9 +1,10 @@
-const CACHE_NAME = "academi-buddy-static-v8";
-const API_CACHE_NAME = "academi-buddy-api-v8";
+const CACHE_NAME = "academi-buddy-static-v9";
+const API_CACHE_NAME = "academi-buddy-api-v9";
 
 const STATIC_ASSETS = [
     "./",
     "./index.html",
+    "index.html",
     "./manifest.json",
     "./css/common.css",
     "./css/auth.css",
@@ -51,6 +52,45 @@ const STATIC_ASSETS = [
     "./icons/quby 3.jpg"
 ];
 
+// Helper: Safely look up a request in current and ANY existing cache
+async function findInCaches(request, isNavigate = false) {
+    // 1. Direct match with ignoreSearch
+    try {
+        const direct = await caches.match(request, { ignoreSearch: true });
+        if (direct) return direct;
+    } catch (e) {}
+
+    // 2. If it's a navigation or HTML request, check all candidate paths
+    if (isNavigate) {
+        const candidates = ["./index.html", "index.html", "./", "/index.html", "/"];
+        for (const candidate of candidates) {
+            try {
+                const match = await caches.match(candidate, { ignoreSearch: true });
+                if (match) return match;
+            } catch (e) {}
+        }
+    }
+
+    // 3. Fallback: Search across ALL opened cache stores on device
+    try {
+        const keyList = await caches.keys();
+        for (const key of keyList) {
+            const c = await caches.open(key);
+            const res = await c.match(request, { ignoreSearch: true });
+            if (res) return res;
+
+            if (isNavigate) {
+                const idx = (await c.match("./index.html", { ignoreSearch: true })) ||
+                            (await c.match("index.html", { ignoreSearch: true })) ||
+                            (await c.match("./", { ignoreSearch: true }));
+                if (idx) return idx;
+            }
+        }
+    } catch (e) {}
+
+    return null;
+}
+
 // Service Worker Install: Precaches all application and media assets
 self.addEventListener("install", (event) => {
     self.skipWaiting();
@@ -67,14 +107,20 @@ self.addEventListener("install", (event) => {
     );
 });
 
-// Clear old cache versions on activate
+// Clear old cache versions on activate, preserving recent caches as safety net
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
-                    if (key !== CACHE_NAME && key !== API_CACHE_NAME) {
-                        console.log(`[SW] Purging old cache: ${key}`);
+                    // Do not purge v8 or v7 immediately to prevent black screen if offline
+                    if (
+                        key !== CACHE_NAME &&
+                        key !== API_CACHE_NAME &&
+                        !key.includes("v8") &&
+                        !key.includes("v7")
+                    ) {
+                        console.log(`[SW] Purging legacy cache: ${key}`);
                         return caches.delete(key);
                     }
                 })
@@ -134,7 +180,7 @@ self.addEventListener("fetch", (event) => {
     // 2. Video Range Requests (for offline video playback in Chrome/Edge/Safari)
     if (request.headers.get("range") && url.pathname.endsWith(".mp4")) {
         event.respondWith(
-            caches.match(request, { ignoreSearch: true }).then(async (cachedResponse) => {
+            findInCaches(request).then(async (cachedResponse) => {
                 if (!cachedResponse) {
                     return fetch(request);
                 }
@@ -161,51 +207,47 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    // 3. Static Assets: Network-First for HTML/JS/CSS (so updates take effect immediately),
-    // and Cache-First for Images/Fonts/Videos
-    const isCodeAsset = url.pathname.endsWith(".js") || url.pathname.endsWith(".css") || request.mode === "navigate";
+    // 3. Static Assets & App Navigation (App Shell)
+    const isNavigate = request.mode === "navigate" || request.headers.get("accept")?.includes("text/html");
 
-    if (isCodeAsset) {
-        // Network-First for JS, CSS, and HTML
-        event.respondWith(
-            fetch(request)
+    event.respondWith(
+        (async () => {
+            // First check if asset is in cache (Instant load & 100% offline guarantee)
+            const cached = await findInCaches(request, isNavigate);
+
+            // Fetch in background (or foreground if cache miss)
+            const networkPromise = fetch(request)
                 .then((networkResponse) => {
                     if (networkResponse && networkResponse.status === 200) {
-                        const responseClone = networkResponse.clone();
+                        const clone = networkResponse.clone();
                         caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, responseClone);
+                            cache.put(request, clone);
                         });
                     }
                     return networkResponse;
                 })
-                .catch(async () => {
-                    const cached = await caches.match(request, { ignoreSearch: true });
-                    if (cached) return cached;
-                    if (request.mode === "navigate") {
-                        return caches.match("./index.html", { ignoreSearch: true });
-                    }
-                })
-        );
-    } else {
-        // Cache-First for Images and Media
-        event.respondWith(
-            caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
-                if (cachedResponse) return cachedResponse;
+                .catch(() => null);
 
-                return fetch(request).then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        const responseClone = networkResponse.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, responseClone);
-                        });
-                    }
-                    return networkResponse;
-                }).catch(() => {
-                    if (request.mode === "navigate") {
-                        return caches.match("./index.html", { ignoreSearch: true });
-                    }
-                });
-            })
-        );
-    }
+            // If we have a cached copy, return it immediately!
+            if (cached) {
+                return cached;
+            }
+
+            // Not in cache: wait for network response
+            const netRes = await networkPromise;
+            if (netRes) return netRes;
+
+            // Both cache and network failed:
+            if (isNavigate) {
+                const fallbackHtml = await findInCaches(new Request("./index.html"), true);
+                if (fallbackHtml) return fallbackHtml;
+            }
+
+            // Fallback response instead of undefined to avoid browser blank screen
+            return new Response("App is loading...", {
+                status: 200,
+                headers: { "Content-Type": "text/html" }
+            });
+        })()
+    );
 });

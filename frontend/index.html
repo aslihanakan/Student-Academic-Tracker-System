@@ -457,7 +457,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let isRefreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", function () {
-            if (!isRefreshing) {
+            if (!isRefreshing && navigator.onLine) {
                 isRefreshing = true;
                 window.location.reload();
             }
