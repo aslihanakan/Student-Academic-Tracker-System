@@ -1245,15 +1245,19 @@ function generateIcsCalendar(events) {
         if (cleanDate.length < 8) return;
         const uid = `academi-buddy-${evt.id || (Date.now() + "_" + idx)}-${cleanDate}@academibuddy.app`;
         const summary = (evt.title || "Academic Event").replace(/[,;\n\r]/g, " ");
-        const description = (evt.description || "Academi Buddy").replace(/[,;\n\r]/g, " ");
+        const dateObj = new Date(evt.date);
+        dateObj.setDate(dateObj.getDate() + 1);
+        const cleanEnd = dateObj.toISOString().slice(0, 10).replace(/[^0-9]/g, "");
 
         lines.push("BEGIN:VEVENT");
         lines.push(`UID:${uid}`);
         lines.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`);
         lines.push(`DTSTART;VALUE=DATE:${cleanDate}`);
+        lines.push(`DTEND;VALUE=DATE:${cleanEnd}`);
         lines.push(`SUMMARY:${summary}`);
         if (description) lines.push(`DESCRIPTION:${description}`);
         lines.push("STATUS:CONFIRMED");
+        lines.push("TRANSP:TRANSPARENT");
         lines.push("END:VEVENT");
     });
 
@@ -1261,6 +1265,16 @@ function generateIcsCalendar(events) {
     return lines.join("\r\n");
 }
 window.generateIcsCalendar = generateIcsCalendar;
+
+function downloadAllDeadlinesIcs() {
+    const events = window._lastCalendarEvents || [];
+    if (!events.length) {
+        showToast("No deadlines found to export.", "warning");
+        return;
+    }
+    downloadIcsCalendar(events, "Academi_Buddy_Deadlines.ics");
+}
+window.downloadAllDeadlinesIcs = downloadAllDeadlinesIcs;
 
 function downloadIcsCalendar(events, filename = "Academi_Buddy_Deadlines.ics") {
     if (!events || !events.length) {
@@ -1409,7 +1423,7 @@ function openCalendarExportModal() {
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
                         <button
                             type="button"
-                            onclick="downloadIcsCalendar(window._lastCalendarEvents, 'Academi_Buddy_Deadlines.ics')"
+                            onclick="downloadAllDeadlinesIcs()"
                             style="padding:11px 14px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:12px; color:#1e293b; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;"
                         >
                             <span>📥</span> 1. Download .ics File
