@@ -178,7 +178,7 @@ function renderSessionsBySelectedDate() {
                 <button
                     class="btn-edit icon-btn"
                     onclick="editStudySession(
-                        ${s.id},
+                        '${escapeForOnclick(String(s.id))}',
                         '${escapeForOnclick(s.courseName)}',
                         '${escapeForOnclick(s.hours)}',
                         '${escapeForOnclick(s.note ?? "")}'
@@ -186,7 +186,7 @@ function renderSessionsBySelectedDate() {
                 >
                     ✏️
                 </button>
-                <button class="btn-delete icon-btn" onclick="deleteStudySession(${s.id})">
+                <button class="btn-delete icon-btn" onclick="deleteStudySession('${escapeForOnclick(String(s.id))}')">
                     🗑️
                 </button>
             </td>
@@ -282,7 +282,26 @@ async function saveStudySession() {
             return;
         }
 
+        const resData = await response.json().catch(() => ({}));
+        const newId = editingStudySessionId || resData.id || ("temp_" + Date.now());
+        const savedSession = {
+            id: newId,
+            courseName: enteredCourseName,
+            courseId: courseId,
+            studyDate: session.studyDate,
+            hours: session.hours,
+            note: session.note
+        };
+
+        if (window._allSessions) {
+            window._allSessions = [savedSession, ...window._allSessions.filter(s => String(s.id) !== String(newId))];
+        }
+        if (typeof saveOfflineCache === "function") {
+            saveOfflineCache(`${API_URL}/study-sessions`, window._allSessions);
+        }
+
         editingStudySessionId = null;
+        showToast("Study session saved successfully!", "success");
         await loadStudyPage(false);
     } catch (err) {
         if (!navigator.onLine || err.name === "TypeError") {
@@ -302,7 +321,7 @@ async function saveStudySession() {
                 hours: session.hours,
                 note: session.note
             };
-            window._allSessions = [localItem, ...(window._allSessions || []).filter(s => s.id !== localItem.id)];
+            window._allSessions = [localItem, ...(window._allSessions || []).filter(s => String(s.id) !== String(localItem.id))];
             if (typeof saveOfflineCache === "function") {
                 saveOfflineCache(`${API_URL}/study-sessions`, window._allSessions);
             }
@@ -329,7 +348,7 @@ function editStudySession(id, courseName, hours, note) {
     document.getElementById("studyCancelButton").style.display = "inline-block";
 
     scrollAppFormIntoView();
-    expandAddFormBoxIfCollapsed(document.getElementById("studyFormTitle"));
+    expandAddFormBoxIfCollapsed(document.getElementById("studySaveButton"));
 }
 
 function cancelStudyEdit() {
@@ -353,15 +372,36 @@ async function deleteStudySession(id) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch(`${API_URL}/study-sessions/${id}`, {
-            method: "DELETE"
-        });
+        const idStr = String(id);
+        const isSynthetic = idStr.startsWith("temp_");
 
-        if (!response.ok) {
-            showToast("Study session could not be deleted.", "error");
-            return;
+        if (isSynthetic) {
+            if (typeof getOfflineQueue === "function" && typeof saveOfflineQueue === "function") {
+                const q = getOfflineQueue().filter(item => !(item.url && item.url.includes("/study-sessions") && item.body && String(item.body.id) === idStr));
+                saveOfflineQueue(q);
+            }
+        } else {
+            const response = await fetch(`${API_URL}/study-sessions/${id}`, {
+                method: "DELETE"
+            });
+
+            if (!response.ok && response.status !== 404) {
+                showToast("Study session could not be deleted.", "error");
+                return;
+            }
         }
 
+        if (window._allSessions) {
+            window._allSessions = window._allSessions.filter(s => String(s.id) !== idStr);
+        }
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const cached = getOfflineCache(`${API_URL}/study-sessions`) || [];
+            if (Array.isArray(cached)) {
+                saveOfflineCache(`${API_URL}/study-sessions`, cached.filter(s => String(s.id) !== idStr));
+            }
+        }
+
+        showToast("Study session deleted.", "success");
         await loadStudyPage(false);
     } catch (err) {
         console.error("Study Session Delete Error:", err);

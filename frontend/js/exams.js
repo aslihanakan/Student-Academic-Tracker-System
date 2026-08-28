@@ -340,13 +340,13 @@ function renderExamsTableBody() {
                 <td data-label="Date">${escapeHtml(toDateText(e.examDate))}</td>
                 <td data-label="Status">${formatStatusCell(e.examDate, Number(e.isDone) === 1)}</td>
                 <td data-label="Done" class="done-cell">
-                    <input type="checkbox" class="done-checkbox" ${Number(e.isDone) === 1 ? "checked" : ""} onchange="toggleExamDone(${e.id}, this.checked)">
+                    <input type="checkbox" class="done-checkbox" ${Number(e.isDone) === 1 ? "checked" : ""} onchange="toggleExamDone('${escapeForOnclick(String(e.id))}', this.checked)">
                 </td>
                 <td class="action-buttons">
                     <button
                         class="btn-edit"
                         onclick="editExam(
-                            ${e.id},
+                            '${escapeForOnclick(String(e.id))}',
                             '${escapeForOnclick(e.courseName)}',
                             '${escapeForOnclick(e.examName)}',
                             '${escapeForOnclick(toDateText(e.examDate))}',
@@ -356,7 +356,7 @@ function renderExamsTableBody() {
                     >
                         ✏️
                     </button>
-                    <button class="btn-delete" onclick="deleteExam(${e.id})">🗑️</button>
+                    <button class="btn-delete" onclick="deleteExam('${escapeForOnclick(String(e.id))}')">🗑️</button>
                 </td>
             </tr>
         `).join("")
@@ -364,6 +364,7 @@ function renderExamsTableBody() {
 }
 
 async function toggleExamDone(id, isDone) {
+    const idStr = String(id);
     try {
         const response = await fetch(`${API_URL}/exams/${id}/status`, {
             method: "PATCH",
@@ -376,8 +377,16 @@ async function toggleExamDone(id, isDone) {
             return;
         }
 
-        const exam = window._examsPageData.exams.find(e => e.id === id);
+        const exam = window._examsPageData?.exams?.find(e => String(e.id) === idStr);
         if (exam) exam.isDone = isDone ? 1 : 0;
+
+        if (window._allExams) {
+            const allE = window._allExams.find(e => String(e.id) === idStr);
+            if (allE) allE.isDone = isDone ? 1 : 0;
+            if (typeof saveOfflineCache === "function") {
+                saveOfflineCache(`${API_URL}/exams`, window._allExams);
+            }
+        }
 
         renderExamsTableBody();
     } catch (err) {
@@ -410,13 +419,13 @@ function renderProjectsTableBody() {
                 <td data-label="Due Date">${escapeHtml(toDateText(p.dueDate))}</td>
                 <td data-label="Status">${formatStatusCell(p.dueDate, p.status === "completed")}</td>
                 <td data-label="Done" class="done-cell">
-                    <input type="checkbox" class="done-checkbox" ${p.status === "completed" ? "checked" : ""} onchange="toggleProjectDone(${p.id}, this.checked)">
+                    <input type="checkbox" class="done-checkbox" ${p.status === "completed" ? "checked" : ""} onchange="toggleProjectDone('${escapeForOnclick(String(p.id))}', this.checked)">
                 </td>
                 <td class="action-buttons">
                     <button
                         class="btn-edit"
                         onclick="editProject(
-                            ${p.id},
+                            '${escapeForOnclick(String(p.id))}',
                             '${escapeForOnclick(p.courseName)}',
                             '${escapeForOnclick(p.projectName)}',
                             '${escapeForOnclick(toDateText(p.dueDate))}',
@@ -427,7 +436,7 @@ function renderProjectsTableBody() {
                     >
                         ✏️
                     </button>
-                    <button class="btn-delete" onclick="deleteProject(${p.id})">🗑️</button>
+                    <button class="btn-delete" onclick="deleteProject('${escapeForOnclick(String(p.id))}')">🗑️</button>
                 </td>
             </tr>
         `).join("")
@@ -435,6 +444,7 @@ function renderProjectsTableBody() {
 }
 
 async function toggleProjectDone(id, isDone) {
+    const idStr = String(id);
     try {
         const response = await fetch(`${API_URL}/projects/${id}/status`, {
             method: "PATCH",
@@ -447,8 +457,16 @@ async function toggleProjectDone(id, isDone) {
             return;
         }
 
-        const project = window._examsPageData.projects.find(p => p.id === id);
+        const project = window._examsPageData?.projects?.find(p => String(p.id) === idStr);
         if (project) project.status = isDone ? "completed" : "pending";
+
+        if (window._allProjects) {
+            const allP = window._allProjects.find(p => String(p.id) === idStr);
+            if (allP) allP.status = isDone ? "completed" : "pending";
+            if (typeof saveOfflineCache === "function") {
+                saveOfflineCache(`${API_URL}/projects`, window._allProjects);
+            }
+        }
 
         renderProjectsTableBody();
     } catch (err) {
@@ -479,10 +497,12 @@ async function saveActivity() {
             return;
         }
 
+        const todoObj = { courseId, courseName: courseNameInput, type, title, dueDate };
+
         const response = await fetch(`${API_URL}/todos`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ courseId, type, title, dueDate })
+            body: JSON.stringify(todoObj)
         });
 
         if (!response.ok) {
@@ -490,10 +510,26 @@ async function saveActivity() {
             return;
         }
 
+        const resData = await response.json().catch(() => ({}));
+        const newId = resData.id || ("temp_" + Date.now());
+        const savedActivity = { id: newId, isDone: 0, ...todoObj };
+
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const currentTodos = getOfflineCache(`${API_URL}/todos`) || window._dashboardActivities || [];
+            if (Array.isArray(currentTodos)) {
+                const deduped = currentTodos.filter(t => String(t.id) !== String(newId));
+                saveOfflineCache(`${API_URL}/todos`, [savedActivity, ...deduped]);
+            }
+        }
+        if (window._dashboardActivities) {
+            window._dashboardActivities = [savedActivity, ...window._dashboardActivities.filter(t => String(t.id) !== String(newId))];
+        }
+
         document.getElementById("activityCourseName").value = "";
         document.getElementById("activityTitle").value = "";
         document.getElementById("activityDueDate").value = "";
 
+        showToast("Activity saved successfully!", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Activity Save Error:", err);
@@ -510,15 +546,39 @@ async function deleteActivity(id) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch(`${API_URL}/todos/${id}`, {
-            method: "DELETE"
-        });
+        const idStr = String(id);
+        const isSynthetic = idStr.startsWith("temp_");
 
-        if (!response.ok) {
-            showToast("Activity could not be deleted.", "error");
-            return;
+        if (isSynthetic) {
+            if (typeof getOfflineQueue === "function" && typeof saveOfflineQueue === "function") {
+                const q = getOfflineQueue().filter(item => !(item.url && item.url.includes("/todos") && item.body && String(item.body.id) === idStr));
+                saveOfflineQueue(q);
+            }
+        } else {
+            const response = await fetch(`${API_URL}/todos/${id}`, {
+                method: "DELETE"
+            });
+
+            if (!response.ok && response.status !== 404) {
+                showToast("Activity could not be deleted.", "error");
+                return;
+            }
         }
 
+        if (window._dashboardActivities) {
+            window._dashboardActivities = window._dashboardActivities.filter(t => String(t.id) !== idStr);
+        }
+        if (window._examsPageData?.activities) {
+            window._examsPageData.activities = window._examsPageData.activities.filter(t => String(t.id) !== idStr);
+        }
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const cached = getOfflineCache(`${API_URL}/todos`) || [];
+            if (Array.isArray(cached)) {
+                saveOfflineCache(`${API_URL}/todos`, cached.filter(t => String(t.id) !== idStr));
+            }
+        }
+
+        showToast("Activity deleted.", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Activity Delete Error:", err);
@@ -547,10 +607,10 @@ function renderActivitiesTableBody() {
                 <td data-label="Due Date">${escapeHtml(toDateText(a.dueDate))}</td>
                 <td data-label="Status">${formatStatusCell(a.dueDate, Number(a.isDone) === 1)}</td>
                 <td data-label="Done" class="done-cell">
-                    <input type="checkbox" class="done-checkbox" ${Number(a.isDone) === 1 ? "checked" : ""} onchange="toggleActivityDone(${a.id}, this.checked)">
+                    <input type="checkbox" class="done-checkbox" ${Number(a.isDone) === 1 ? "checked" : ""} onchange="toggleActivityDone('${escapeForOnclick(String(a.id))}', this.checked)">
                 </td>
                 <td class="action-buttons">
-                    <button class="btn-delete" onclick="deleteActivity(${a.id})">🗑️</button>
+                    <button class="btn-delete" onclick="deleteActivity('${escapeForOnclick(String(a.id))}')">🗑️</button>
                 </td>
             </tr>
         `).join("")
@@ -558,6 +618,7 @@ function renderActivitiesTableBody() {
 }
 
 async function toggleActivityDone(id, isDone) {
+    const idStr = String(id);
     try {
         const response = await fetch(`${API_URL}/todos/${id}`, {
             method: "PUT",
@@ -570,8 +631,16 @@ async function toggleActivityDone(id, isDone) {
             return;
         }
 
-        const activity = window._examsPageData.activities.find(a => a.id === id);
+        const activity = window._examsPageData?.activities?.find(a => String(a.id) === idStr);
         if (activity) activity.isDone = isDone ? 1 : 0;
+
+        if (window._dashboardActivities) {
+            const allA = window._dashboardActivities.find(a => String(a.id) === idStr);
+            if (allA) allA.isDone = isDone ? 1 : 0;
+            if (typeof saveOfflineCache === "function") {
+                saveOfflineCache(`${API_URL}/todos`, window._dashboardActivities);
+            }
+        }
 
         renderActivitiesTableBody();
     } catch (err) {
@@ -599,7 +668,7 @@ async function saveExam() {
             return;
         }
 
-        const exam = { courseId, examName, examDate, examType, score: "" };
+        const exam = { courseId, courseName: courseNameInput, examName, examDate, examType, score: "" };
 
         const response = await fetch(`${API_URL}/exams`, {
             method: "POST",
@@ -612,6 +681,22 @@ async function saveExam() {
             return;
         }
 
+        const resData = await response.json().catch(() => ({}));
+        const newId = resData.id || ("temp_" + Date.now());
+        const savedExam = { id: newId, isDone: 0, ...exam };
+
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const currentExams = getOfflineCache(`${API_URL}/exams`) || window._allExams || [];
+            if (Array.isArray(currentExams)) {
+                const deduped = currentExams.filter(e => String(e.id) !== String(newId));
+                saveOfflineCache(`${API_URL}/exams`, [savedExam, ...deduped]);
+            }
+        }
+        if (window._allExams) {
+            window._allExams = [savedExam, ...window._allExams.filter(e => String(e.id) !== String(newId))];
+        }
+
+        showToast("Exam saved successfully!", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Exam Save Error:", err);
@@ -628,15 +713,39 @@ async function deleteExam(id) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch(`${API_URL}/exams/${id}`, {
-            method: "DELETE"
-        });
+        const idStr = String(id);
+        const isSynthetic = idStr.startsWith("temp_");
 
-        if (!response.ok) {
-            showToast("Exam could not be deleted.", "error");
-            return;
+        if (isSynthetic) {
+            if (typeof getOfflineQueue === "function" && typeof saveOfflineQueue === "function") {
+                const q = getOfflineQueue().filter(item => !(item.url && item.url.includes("/exams") && item.body && String(item.body.id) === idStr));
+                saveOfflineQueue(q);
+            }
+        } else {
+            const response = await fetch(`${API_URL}/exams/${id}`, {
+                method: "DELETE"
+            });
+
+            if (!response.ok && response.status !== 404) {
+                showToast("Exam could not be deleted.", "error");
+                return;
+            }
         }
 
+        if (window._allExams) {
+            window._allExams = window._allExams.filter(e => String(e.id) !== idStr);
+        }
+        if (window._examsPageData?.exams) {
+            window._examsPageData.exams = window._examsPageData.exams.filter(e => String(e.id) !== idStr);
+        }
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const cached = getOfflineCache(`${API_URL}/exams`) || [];
+            if (Array.isArray(cached)) {
+                saveOfflineCache(`${API_URL}/exams`, cached.filter(e => String(e.id) !== idStr));
+            }
+        }
+
+        showToast("Exam deleted.", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Exam Delete Error:", err);
@@ -721,7 +830,7 @@ async function saveProject() {
             return;
         }
 
-        const project = { courseId, projectName, dueDate, description, score: "", status };
+        const project = { courseId, courseName: courseNameInput, projectName, dueDate, description, score: "", status };
 
         const response = await fetch(`${API_URL}/projects`, {
             method: "POST",
@@ -734,6 +843,22 @@ async function saveProject() {
             return;
         }
 
+        const resData = await response.json().catch(() => ({}));
+        const newId = resData.id || ("temp_" + Date.now());
+        const savedProject = { id: newId, ...project };
+
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const currentProjects = getOfflineCache(`${API_URL}/projects`) || window._allProjects || [];
+            if (Array.isArray(currentProjects)) {
+                const deduped = currentProjects.filter(p => String(p.id) !== String(newId));
+                saveOfflineCache(`${API_URL}/projects`, [savedProject, ...deduped]);
+            }
+        }
+        if (window._allProjects) {
+            window._allProjects = [savedProject, ...window._allProjects.filter(p => String(p.id) !== String(newId))];
+        }
+
+        showToast("Project saved successfully!", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Project Save Error:", err);
@@ -750,15 +875,39 @@ async function deleteProject(id) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch(`${API_URL}/projects/${id}`, {
-            method: "DELETE"
-        });
+        const idStr = String(id);
+        const isSynthetic = idStr.startsWith("temp_");
 
-        if (!response.ok) {
-            showToast("Project could not be deleted.", "error");
-            return;
+        if (isSynthetic) {
+            if (typeof getOfflineQueue === "function" && typeof saveOfflineQueue === "function") {
+                const q = getOfflineQueue().filter(item => !(item.url && item.url.includes("/projects") && item.body && String(item.body.id) === idStr));
+                saveOfflineQueue(q);
+            }
+        } else {
+            const response = await fetch(`${API_URL}/projects/${id}`, {
+                method: "DELETE"
+            });
+
+            if (!response.ok && response.status !== 404) {
+                showToast("Project could not be deleted.", "error");
+                return;
+            }
         }
 
+        if (window._allProjects) {
+            window._allProjects = window._allProjects.filter(p => String(p.id) !== idStr);
+        }
+        if (window._examsPageData?.projects) {
+            window._examsPageData.projects = window._examsPageData.projects.filter(p => String(p.id) !== idStr);
+        }
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const cached = getOfflineCache(`${API_URL}/projects`) || [];
+            if (Array.isArray(cached)) {
+                saveOfflineCache(`${API_URL}/projects`, cached.filter(p => String(p.id) !== idStr));
+            }
+        }
+
+        showToast("Project deleted.", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Project Delete Error:", err);

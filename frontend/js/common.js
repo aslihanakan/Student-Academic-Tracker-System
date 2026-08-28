@@ -574,12 +574,13 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 }
             }
         } else if (url.includes("/exams")) {
-            let exams = getOfflineCache(`${API_BASE_URL}/api/exams`) || window._allExams || [];
+            let exams = getOfflineCache(`${API_URL}/exams`) || getOfflineCache(`${API_BASE_URL}/api/exams`) || window._allExams || [];
             if (!Array.isArray(exams)) exams = [];
 
             if (method === "POST" && body) {
-                const newExam = { id: syntheticId, ...body, isDone: 0 };
-                exams = [newExam, ...exams];
+                const newExam = { id: syntheticId, isDone: 0, ...body };
+                exams = [newExam, ...exams.filter(e => String(e.id) !== String(syntheticId))];
+                saveOfflineCache(`${API_URL}/exams`, exams);
                 saveOfflineCache(`${API_BASE_URL}/api/exams`, exams);
                 window._allExams = exams;
                 if (window._examsPageData) window._examsPageData.exams = exams;
@@ -588,6 +589,17 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (idMatch) {
                     const id = idMatch[1];
                     exams = exams.map(e => String(e.id) === String(id) ? { ...e, isDone: Number(body?.isDone ?? 1) } : e);
+                    saveOfflineCache(`${API_URL}/exams`, exams);
+                    saveOfflineCache(`${API_BASE_URL}/api/exams`, exams);
+                    window._allExams = exams;
+                    if (window._examsPageData) window._examsPageData.exams = exams;
+                }
+            } else if (method === "PUT") {
+                const idMatch = url.match(/\/exams\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    exams = exams.map(e => String(e.id) === String(id) ? { ...e, ...body } : e);
+                    saveOfflineCache(`${API_URL}/exams`, exams);
                     saveOfflineCache(`${API_BASE_URL}/api/exams`, exams);
                     window._allExams = exams;
                     if (window._examsPageData) window._examsPageData.exams = exams;
@@ -597,18 +609,20 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (idMatch) {
                     const id = idMatch[1];
                     exams = exams.filter(e => String(e.id) !== String(id));
+                    saveOfflineCache(`${API_URL}/exams`, exams);
                     saveOfflineCache(`${API_BASE_URL}/api/exams`, exams);
                     window._allExams = exams;
                     if (window._examsPageData) window._examsPageData.exams = exams;
                 }
             }
         } else if (url.includes("/projects")) {
-            let projects = getOfflineCache(`${API_BASE_URL}/api/projects`) || window._allProjects || [];
+            let projects = getOfflineCache(`${API_URL}/projects`) || getOfflineCache(`${API_BASE_URL}/api/projects`) || window._allProjects || [];
             if (!Array.isArray(projects)) projects = [];
 
             if (method === "POST" && body) {
-                const newProject = { id: syntheticId, ...body, status: "in_progress" };
-                projects = [newProject, ...projects];
+                const newProject = { id: syntheticId, status: "in_progress", ...body };
+                projects = [newProject, ...projects.filter(p => String(p.id) !== String(syntheticId))];
+                saveOfflineCache(`${API_URL}/projects`, projects);
                 saveOfflineCache(`${API_BASE_URL}/api/projects`, projects);
                 window._allProjects = projects;
                 if (window._examsPageData) window._examsPageData.projects = projects;
@@ -617,6 +631,17 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (idMatch) {
                     const id = idMatch[1];
                     projects = projects.map(p => String(p.id) === String(id) ? { ...p, status: body?.status || "completed" } : p);
+                    saveOfflineCache(`${API_URL}/projects`, projects);
+                    saveOfflineCache(`${API_BASE_URL}/api/projects`, projects);
+                    window._allProjects = projects;
+                    if (window._examsPageData) window._examsPageData.projects = projects;
+                }
+            } else if (method === "PUT") {
+                const idMatch = url.match(/\/projects\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    projects = projects.map(p => String(p.id) === String(id) ? { ...p, ...body } : p);
+                    saveOfflineCache(`${API_URL}/projects`, projects);
                     saveOfflineCache(`${API_BASE_URL}/api/projects`, projects);
                     window._allProjects = projects;
                     if (window._examsPageData) window._examsPageData.projects = projects;
@@ -626,28 +651,31 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (idMatch) {
                     const id = idMatch[1];
                     projects = projects.filter(p => String(p.id) !== String(id));
+                    saveOfflineCache(`${API_URL}/projects`, projects);
                     saveOfflineCache(`${API_BASE_URL}/api/projects`, projects);
                     window._allProjects = projects;
                     if (window._examsPageData) window._examsPageData.projects = projects;
                 }
             }
         } else if (url.includes("/todos")) {
-            let todos = getOfflineCache(`${API_BASE_URL}/api/todos`) || window._dashboardActivities || [];
+            let todos = getOfflineCache(`${API_URL}/todos`) || getOfflineCache(`${API_BASE_URL}/api/todos`) || window._dashboardActivities || [];
             if (!Array.isArray(todos)) todos = [];
 
             if (method === "POST" && body) {
-                const newTodo = { id: syntheticId, ...body, isDone: 0 };
-                todos = [newTodo, ...todos];
+                const newTodo = { id: syntheticId, isDone: 0, ...body };
+                todos = [newTodo, ...todos.filter(t => String(t.id) !== String(syntheticId))];
+                saveOfflineCache(`${API_URL}/todos`, todos);
                 saveOfflineCache(`${API_BASE_URL}/api/todos`, todos);
                 window._dashboardActivities = todos;
                 if (window._examsPageData) {
                     window._examsPageData.activities = todos.filter(t => ["homework", "quiz", "other"].includes(t.type));
                 }
-            } else if (method === "PATCH") {
+            } else if (method === "PATCH" || method === "PUT") {
                 const idMatch = url.match(/\/todos\/([^\/?#]+)/);
                 if (idMatch) {
                     const id = idMatch[1];
                     todos = todos.map(t => String(t.id) === String(id) ? { ...t, ...body } : t);
+                    saveOfflineCache(`${API_URL}/todos`, todos);
                     saveOfflineCache(`${API_BASE_URL}/api/todos`, todos);
                     window._dashboardActivities = todos;
                     if (window._examsPageData) {
@@ -659,6 +687,7 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (idMatch) {
                     const id = idMatch[1];
                     todos = todos.filter(t => String(t.id) !== String(id));
+                    saveOfflineCache(`${API_URL}/todos`, todos);
                     saveOfflineCache(`${API_BASE_URL}/api/todos`, todos);
                     window._dashboardActivities = todos;
                     if (window._examsPageData) {
@@ -667,12 +696,13 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 }
             }
         } else if (url.includes("/study-sessions")) {
-            let sessions = getOfflineCache(`${API_BASE_URL}/api/study-sessions`) || window._allSessions || [];
+            let sessions = getOfflineCache(`${API_URL}/study-sessions`) || getOfflineCache(`${API_BASE_URL}/api/study-sessions`) || window._allSessions || [];
             if (!Array.isArray(sessions)) sessions = [];
 
             if (method === "POST" && body) {
                 const newSession = { id: syntheticId, ...body };
-                sessions = [newSession, ...sessions];
+                sessions = [newSession, ...sessions.filter(s => String(s.id) !== String(syntheticId))];
+                saveOfflineCache(`${API_URL}/study-sessions`, sessions);
                 saveOfflineCache(`${API_BASE_URL}/api/study-sessions`, sessions);
                 window._allSessions = sessions;
             } else if (method === "PUT" && body) {
@@ -680,6 +710,7 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (idMatch) {
                     const id = idMatch[1];
                     sessions = sessions.map(s => String(s.id) === String(id) ? { ...s, ...body } : s);
+                    saveOfflineCache(`${API_URL}/study-sessions`, sessions);
                     saveOfflineCache(`${API_BASE_URL}/api/study-sessions`, sessions);
                     window._allSessions = sessions;
                 }
@@ -688,17 +719,19 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (idMatch) {
                     const id = idMatch[1];
                     sessions = sessions.filter(s => String(s.id) !== String(id));
+                    saveOfflineCache(`${API_URL}/study-sessions`, sessions);
                     saveOfflineCache(`${API_BASE_URL}/api/study-sessions`, sessions);
                     window._allSessions = sessions;
                 }
             }
         } else if (url.includes("/day-notes")) {
-            let dayNotes = getOfflineCache(`${API_BASE_URL}/api/day-notes`) || window._dayNotes || [];
+            let dayNotes = getOfflineCache(`${API_URL}/day-notes`) || getOfflineCache(`${API_BASE_URL}/api/day-notes`) || window._dayNotes || [];
             if (!Array.isArray(dayNotes)) dayNotes = [];
 
             if (method === "POST" && body) {
                 const newNote = { id: syntheticId, ...body };
-                dayNotes = [...dayNotes, newNote];
+                dayNotes = [...dayNotes.filter(n => String(n.id) !== String(syntheticId)), newNote];
+                saveOfflineCache(`${API_URL}/day-notes`, dayNotes);
                 saveOfflineCache(`${API_BASE_URL}/api/day-notes`, dayNotes);
                 window._dayNotes = dayNotes;
             } else if (method === "DELETE") {
@@ -706,6 +739,7 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (idMatch) {
                     const id = idMatch[1];
                     dayNotes = dayNotes.filter(n => String(n.id) !== String(id));
+                    saveOfflineCache(`${API_URL}/day-notes`, dayNotes);
                     saveOfflineCache(`${API_BASE_URL}/api/day-notes`, dayNotes);
                     window._dayNotes = dayNotes;
                 }
@@ -1131,7 +1165,9 @@ async function getOrCreateCourseIdByName(courseName, instructorName, scope) {
     const normalizedName = toTitleCase(courseName);
     if (!normalizedName) return null;
 
-    const candidates = window._currentPageCourses || [];
+    const candidates = (window._currentPageCourses && window._currentPageCourses.length)
+        ? window._currentPageCourses
+        : (window._allCourses || window._allCoursesForDeadlines || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/courses`) : []) || []);
     const existing = candidates.find(c => toTitleCase(c.courseName) === normalizedName);
 
     if (existing) {

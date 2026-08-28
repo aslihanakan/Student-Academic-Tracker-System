@@ -301,7 +301,7 @@ async function loadDashboard() {
                                                             type="checkbox"
                                                             class="done-checkbox"
                                                             style="margin-top: 2px; cursor: pointer;"
-                                                            onchange="toggleDashboardReminderDone(${item.id}, this.checked)"
+                                                            onchange="toggleDashboardReminderDone('${item.id}', this.checked)"
                                                         >
                                                         <div style="display: flex; flex-direction: column; min-width: 0;">
                                                             <div style="display: flex; align-items: center; gap: 5px;">
@@ -377,6 +377,7 @@ async function loadDashboard() {
 }
 
 async function toggleDashboardReminderDone(id, isDone) {
+    const idStr = String(id);
     try {
         const response = await fetch(`${API_URL}/todos/${id}`, {
             method: "PUT",
@@ -387,6 +388,14 @@ async function toggleDashboardReminderDone(id, isDone) {
         if (!response.ok) {
             showToast("Activity status could not be updated.", "error");
             return;
+        }
+
+        if (window._dashboardActivities) {
+            const act = window._dashboardActivities.find(a => String(a.id) === idStr);
+            if (act) act.isDone = isDone ? 1 : 0;
+            if (typeof saveOfflineCache === "function") {
+                saveOfflineCache(`${API_URL}/todos`, window._dashboardActivities);
+            }
         }
 
         await loadDashboard();
@@ -585,7 +594,7 @@ function buildDayModalHtml(dateText) {
 
     const eventsHtml = events.map(e => `
         <div class="day-modal-item">
-            <input type="checkbox" class="done-checkbox" ${e.isDone ? "checked" : ""} onchange="toggleDayModalDeadlineDone('${e.type}', ${e.id}, this.checked, '${dateText}')">
+            <input type="checkbox" class="done-checkbox" ${e.isDone ? "checked" : ""} onchange="toggleDayModalDeadlineDone('${e.type}', '${escapeForOnclick(String(e.id))}', this.checked, '${dateText}')">
             <div class="day-modal-item-body">
                 <span class="badge badge-${e.type.toLowerCase()}">${escapeHtml(e.type)}</span>
                 <div class="day-modal-item-title">${escapeHtml(e.title)}</div>
@@ -596,7 +605,7 @@ function buildDayModalHtml(dateText) {
 
     const activitiesHtml = activities.map(a => `
         <div class="day-modal-item">
-            <input type="checkbox" class="done-checkbox" ${Number(a.isDone) === 1 ? "checked" : ""} onchange="toggleDayModalActivityDone(${a.id}, this.checked, '${dateText}')">
+            <input type="checkbox" class="done-checkbox" ${Number(a.isDone) === 1 ? "checked" : ""} onchange="toggleDayModalActivityDone('${escapeForOnclick(String(a.id))}', this.checked, '${dateText}')">
             <div class="day-modal-item-body">
                 <span class="reminder-type-tag">${escapeHtml(toTitleCase(a.type))}</span>
                 <div class="day-modal-item-title">${escapeHtml(a.courseName)}</div>
@@ -676,8 +685,12 @@ async function submitDayModalNote(dateText) {
             return;
         }
 
-        const created = await response.json();
-        window._dayNotes = [...(window._dayNotes || []), created];
+        const created = await response.json().catch(() => ({}));
+        const noteItem = { id: created.id || ("temp_" + Date.now()), noteDate: dateText, text };
+        window._dayNotes = [...(window._dayNotes || []).filter(n => String(n.id) !== String(noteItem.id)), noteItem];
+        if (typeof saveOfflineCache === "function") {
+            saveOfflineCache(`${API_URL}/day-notes`, window._dayNotes);
+        }
 
         showToast("Note added.", "success");
         renderCalendar();
@@ -690,16 +703,22 @@ async function submitDayModalNote(dateText) {
 
 async function deleteDayNote(dateText, noteId) {
     try {
-        const response = await fetch(`${API_URL}/day-notes/${noteId}`, {
-            method: "DELETE"
-        });
+        const idStr = String(noteId);
+        if (!idStr.startsWith("temp_")) {
+            const response = await fetch(`${API_URL}/day-notes/${noteId}`, {
+                method: "DELETE"
+            });
 
-        if (!response.ok) {
-            showToast("Note could not be deleted.", "error");
-            return;
+            if (!response.ok && response.status !== 404) {
+                showToast("Note could not be deleted.", "error");
+                return;
+            }
         }
 
-        window._dayNotes = (window._dayNotes || []).filter(n => String(n.id) !== String(noteId));
+        window._dayNotes = (window._dayNotes || []).filter(n => String(n.id) !== idStr);
+        if (typeof saveOfflineCache === "function") {
+            saveOfflineCache(`${API_URL}/day-notes`, window._dayNotes);
+        }
         renderCalendar();
         openCalendarDayModal(dateText);
     } catch (err) {
@@ -709,6 +728,7 @@ async function deleteDayNote(dateText, noteId) {
 }
 
 async function toggleDayModalDeadlineDone(type, id, isDone, dateText) {
+    const idStr = String(id);
     try {
         const response = type === "Exam"
             ? await fetch(`${API_URL}/exams/${id}/status`, {
@@ -727,6 +747,20 @@ async function toggleDayModalDeadlineDone(type, id, isDone, dateText) {
             return;
         }
 
+        if (type === "Exam") {
+            if (window._allExams) {
+                const ex = window._allExams.find(e => String(e.id) === idStr);
+                if (ex) ex.isDone = isDone ? 1 : 0;
+                if (typeof saveOfflineCache === "function") saveOfflineCache(`${API_URL}/exams`, window._allExams);
+            }
+        } else {
+            if (window._allProjects) {
+                const pr = window._allProjects.find(p => String(p.id) === idStr);
+                if (pr) pr.status = isDone ? "completed" : "pending";
+                if (typeof saveOfflineCache === "function") saveOfflineCache(`${API_URL}/projects`, window._allProjects);
+            }
+        }
+
         await loadDashboard();
         openCalendarDayModal(dateText);
     } catch (err) {
@@ -736,6 +770,7 @@ async function toggleDayModalDeadlineDone(type, id, isDone, dateText) {
 }
 
 async function toggleDayModalActivityDone(id, isDone, dateText) {
+    const idStr = String(id);
     try {
         const response = await fetch(`${API_URL}/todos/${id}`, {
             method: "PUT",
@@ -746,6 +781,12 @@ async function toggleDayModalActivityDone(id, isDone, dateText) {
         if (!response.ok) {
             showToast("Activity status could not be updated.", "error");
             return;
+        }
+
+        if (window._dashboardActivities) {
+            const act = window._dashboardActivities.find(a => String(a.id) === idStr);
+            if (act) act.isDone = isDone ? 1 : 0;
+            if (typeof saveOfflineCache === "function") saveOfflineCache(`${API_URL}/todos`, window._dashboardActivities);
         }
 
         await loadDashboard();
