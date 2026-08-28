@@ -716,20 +716,44 @@ function updateCourse(
 
 function deleteCourse(id, userId, callback) {
     db.run(
-        "DELETE FROM courses WHERE id = ? AND userId = ?",
+        "DELETE FROM exams WHERE courseId = ? AND userId = ?",
         [id, userId],
-        function (err) {
-            if (err) {
-                return callback(err);
-            }
+        function () {
+            db.run(
+                "DELETE FROM projects WHERE courseId = ? AND userId = ?",
+                [id, userId],
+                function () {
+                    db.run(
+                        "DELETE FROM study_sessions WHERE courseId = ? AND userId = ?",
+                        [id, userId],
+                        function () {
+                            db.run(
+                                "DELETE FROM todos WHERE courseId = ? AND userId = ?",
+                                [id, userId],
+                                function () {
+                                    db.run(
+                                        "DELETE FROM courses WHERE id = ? AND userId = ?",
+                                        [id, userId],
+                                        function (err) {
+                                            if (err) {
+                                                return callback(err);
+                                            }
 
-            if (this.changes === 0) {
-                return callback(
-                    new Error("Course not found.")
-                );
-            }
+                                            if (this.changes === 0) {
+                                                return callback(
+                                                    new Error("Course not found.")
+                                                );
+                                            }
 
-            callback(null, true);
+                                            callback(null, true);
+                                        }
+                                    );
+                                }
+                            );
+                        }
+                    );
+                }
+            );
         }
     );
 }

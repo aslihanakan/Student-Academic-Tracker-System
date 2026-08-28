@@ -359,10 +359,10 @@ function buildCourseRow(c, termLabel) {
                 <button
                     class="btn-edit"
                     onclick="editCourse(
-                        ${c.id},
+                        '${escapeForOnclick(String(c.id))}',
                         '${escapeForOnclick(c.courseName)}',
                         '${escapeForOnclick(c.instructorName)}',
-                        ${c.credit},
+                        ${Number(c.credit) || 0},
                         '${escapeForOnclick(c.midtermGrade ?? "")}',
                         '${escapeForOnclick(c.projectGrade ?? "")}',
                         '${escapeForOnclick(c.finalGrade ?? "")}',
@@ -376,7 +376,7 @@ function buildCourseRow(c, termLabel) {
                 >
                     ✏️
                 </button>
-                <button class="btn-delete" onclick="deleteCourse(${c.id}, '${escapeForOnclick(c.courseName)}')">
+                <button class="btn-delete" onclick="deleteCourse('${escapeForOnclick(String(c.id))}', '${escapeForOnclick(c.courseName)}')">
                     🗑️
                 </button>
             </td>
@@ -397,7 +397,15 @@ async function loadCourses() {
     updateStickyHeader("courses");
 
     try {
-        const courses = await fetchJson(`${API_URL}/courses`);
+        const rawCourses = await fetchJson(`${API_URL}/courses`);
+        const seenIds = new Set();
+        const courses = (rawCourses || []).filter(c => {
+            const idKey = String(c.id);
+            if (seenIds.has(idKey)) return false;
+            seenIds.add(idKey);
+            return true;
+        });
+
         window._coursesForGPA = courses;
         window._allCoursesForTermFilter = courses;
 
@@ -926,6 +934,13 @@ function calculateNeededFinal() {
 /* ─── SAVE COURSE ─────────────────────────────────────────────────────────────*/
 
 async function saveCourse() {
+    const saveBtn = document.getElementById("courseSaveButton");
+    if (saveBtn) {
+        if (saveBtn.dataset.busy === "1") return;
+        saveBtn.dataset.busy = "1";
+        saveBtn.disabled = true;
+    }
+
     const course = {
         courseName: toTitleCase(document.getElementById("courseName").value.trim()),
         instructorName: toTitleCase(document.getElementById("instructorName").value.trim()),
@@ -943,28 +958,40 @@ async function saveCourse() {
         listedInGrades: 1
     };
 
+    const unlockBtn = () => {
+        if (saveBtn) {
+            delete saveBtn.dataset.busy;
+            saveBtn.disabled = false;
+        }
+    };
+
     if (!course.courseName || !course.instructorName || !course.credit) {
         showToast("Course name, instructor name and credit are required.", "warning");
+        unlockBtn();
         return;
     }
 
     if (!course.academicYear || !isValidTermFormat(course.academicYear)) {
         showToast(`Please enter the current term, in the format "${TERM_FORMAT_EXAMPLE}".`, "warning");
+        unlockBtn();
         return;
     }
 
     if (course.midtermWeight < 0 || course.projectWeight < 0) {
         showToast("Weights cannot be negative.", "warning");
+        unlockBtn();
         return;
     }
 
     for (const item of course.extraGrades) {
         if (!item.label) {
             showToast("Please enter a name for every extra grade item (e.g. Homework, Quiz, Attendance).", "warning");
+            unlockBtn();
             return;
         }
         if (!(item.weight > 0)) {
             showToast(`Please enter a weight for "${item.label}".`, "warning");
+            unlockBtn();
             return;
         }
     }
@@ -973,17 +1000,32 @@ async function saveCourse() {
 
     if (course.midtermWeight + course.projectWeight + extraWeightSum >= 100) {
         showToast("Midterm, project and extra grade item weights must total less than 100%. The remaining percentage is automatically used for the final.", "warning");
+        unlockBtn();
         return;
     }
 
     if (course.projectGrade !== null && course.projectWeight === 0) {
         showToast("You entered a project grade. Please enter the project weight.", "warning");
+        unlockBtn();
         return;
     }
 
-
     try {
         const allCourses = await fetchJson(`${API_URL}/courses?includeUnlisted=1`);
+
+        // Check if a course with the same name already exists in this term
+        const duplicateCourse = (allCourses || []).find(c =>
+            toTitleCase(c.courseName) === course.courseName &&
+            c.academicYear === course.academicYear &&
+            Number(c.listedInGrades) === 1
+        );
+
+        if (duplicateCourse) {
+            showToast(`"${course.courseName}" is already registered for ${course.academicYear}.`, "warning");
+            unlockBtn();
+            return;
+        }
+
         const existingUnlisted = (allCourses || []).find(c =>
             toTitleCase(c.courseName) === course.courseName && Number(c.listedInGrades) === 0
         );
@@ -1003,23 +1045,18 @@ async function saveCourse() {
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             showToast(error.message || "Course could not be saved.", "error");
+            unlockBtn();
             return;
         }
 
-        const resData = await response.json().catch(() => ({}));
-        const savedItem = { id: resData.id || ("temp_" + Date.now()), ...course };
-        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
-            const cachedList = getOfflineCache(`${API_URL}/courses`) || window._coursesForGPA || [];
-            if (Array.isArray(cachedList)) {
-                saveOfflineCache(`${API_URL}/courses`, [...cachedList, savedItem]);
-                saveOfflineCache(`${API_URL}/courses?includeUnlisted=1`, [...cachedList, savedItem]);
-            }
-        }
-
+        resetCourseForm();
+        showToast("Course added successfully!", "success");
         await loadCourses();
     } catch (err) {
         console.error("Course Save Error:", err);
         showToast("Course could not be saved.", "error");
+    } finally {
+        unlockBtn();
     }
 }
 
@@ -1186,15 +1223,48 @@ async function deleteCourse(id, courseName) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch(`${API_URL}/courses/${id}`, {
-            method: "DELETE"
-        });
+        const idStr = String(id);
+        const isSynthetic = idStr.startsWith("temp_");
 
-        if (!response.ok) {
-            showToast("Course could not be deleted.", "error");
-            return;
+        if (isSynthetic) {
+            // Remove from offline sync queue if it was queued
+            if (typeof getOfflineQueue === "function" && typeof saveOfflineQueue === "function") {
+                const q = getOfflineQueue().filter(item => {
+                    return !(item.url && item.url.includes("/courses") && item.body && item.body.courseName === courseName);
+                });
+                saveOfflineQueue(q);
+            }
+        } else {
+            const response = await fetch(`${API_URL}/courses/${id}`, {
+                method: "DELETE"
+            });
+
+            // If 404, the course is already gone from the server; proceed to clean local state
+            if (!response.ok && response.status !== 404) {
+                const error = await response.json().catch(() => ({}));
+                showToast(error.message || "Course could not be deleted.", "error");
+                return;
+            }
         }
 
+        // Purge immediately from local storage cache
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const cachedList = getOfflineCache(`${API_URL}/courses`) || [];
+            if (Array.isArray(cachedList)) {
+                const filtered = cachedList.filter(c => String(c.id) !== idStr);
+                saveOfflineCache(`${API_URL}/courses`, filtered);
+                saveOfflineCache(`${API_URL}/courses?includeUnlisted=1`, filtered);
+            }
+        }
+
+        if (window._allCourses) {
+            window._allCourses = window._allCourses.filter(c => String(c.id) !== idStr);
+        }
+        if (window._coursesForGPA) {
+            window._coursesForGPA = window._coursesForGPA.filter(c => String(c.id) !== idStr);
+        }
+
+        showToast(`"${courseName}" deleted.`, "success");
         await loadCourses();
     } catch (err) {
         console.error("Course Delete Error:", err);
