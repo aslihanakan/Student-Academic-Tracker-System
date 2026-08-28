@@ -468,17 +468,15 @@ function showOfflineIndicator(isOffline) {
     const badge = ensureOfflineIndicatorElement();
     if (!badge) return;
 
-    if (isOffline) {
+    if (isOffline && !navigator.onLine) {
         badge.classList.remove("online-back");
         badge.querySelector(".ats-offline-text").textContent = "⚡ Offline Mode (Viewing cached data)";
         badge.classList.add("visible");
+        if (typeof updateCloudSyncBadge === "function") updateCloudSyncBadge("offline");
     } else {
-        badge.classList.add("online-back");
-        badge.querySelector(".ats-offline-text").textContent = "🟢 Back Online - Syncing data...";
-        badge.classList.add("visible");
-        setTimeout(() => {
-            badge.classList.remove("visible");
-        }, 3500);
+        badge.classList.remove("visible");
+        badge.classList.remove("online-back");
+        if (typeof updateCloudSyncBadge === "function") updateCloudSyncBadge("online");
     }
 }
 window.showOfflineIndicator = showOfflineIndicator;
@@ -844,7 +842,9 @@ function initOnlineOfflineListeners() {
         }
     });
 
-    if (!navigator.onLine) {
+    if (navigator.onLine) {
+        showOfflineIndicator(false);
+    } else {
         showOfflineIndicator(true);
     }
 }

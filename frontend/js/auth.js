@@ -1172,7 +1172,7 @@ async function initAuth() {
             if (storedUser) {
                 console.warn("[Auth] Server responded with error, falling back to cached user:", response.status);
                 showMainApp(storedUser);
-                if (typeof window.showOfflineIndicator === "function") {
+                if (!navigator.onLine && typeof window.showOfflineIndicator === "function") {
                     window.showOfflineIndicator(true);
                 }
                 return;
@@ -1201,6 +1201,10 @@ async function initAuth() {
             user
         );
 
+        if (typeof window.showOfflineIndicator === "function") {
+            window.showOfflineIndicator(false);
+        }
+
 
     } catch (err) {
 
@@ -1217,7 +1221,7 @@ async function initAuth() {
         if (storedUser) {
             console.log("[Auth] Continuing in offline mode with cached user data");
             showMainApp(storedUser);
-            if (typeof window.showOfflineIndicator === "function") {
+            if (!navigator.onLine && typeof window.showOfflineIndicator === "function") {
                 window.showOfflineIndicator(true);
             }
             return;
