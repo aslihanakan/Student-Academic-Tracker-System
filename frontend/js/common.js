@@ -196,9 +196,110 @@ function getOfflineCache(url) {
     try {
         const key = getOfflineCacheKey(url);
         const raw = localStorage.getItem(key);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        return parsed && parsed.data !== undefined ? parsed.data : null;
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.data !== undefined) return parsed.data;
+        }
+
+        // Fuzzy fallback across similar endpoints when query parameters vary
+        const user = (typeof getStoredUser === "function") ? getStoredUser() : null;
+        const uid = user ? (user.id || user.email || "user") : "guest";
+        const prefix = `${ATS_CACHE_PREFIX}${uid}_`;
+
+        // 1. Courses fallback
+        if (url.includes("/courses")) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/courses")) {
+                    const item = JSON.parse(localStorage.getItem(k) || "{}");
+                    if (Array.isArray(item.data) && item.data.length > 0) return item.data;
+                }
+            }
+            if (window._allCourses && window._allCourses.length > 0) return window._allCourses;
+            if (window._currentPageCourses && window._currentPageCourses.length > 0) return window._currentPageCourses;
+            if (window._allCoursesForDeadlines && window._allCoursesForDeadlines.length > 0) return window._allCoursesForDeadlines;
+            return [];
+        }
+
+        // 2. Study sessions fallback
+        if (url.includes("/study-sessions")) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/study-sessions")) {
+                    const item = JSON.parse(localStorage.getItem(k) || "{}");
+                    if (Array.isArray(item.data)) return item.data;
+                }
+            }
+            if (window._allSessions) return window._allSessions;
+            return [];
+        }
+
+        // 3. Exams fallback
+        if (url.includes("/exams")) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/exams")) {
+                    const item = JSON.parse(localStorage.getItem(k) || "{}");
+                    if (Array.isArray(item.data)) return item.data;
+                }
+            }
+            return [];
+        }
+
+        // 4. Projects fallback
+        if (url.includes("/projects")) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/projects")) {
+                    const item = JSON.parse(localStorage.getItem(k) || "{}");
+                    if (Array.isArray(item.data)) return item.data;
+                }
+            }
+            return [];
+        }
+
+        // 5. Todos fallback
+        if (url.includes("/todos")) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/todos")) {
+                    const item = JSON.parse(localStorage.getItem(k) || "{}");
+                    if (Array.isArray(item.data)) return item.data;
+                }
+            }
+            return [];
+        }
+
+        // 6. Day notes fallback
+        if (url.includes("/day-notes")) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/day-notes")) {
+                    const item = JSON.parse(localStorage.getItem(k) || "{}");
+                    if (Array.isArray(item.data)) return item.data;
+                }
+            }
+            if (window._dayNotes) return window._dayNotes;
+            return [];
+        }
+
+        // 7. Dashboard fallback
+        if (url.includes("/dashboard")) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/dashboard")) {
+                    const item = JSON.parse(localStorage.getItem(k) || "{}");
+                    if (item.data) return item.data;
+                }
+            }
+            return {
+                stats: { totalCourses: 0, passedCourses: 0, averageGrade: 0 },
+                chartData: [],
+                recentActivities: []
+            };
+        }
+
+        return null;
     } catch (e) {
         return null;
     }
@@ -256,7 +357,7 @@ function ensureOfflineIndicatorElement() {
     el.innerHTML = `
         <div class="ats-offline-content">
             <span class="ats-offline-dot"></span>
-            <span class="ats-offline-text">Çevrimdışı Mod (Kayıtlı veriler gösteriliyor)</span>
+            <span class="ats-offline-text">Offline Mode (Viewing cached data)</span>
         </div>
     `;
 
@@ -328,11 +429,11 @@ function showOfflineIndicator(isOffline) {
 
     if (isOffline) {
         badge.classList.remove("online-back");
-        badge.querySelector(".ats-offline-text").textContent = "⚡ Çevrimdışı Mod (Kayıtlı veriler gösteriliyor)";
+        badge.querySelector(".ats-offline-text").textContent = "⚡ Offline Mode (Viewing cached data)";
         badge.classList.add("visible");
     } else {
         badge.classList.add("online-back");
-        badge.querySelector(".ats-offline-text").textContent = "🟢 Çevrimiçi - Veriler senkronize ediliyor";
+        badge.querySelector(".ats-offline-text").textContent = "🟢 Back Online - Syncing data...";
         badge.classList.add("visible");
         setTimeout(() => {
             badge.classList.remove("visible");
@@ -365,7 +466,7 @@ function queueOfflineAction(action) {
     saveOfflineQueue(queue);
     console.log("[Offline Queue] Queued action:", action);
     if (typeof showToast === "function") {
-        showToast("İşlem çevrimdışı kaydedildi. İnternet bağlantısı sağlandığında senkronize edilecek.", "warning");
+        showToast("Action saved offline. It will sync automatically when back online.", "warning");
     }
 }
 window.queueOfflineAction = queueOfflineAction;
@@ -400,7 +501,7 @@ async function processOfflineSyncQueue() {
     saveOfflineQueue(remaining);
 
     if (queue.length > remaining.length && typeof showToast === "function") {
-        showToast(`${queue.length - remaining.length} çevrimdışı işlem senkronize edildi.`, "success");
+        showToast(`${queue.length - remaining.length} offline action(s) synced successfully.`, "success");
         refreshCurrentView();
     }
 }
@@ -441,7 +542,7 @@ function initOnlineOfflineListeners() {
         console.log("[Network] Application went offline.");
         showOfflineIndicator(true);
         if (typeof showToast === "function") {
-            showToast("İnternet bağlantısı kesildi. Çevrimdışı moda geçildi.", "warning");
+            showToast("Internet connection lost. Switched to offline mode.", "warning");
         }
     });
 

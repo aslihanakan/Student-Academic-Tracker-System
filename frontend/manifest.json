@@ -1,7 +1,7 @@
 {
   "name": "Academi Buddy",
   "short_name": "Academi Buddy",
-  "description": "Ders, sınav, not ve çalışma takibini tek yerden yönetin.",
+  "description": "Track and manage your courses, exams, grades, and study sessions in one place.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
