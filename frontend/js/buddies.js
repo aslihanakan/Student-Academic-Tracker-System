@@ -74,11 +74,12 @@ async function loadBuddiesList() {
     const listEl = document.getElementById("buddiesContentList");
     if (!listEl) return;
 
-    try {
-        const res = await fetch(`${API_URL}/buddies`);
-        if (!res.ok) throw new Error("Could not load buddies");
+    listEl.innerHTML = `<div style="text-align:center; padding:24px; color:#94a3b8;">Loading buddies and study stats...</div>`;
 
-        const data = await res.json();
+    try {
+        const data = await fetchJson(`${API_URL}/buddies`);
+        if (!data) throw new Error("Could not load buddies");
+
         const myStreak = data.myStreak || 0;
         const myWeekly = data.myWeeklyHours || 0;
         const buddies = data.buddies || [];
@@ -140,7 +141,16 @@ async function loadBuddiesList() {
             `}
         `;
     } catch (e) {
-        listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#f87171;">Could not load buddy leaderboard.</div>`;
+        listEl.innerHTML = `
+            <div style="text-align:center; padding:24px; color:#94a3b8; background:rgba(255,255,255,0.02); border-radius:8px; border:1px dashed rgba(255,255,255,0.1);">
+                <div style="font-size:24px; margin-bottom:6px;">⚡</div>
+                <div style="font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:4px;">Connecting to leaderboard...</div>
+                <div style="font-size:12px; color:#94a3b8; margin-bottom:12px;">The server may be waking up or syncing.</div>
+                <button type="button" onclick="loadBuddiesList()" style="padding:7px 18px; background:#10b981; color:#ffffff; font-weight:700; font-size:12px; border:none; border-radius:6px; cursor:pointer;">
+                    🔄 Retry Now
+                </button>
+            </div>
+        `;
     }
 }
 
@@ -150,6 +160,12 @@ async function addClassmateBuddy() {
     if (!query) {
         showToast("Please enter an email or username.", "warning");
         return;
+    }
+
+    const btn = document.querySelector("#buddiesModal button[onclick='addClassmateBuddy()']");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Adding...";
     }
 
     try {
@@ -167,6 +183,11 @@ async function addClassmateBuddy() {
         await loadBuddiesList();
     } catch (e) {
         showToast(e.message || "Could not add buddy.", "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "+ Add Buddy";
+        }
     }
 }
 window.addClassmateBuddy = addClassmateBuddy;

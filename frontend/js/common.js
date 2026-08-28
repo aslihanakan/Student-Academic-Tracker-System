@@ -370,6 +370,9 @@ async function fetchJson(url) {
         const data = await response.json();
         // Başarılı yanıtı çevrimdışı kullanım için kaydet
         saveOfflineCache(url, data);
+        if (typeof showOfflineIndicator === "function") {
+            showOfflineIndicator(false);
+        }
         return data;
 
     } catch (err) {
