@@ -2,6 +2,48 @@
    ACADEMI BUDDY - BUDDIES & GROUP PROJECTS COLLABORATION MODULE
    ============================================================================== */
 
+let buddiesPollInterval = null;
+let lastKnownAcceptedCount = -1;
+let lastKnownIncomingCount = -1;
+
+function startBuddiesPolling() {
+    stopBuddiesPolling();
+    // Poll every 3.5 seconds while the buddies modal is open
+    buddiesPollInterval = setInterval(() => {
+        const modal = document.getElementById("buddiesModal");
+        if (modal) {
+            loadBuddiesList(true);
+        } else {
+            stopBuddiesPolling();
+        }
+    }, 3500);
+}
+
+function stopBuddiesPolling() {
+    if (buddiesPollInterval) {
+        clearInterval(buddiesPollInterval);
+        buddiesPollInterval = null;
+    }
+}
+
+function closeBuddiesModal() {
+    stopBuddiesPolling();
+    const modal = document.getElementById("buddiesModal");
+    if (modal) modal.remove();
+}
+window.closeBuddiesModal = closeBuddiesModal;
+
+function updateSidebarBuddyBadge(count) {
+    const btn = document.getElementById("buddiesSidebarBtn");
+    if (!btn) return;
+    if (count > 0) {
+        btn.innerHTML = `🤝 Academi Buddies <span style="background:#ef4444; color:#ffffff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:10px; margin-left:6px; vertical-align:middle; display:inline-block;">${count}</span>`;
+    } else {
+        btn.innerHTML = `🤝 Academi Buddies`;
+    }
+}
+window.updateSidebarBuddyBadge = updateSidebarBuddyBadge;
+
 /**
  * Open Academi Buddies & Study Streaks Modal
  */
@@ -24,6 +66,10 @@ async function openBuddiesModal() {
     modal.style.zIndex = "9999";
     modal.style.padding = "20px";
 
+    modal.addEventListener("click", function(e) {
+        if (e.target === modal) closeBuddiesModal();
+    });
+
     modal.innerHTML = `
         <div class="modal-box" style="max-width:680px; width:100%; max-height:88vh; overflow-y:auto; padding:0; background:#0f172a; color:#f8fafc; border-radius:14px; border:1px solid rgba(255,255,255,0.15); box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);">
             <!-- Header -->
@@ -35,7 +81,7 @@ async function openBuddiesModal() {
                         <div style="font-size:12px; color:#a7f3d0;">Connect with classmates, share study streaks and motivate each other</div>
                     </div>
                 </div>
-                <button type="button" onclick="document.getElementById('buddiesModal').remove()" style="background:rgba(255,255,255,0.1); border:none; color:#ffffff; font-size:14px; font-weight:700; width:28px; height:28px; border-radius:50%; cursor:pointer;">✕</button>
+                <button type="button" onclick="closeBuddiesModal()" style="background:rgba(255,255,255,0.1); border:none; color:#ffffff; font-size:14px; font-weight:700; width:28px; height:28px; border-radius:50%; cursor:pointer;">✕</button>
             </div>
 
             <!-- Content Area -->
@@ -66,15 +112,18 @@ async function openBuddiesModal() {
     `;
 
     document.body.appendChild(modal);
-    await loadBuddiesList();
+    await loadBuddiesList(false);
+    startBuddiesPolling();
 }
 window.openBuddiesModal = openBuddiesModal;
 
-async function loadBuddiesList() {
+async function loadBuddiesList(silent = false) {
     const listEl = document.getElementById("buddiesContentList");
     if (!listEl) return;
 
-    listEl.innerHTML = `<div style="text-align:center; padding:24px; color:#94a3b8;">Loading buddies and study stats...</div>`;
+    if (!silent) {
+        listEl.innerHTML = `<div style="text-align:center; padding:24px; color:#94a3b8;">Loading buddies and study stats...</div>`;
+    }
 
     try {
         const data = await fetchJson(`${API_URL}/buddies`);
@@ -85,6 +134,23 @@ async function loadBuddiesList() {
         const buddies = data.buddies || [];
         const incoming = data.pendingIncoming || [];
         const outgoing = data.pendingOutgoing || [];
+
+        // Check if an invitation was just accepted while viewing!
+        if (lastKnownAcceptedCount !== -1 && buddies.length > lastKnownAcceptedCount) {
+            const newlyAdded = buddies[buddies.length - 1];
+            if (typeof showToast === "function") {
+                showToast(`🎉 ${newlyAdded ? newlyAdded.name : "Your classmate"} accepted your buddy request!`, "success");
+            }
+        }
+        if (lastKnownIncomingCount !== -1 && incoming.length > lastKnownIncomingCount) {
+            if (typeof showToast === "function") {
+                showToast(`📬 You have a new buddy invitation!`, "info");
+            }
+        }
+
+        lastKnownAcceptedCount = buddies.length;
+        lastKnownIncomingCount = incoming.length;
+        updateSidebarBuddyBadge(incoming.length);
 
         const myUser = typeof getStoredUser === "function" ? getStoredUser() : null;
         const myName = myUser ? (myUser.name || "Me") : "Me";
@@ -185,18 +251,53 @@ async function loadBuddiesList() {
             `}
         `;
     } catch (e) {
-        listEl.innerHTML = `
-            <div style="text-align:center; padding:24px; color:#94a3b8; background:rgba(255,255,255,0.02); border-radius:8px; border:1px dashed rgba(255,255,255,0.1);">
-                <div style="font-size:24px; margin-bottom:6px;">⚡</div>
-                <div style="font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:4px;">Connecting to leaderboard...</div>
-                <div style="font-size:12px; color:#94a3b8; margin-bottom:12px;">The server may be waking up or syncing.</div>
-                <button type="button" onclick="loadBuddiesList()" style="padding:7px 18px; background:#10b981; color:#ffffff; font-weight:700; font-size:12px; border:none; border-radius:6px; cursor:pointer;">
-                    🔄 Retry Now
-                </button>
-            </div>
-        `;
+        if (!silent) {
+            listEl.innerHTML = `
+                <div style="text-align:center; padding:24px; color:#94a3b8; background:rgba(255,255,255,0.02); border-radius:8px; border:1px dashed rgba(255,255,255,0.1);">
+                    <div style="font-size:24px; margin-bottom:6px;">⚡</div>
+                    <div style="font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:4px;">Connecting to leaderboard...</div>
+                    <div style="font-size:12px; color:#94a3b8; margin-bottom:12px;">The server may be waking up or syncing.</div>
+                    <button type="button" onclick="loadBuddiesList()" style="padding:7px 18px; background:#10b981; color:#ffffff; font-weight:700; font-size:12px; border:none; border-radius:6px; cursor:pointer;">
+                        🔄 Retry Now
+                    </button>
+                </div>
+            `;
+        }
     }
 }
+
+async function checkBackgroundBuddySync() {
+    try {
+        const data = await fetchJson(`${API_URL}/buddies`);
+        if (!data) return;
+        const buddies = data.buddies || [];
+        const incoming = data.pendingIncoming || [];
+
+        if (lastKnownAcceptedCount !== -1 && buddies.length > lastKnownAcceptedCount) {
+            const newlyAdded = buddies[buddies.length - 1];
+            if (typeof showToast === "function") {
+                showToast(`🎉 ${newlyAdded ? newlyAdded.name : "A classmate"} accepted your buddy request!`, "success");
+            }
+            if (typeof refreshCurrentView === "function") refreshCurrentView();
+        }
+
+        lastKnownAcceptedCount = buddies.length;
+        lastKnownIncomingCount = incoming.length;
+        updateSidebarBuddyBadge(incoming.length);
+
+        const modal = document.getElementById("buddiesModal");
+        if (modal) loadBuddiesList(true);
+    } catch (e) {}
+}
+
+// Listen for tab focus and visibility changes to auto-sync instantly!
+window.addEventListener("focus", checkBackgroundBuddySync);
+document.addEventListener("visibilitychange", function() {
+    if (!document.hidden) checkBackgroundBuddySync();
+});
+// Periodic background check every 15 seconds
+setInterval(checkBackgroundBuddySync, 15000);
+setTimeout(checkBackgroundBuddySync, 2000);
 
 async function addClassmateBuddy() {
     const input = document.getElementById("addBuddyInput");
@@ -224,7 +325,7 @@ async function addClassmateBuddy() {
 
         showToast(json.message || "Invitation sent!", "success");
         if (input) input.value = "";
-        await loadBuddiesList();
+        await loadBuddiesList(false);
     } catch (e) {
         showToast(e.message || "Could not send invitation.", "error");
     } finally {
