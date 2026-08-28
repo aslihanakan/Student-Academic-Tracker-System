@@ -1283,6 +1283,161 @@ function downloadIcsCalendar(events, filename = "Academi_Buddy_Deadlines.ics") {
 }
 window.downloadIcsCalendar = downloadIcsCalendar;
 
+function openCalendarExportModal() {
+    const exams = window._allExams || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/exams`) : []) || [];
+    const projects = window._allProjects || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/projects`) : []) || [];
+    const activities = window._dashboardActivities || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/todos`) : []) || [];
+
+    const upcomingEvents = [];
+
+    exams.forEach(e => {
+        if (!e.examDate) return;
+        upcomingEvents.push({
+            id: `exam-${e.id}`,
+            title: `[Exam] ${e.courseName || ''} - ${e.examName || 'Exam'}`,
+            displayTitle: `${e.examName || 'Exam'} (${e.courseName || 'Course'})`,
+            date: e.examDate,
+            type: "Exam",
+            description: `Type: ${toTitleCase(e.examType || '')} | Instructor: ${e.instructorName || '-'}`
+        });
+    });
+
+    projects.forEach(p => {
+        if (!p.dueDate) return;
+        upcomingEvents.push({
+            id: `proj-${p.id}`,
+            title: `[Project] ${p.courseName || ''} - ${p.projectName || 'Project'}`,
+            displayTitle: `${p.projectName || 'Project'} (${p.courseName || 'Course'})`,
+            date: p.dueDate,
+            type: "Project",
+            description: `Description: ${p.description || ''}`
+        });
+    });
+
+    activities.forEach(a => {
+        if (!a.dueDate) return;
+        upcomingEvents.push({
+            id: `todo-${a.id}`,
+            title: `[${toTitleCase(a.type || 'Task')}] ${a.courseName || ''} - ${a.title || 'Task'}`,
+            displayTitle: `${a.title || 'Task'} (${a.courseName || 'Course'})`,
+            date: a.dueDate,
+            type: toTitleCase(a.type || "Task"),
+            description: `Task for ${a.courseName || ''}`
+        });
+    });
+
+    upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const existing = document.getElementById("calendarExportModal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay is-open";
+    modal.id = "calendarExportModal";
+    modal.style.position = "fixed";
+    modal.style.top = "0";
+    modal.style.left = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.backgroundColor = "rgba(0, 0, 0, 0.65)";
+    modal.style.display = "flex";
+    modal.style.alignItems = "center";
+    modal.style.justifyContent = "center";
+    modal.style.zIndex = "9999";
+    modal.style.padding = "20px";
+
+    const itemsHtml = upcomingEvents.slice(0, 8).map(evt => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:8px; gap:8px;">
+            <div style="min-width:0; flex:1;">
+                <div style="font-weight:700; font-size:12.5px; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    ${evt.type === "Exam" ? "📝" : evt.type === "Project" ? "🚀" : "📌"} ${escapeHtml(evt.displayTitle)}
+                </div>
+                <div style="font-size:11px; color:#64748b;">📅 ${escapeHtml(toDateText(evt.date))}</div>
+            </div>
+            <a
+                href="${getGoogleCalendarUrl(evt.title, evt.date, evt.description)}"
+                target="_blank"
+                rel="noopener"
+                style="padding:6px 12px; font-size:11px; font-weight:700; background:#2563eb; color:#ffffff; border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;"
+            >
+                + Google Calendar ↗
+            </a>
+        </div>
+    `).join("");
+
+    modal.innerHTML = `
+        <div class="modal-box" style="max-width:680px; width:100%; max-height:90vh; overflow-y:auto; padding:0; background:#ffffff; border-radius:14px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); color:#0f172a;">
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; background:#0f172a; color:#ffffff; border-radius:14px 14px 0 0;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:24px;">📅</span>
+                    <div>
+                        <div style="font-size:16px; font-weight:800;">Add Deadlines to Calendar</div>
+                        <div style="font-size:12px; color:#94a3b8;">Choose the easiest way to sync your academic deadlines</div>
+                    </div>
+                </div>
+                <button type="button" onclick="document.getElementById('calendarExportModal').remove()" style="background:rgba(255,255,255,0.1); border:none; color:#ffffff; font-size:14px; font-weight:700; width:28px; height:28px; border-radius:50%; cursor:pointer;">✕</button>
+            </div>
+
+            <!-- Content Area -->
+            <div style="padding:24px;">
+                <!-- Method 1: Instant Google Calendar Links -->
+                <div style="margin-bottom:24px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                        <span style="background:#eff6ff; color:#2563eb; font-weight:800; font-size:11px; padding:2px 8px; border-radius:12px; border:1px solid #bfdbfe;">RECOMMENDED</span>
+                        <span style="font-size:13px; font-weight:800; color:#1e293b;">Option 1: Add Directly to Google Calendar (No file download / No Outlook)</span>
+                    </div>
+                    <div style="font-size:12px; color:#64748b; margin-bottom:12px;">
+                        Click on any deadline below to open it instantly in Google Calendar in your web browser. Zero setup required!
+                    </div>
+                    <div style="max-height:220px; overflow-y:auto; padding-right:4px;">
+                        ${itemsHtml || '<div style="padding:12px; text-align:center; color:#94a3b8; font-size:12px;">No upcoming deadlines found.</div>'}
+                    </div>
+                </div>
+
+                <hr style="border:none; border-top:1px solid #e2e8f0; margin:20px 0;">
+
+                <!-- Method 2: Bulk .ics Export with Direct Import Link -->
+                <div>
+                    <div style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px;">
+                        Option 2: Import All Deadlines at Once (${upcomingEvents.length} Events)
+                    </div>
+                    <div style="font-size:12px; color:#64748b; margin-bottom:14px;">
+                        Want all your exams and projects in your calendar at the same time? Follow these 2 easy steps:
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+                        <button
+                            type="button"
+                            onclick="downloadIcsCalendar(window._lastCalendarEvents, 'Academi_Buddy_Deadlines.ics')"
+                            style="padding:11px 14px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:12px; color:#1e293b; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;"
+                        >
+                            <span>📥</span> 1. Download .ics File
+                        </button>
+                        <a
+                            href="https://calendar.google.com/calendar/u/0/r/settings/export"
+                            target="_blank"
+                            rel="noopener"
+                            style="padding:11px 14px; background:linear-gradient(135deg, #2563eb, #1d4ed8); border:none; border-radius:8px; font-weight:700; font-size:12px; color:#ffffff; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;"
+                        >
+                            <span>🔗</span> 2. Open Google Import ↗
+                        </a>
+                    </div>
+
+                    <!-- Helpful Notice -->
+                    <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; padding:12px; font-size:11.5px; color:#92400e; line-height:1.45;">
+                        <strong>💡 Helpful Tip:</strong> If your computer tries to open <em>Microsoft Outlook</em> when you download the file, you can safely close Outlook. Simply click <strong>"2. Open Google Import"</strong> and drop the downloaded file directly into Google Calendar!
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    window._lastCalendarEvents = upcomingEvents;
+    document.body.appendChild(modal);
+}
+window.openCalendarExportModal = openCalendarExportModal;
+
 function handleStickySearch(query) {
     const lowerQuery = query.toLowerCase().trim();
 

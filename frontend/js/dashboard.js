@@ -376,11 +376,11 @@ async function loadDashboard() {
                     <button
                         type="button"
                         class="calendar-nav-btn"
-                        onclick="exportCalendarSchedule()"
+                        onclick="openCalendarExportModal()"
                         style="padding:6px 12px; font-size:12px; font-weight:600; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#334155;"
-                        title="Download .ics calendar"
+                        title="Add Deadlines to Google/Apple Calendar"
                     >
-                        📅 Export Month (.ics)
+                        📅 Add to Calendar
                     </button>
                 </div>
                 <div class="calendar-nav">

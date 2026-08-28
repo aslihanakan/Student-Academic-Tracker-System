@@ -182,10 +182,10 @@ async function loadExamsPage() {
                     <button
                         type="button"
                         class="btn-primary"
-                        onclick="exportDeadlinesToCalendarFile()"
+                        onclick="openCalendarExportModal()"
                         style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:700; border-radius:9px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; border:none; cursor:pointer; box-shadow:0 2px 4px rgba(37,99,235,0.2);"
                     >
-                        📅 Export Schedule (.ics)
+                        📅 Add to Calendar
                     </button>
                 </div>
             </div>
