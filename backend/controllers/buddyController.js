@@ -59,65 +59,95 @@ exports.getBuddies = function (req, res) {
             function (err, myStats) {
                 const myWeeklyHours = myStats ? Math.round(myStats.myWeeklyHours * 10) / 10 : 0;
 
-                // Find buddies
+                // 1. Get accepted buddies
                 db.all(
                     `SELECT u.id, u.name, u.email, u.avatar, u.department, u.gradeLevel, b.id as friendshipId
                      FROM buddies b
                      JOIN users u ON (u.id = CASE WHEN b.userId = ? THEN b.buddyId ELSE b.userId END)
-                     WHERE b.userId = ? OR b.buddyId = ?`,
+                     WHERE (b.userId = ? OR b.buddyId = ?) AND b.status = 'accepted'`,
                     [userId, userId, userId],
-                    async function (err, buddies) {
+                    function (err, buddies) {
                         if (err) {
                             console.error("Get Buddies Error:", err);
                             return res.status(500).json({ message: "Could not retrieve buddies." });
                         }
 
-                        if (!buddies || !buddies.length) {
-                            return res.json({
-                                success: true,
-                                myStreak,
-                                myWeeklyHours,
-                                buddies: []
-                            });
-                        }
+                        // 2. Get incoming pending requests (others invited me)
+                        db.all(
+                            `SELECT u.id as senderId, u.name as senderName, u.email as senderEmail, u.avatar, u.department, u.gradeLevel, b.id as invitationId, b.createdAt
+                             FROM buddies b
+                             JOIN users u ON u.id = b.userId
+                             WHERE b.buddyId = ? AND b.status = 'pending'
+                             ORDER BY b.id DESC`,
+                            [userId],
+                            function (err, pendingIncoming) {
+                                const incoming = pendingIncoming || [];
 
-                        // Attach streak and weekly hours to each buddy
-                        const populated = [];
-                        let pending = buddies.length;
+                                // 3. Get outgoing pending requests (I invited others)
+                                db.all(
+                                    `SELECT u.id as recipientId, u.name as recipientName, u.email as recipientEmail, u.avatar, b.id as invitationId, b.createdAt
+                                     FROM buddies b
+                                     JOIN users u ON u.id = b.buddyId
+                                     WHERE b.userId = ? AND b.status = 'pending'
+                                     ORDER BY b.id DESC`,
+                                    [userId],
+                                    function (err, pendingOutgoing) {
+                                        const outgoing = pendingOutgoing || [];
 
-                        buddies.forEach(buddy => {
-                            calculateUserStreak(buddy.id, function (bStreak) {
-                                db.get(
-                                    `SELECT COALESCE(SUM(hours), 0) as weeklyHours 
-                                     FROM study_sessions 
-                                     WHERE userId = ? AND studyDate >= date('now', '-7 days')`,
-                                    [buddy.id],
-                                    function (err, bStats) {
-                                        populated.push({
-                                            id: buddy.id,
-                                            friendshipId: buddy.friendshipId,
-                                            name: buddy.name,
-                                            email: buddy.email,
-                                            avatar: buddy.avatar || "pp.png",
-                                            gradeLevel: buddy.gradeLevel || "-",
-                                            streak: bStreak,
-                                            weeklyHours: bStats ? Math.round(bStats.weeklyHours * 10) / 10 : 0
-                                        });
-
-                                        pending--;
-                                        if (pending === 0) {
-                                            populated.sort((a, b) => b.weeklyHours - a.weeklyHours);
-                                            res.json({
+                                        if (!buddies || !buddies.length) {
+                                            return res.json({
                                                 success: true,
                                                 myStreak,
                                                 myWeeklyHours,
-                                                buddies: populated
+                                                buddies: [],
+                                                pendingIncoming: incoming,
+                                                pendingOutgoing: outgoing
                                             });
                                         }
+
+                                        // Attach streak and weekly hours to each accepted buddy
+                                        const populated = [];
+                                        let pending = buddies.length;
+
+                                        buddies.forEach(buddy => {
+                                            calculateUserStreak(buddy.id, function (bStreak) {
+                                                db.get(
+                                                    `SELECT COALESCE(SUM(hours), 0) as weeklyHours 
+                                                     FROM study_sessions 
+                                                     WHERE userId = ? AND studyDate >= date('now', '-7 days')`,
+                                                    [buddy.id],
+                                                    function (err, bStats) {
+                                                        populated.push({
+                                                            id: buddy.id,
+                                                            friendshipId: buddy.friendshipId,
+                                                            name: buddy.name,
+                                                            email: buddy.email,
+                                                            avatar: buddy.avatar || "pp.png",
+                                                            gradeLevel: buddy.gradeLevel || "-",
+                                                            streak: bStreak,
+                                                            weeklyHours: bStats ? Math.round(bStats.weeklyHours * 10) / 10 : 0
+                                                        });
+
+                                                        pending--;
+                                                        if (pending === 0) {
+                                                            populated.sort((a, b) => b.weeklyHours - a.weeklyHours);
+                                                            res.json({
+                                                                success: true,
+                                                                myStreak,
+                                                                myWeeklyHours,
+                                                                buddies: populated,
+                                                                pendingIncoming: incoming,
+                                                                pendingOutgoing: outgoing
+                                                            });
+                                                        }
+                                                    }
+                                                );
+                                            });
+                                        });
                                     }
                                 );
-                            });
-                        });
+                            }
+                        );
                     }
                 );
             }
@@ -190,27 +220,41 @@ exports.addBuddy = function (req, res) {
             }
 
             if (targetUser.id === userId) {
-                return res.status(400).json({ message: "You cannot add yourself as a buddy." });
+                return res.status(400).json({ message: "You cannot send an invitation to yourself." });
             }
 
-            // Check if already buddy
+            // Check if relationship already exists
             db.get(
-                `SELECT id FROM buddies WHERE (userId = ? AND buddyId = ?) OR (userId = ? AND buddyId = ?)`,
+                `SELECT id, userId, buddyId, status FROM buddies WHERE (userId = ? AND buddyId = ?) OR (userId = ? AND buddyId = ?)`,
                 [userId, targetUser.id, targetUser.id, userId],
                 function (err, existing) {
                     if (existing) {
-                        return res.status(400).json({ message: `${targetUser.name} is already in your buddy list.` });
+                        if (existing.status === "accepted") {
+                            return res.status(400).json({ message: `${targetUser.name} is already in your Academi Buddies.` });
+                        }
+                        if (existing.status === "pending") {
+                            if (existing.userId === userId) {
+                                return res.status(400).json({ message: `You already sent an invitation to ${targetUser.name}. Waiting for their response.` });
+                            } else {
+                                // Other user already invited us, accept it!
+                                db.run(`UPDATE buddies SET status = 'accepted' WHERE id = ?`, [existing.id], function () {
+                                    return res.json({ success: true, message: `${targetUser.name} had already invited you! You are now buddies! 🎉` });
+                                });
+                                return;
+                            }
+                        }
                     }
 
+                    // Insert pending invitation
                     db.run(
-                        `INSERT INTO buddies (userId, buddyId, status) VALUES (?, ?, 'accepted')`,
+                        `INSERT INTO buddies (userId, buddyId, status) VALUES (?, ?, 'pending')`,
                         [userId, targetUser.id],
                         function (err) {
                             if (err) {
-                                console.error("Add Buddy Error:", err);
-                                return res.status(500).json({ message: "Could not add buddy." });
+                                console.error("Add Buddy Invitation Error:", err);
+                                return res.status(500).json({ message: "Could not send buddy invitation." });
                             }
-                            res.json({ success: true, message: `${targetUser.name} was added to your Academi Buddies! 🎉` });
+                            res.json({ success: true, message: `Buddy invitation sent to ${targetUser.name}! 📨` });
                         }
                     );
                 }
@@ -219,19 +263,49 @@ exports.addBuddy = function (req, res) {
     );
 };
 
+exports.acceptBuddy = function (req, res) {
+    const userId = req.user.id;
+    const invitationId = req.params.id;
+
+    db.get(
+        `SELECT b.id, u.name FROM buddies b
+         JOIN users u ON u.id = b.userId
+         WHERE b.id = ? AND b.buddyId = ? AND b.status = 'pending'`,
+        [invitationId, userId],
+        function (err, record) {
+            if (err || !record) {
+                return res.status(404).json({ message: "Invitation not found or already processed." });
+            }
+
+            db.run(
+                `UPDATE buddies SET status = 'accepted' WHERE id = ?`,
+                [invitationId],
+                function (err) {
+                    if (err) {
+                        return res.status(500).json({ message: "Could not accept invitation." });
+                    }
+                    res.json({ success: true, message: `You and ${record.name} are now Academi Buddies! 🎉` });
+                }
+            );
+        }
+    );
+};
+
 exports.removeBuddy = function (req, res) {
     const userId = req.user.id;
-    const buddyId = req.params.buddyId;
+    const idOrBuddyId = req.params.buddyId;
 
     db.run(
-        `DELETE FROM buddies WHERE (userId = ? AND buddyId = ?) OR (userId = ? AND buddyId = ?)`,
-        [userId, buddyId, buddyId, userId],
+        `DELETE FROM buddies 
+         WHERE (id = ? AND (userId = ? OR buddyId = ?))
+            OR ((userId = ? AND buddyId = ?) OR (userId = ? AND buddyId = ?))`,
+        [idOrBuddyId, userId, userId, userId, idOrBuddyId, idOrBuddyId, userId],
         function (err) {
             if (err) {
                 console.error("Remove Buddy Error:", err);
-                return res.status(500).json({ message: "Could not remove buddy." });
+                return res.status(500).json({ message: "Could not remove buddy or invitation." });
             }
-            res.json({ success: true, message: "Buddy removed." });
+            res.json({ success: true, message: "Buddy or invitation removed." });
         }
     );
 };

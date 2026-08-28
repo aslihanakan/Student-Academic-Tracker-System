@@ -45,7 +45,7 @@ async function openBuddiesModal() {
                     <input
                         type="text"
                         id="addBuddyInput"
-                        placeholder="Enter classmate's email or username..."
+                        placeholder="Enter classmate's email or username to send invite..."
                         style="flex:1; padding:10px 14px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#ffffff; font-size:13px;"
                         onkeydown="if(event.key === 'Enter') addClassmateBuddy()"
                     >
@@ -54,7 +54,7 @@ async function openBuddiesModal() {
                         onclick="addClassmateBuddy()"
                         style="padding:10px 20px; background:#10b981; color:#ffffff; font-weight:700; font-size:13px; border:none; border-radius:8px; cursor:pointer;"
                     >
-                        + Add Buddy
+                        + Send Invite
                     </button>
                 </div>
 
@@ -83,9 +83,50 @@ async function loadBuddiesList() {
         const myStreak = data.myStreak || 0;
         const myWeekly = data.myWeeklyHours || 0;
         const buddies = data.buddies || [];
+        const incoming = data.pendingIncoming || [];
+        const outgoing = data.pendingOutgoing || [];
 
         const myUser = typeof getStoredUser === "function" ? getStoredUser() : null;
         const myName = myUser ? (myUser.name || "Me") : "Me";
+
+        const incomingHtml = incoming.length ? `
+            <div style="background:rgba(59, 130, 246, 0.12); border:1px solid rgba(59, 130, 246, 0.35); border-radius:10px; padding:14px 16px; margin-bottom:18px;">
+                <div style="font-weight:800; font-size:13px; color:#60a5fa; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                    <span>📬</span> Buddy Requests (${incoming.length})
+                </div>
+                ${incoming.map(req => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,0,0,0.25); border-radius:8px; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <img src="icons/${escapeHtml(req.avatar || 'pp.png')}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.1);">
+                            <div>
+                                <div style="font-weight:700; font-size:13px; color:#ffffff;">${escapeHtml(req.senderName)}</div>
+                                <div style="font-size:11px; color:#94a3b8;">${escapeHtml(req.department || req.gradeLevel || 'Student')}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" onclick="acceptBuddyInvitation(${req.invitationId})" style="padding:6px 14px; background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:11.5px; cursor:pointer;">
+                                ✅ Accept
+                            </button>
+                            <button type="button" onclick="declineBuddyInvitation(${req.invitationId})" style="padding:6px 12px; background:rgba(255,255,255,0.1); color:#cbd5e1; border:none; border-radius:6px; font-weight:600; font-size:11.5px; cursor:pointer;">
+                                ✕ Decline
+                            </button>
+                        </div>
+                    </div>
+                `).join("")}
+            </div>
+        ` : "";
+
+        const outgoingHtml = outgoing.length ? `
+            <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:10px 14px; margin-bottom:18px;">
+                <div style="font-weight:700; font-size:12px; color:#94a3b8; margin-bottom:8px;">⏳ Sent Invitations (${outgoing.length})</div>
+                ${outgoing.map(out => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#cbd5e1; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+                        <span>Waiting for <strong>${escapeHtml(out.recipientName)}</strong> to accept...</span>
+                        <button type="button" onclick="declineBuddyInvitation(${out.invitationId})" style="background:none; border:none; color:#f87171; font-size:11.5px; cursor:pointer;" title="Cancel invitation">Cancel</button>
+                    </div>
+                `).join("")}
+            </div>
+        ` : "";
 
         const buddyCards = buddies.map((b, idx) => `
             <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; margin-bottom:10px;">
@@ -113,6 +154,9 @@ async function loadBuddiesList() {
         `).join("");
 
         listEl.innerHTML = `
+            ${incomingHtml}
+            ${outgoingHtml}
+
             <!-- My Current Stats Banner -->
             <div style="background:linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.05)); border:1px solid rgba(16, 185, 129, 0.3); border-radius:10px; padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:12px;">
@@ -136,7 +180,7 @@ async function loadBuddiesList() {
             ${buddies.length ? buddyCards : `
                 <div style="text-align:center; padding:24px; color:#94a3b8; background:rgba(255,255,255,0.02); border-radius:8px; border:1px dashed rgba(255,255,255,0.1);">
                     <div>👋 No buddies added yet!</div>
-                    <div style="font-size:12px; margin-top:4px;">Type your classmate's email above to study and maintain streaks together.</div>
+                    <div style="font-size:12px; margin-top:4px;">Type your classmate's email or name above to send an invitation. Once they accept, you'll study and maintain streaks together!</div>
                 </div>
             `}
         `;
@@ -165,7 +209,7 @@ async function addClassmateBuddy() {
     const btn = document.querySelector("#buddiesModal button[onclick='addClassmateBuddy()']");
     if (btn) {
         btn.disabled = true;
-        btn.textContent = "Adding...";
+        btn.textContent = "Sending...";
     }
 
     try {
@@ -176,21 +220,55 @@ async function addClassmateBuddy() {
         });
 
         const json = await res.json();
-        if (!res.ok) throw new Error(json.message || "Failed to add");
+        if (!res.ok) throw new Error(json.message || "Failed to send invitation");
 
-        showToast(json.message || "Buddy added!", "success");
+        showToast(json.message || "Invitation sent!", "success");
         if (input) input.value = "";
         await loadBuddiesList();
     } catch (e) {
-        showToast(e.message || "Could not add buddy.", "error");
+        showToast(e.message || "Could not send invitation.", "error");
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "+ Add Buddy";
+            btn.textContent = "+ Send Invite";
         }
     }
 }
 window.addClassmateBuddy = addClassmateBuddy;
+
+async function acceptBuddyInvitation(invitationId) {
+    try {
+        const res = await fetch(`${API_URL}/buddies/${invitationId}/accept`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || "Failed to accept");
+
+        showToast(json.message || "Invitation accepted! 🎉", "success");
+        await loadBuddiesList();
+    } catch (e) {
+        showToast(e.message || "Could not accept invitation.", "error");
+    }
+}
+window.acceptBuddyInvitation = acceptBuddyInvitation;
+
+async function declineBuddyInvitation(invitationId) {
+    try {
+        const res = await fetch(`${API_URL}/buddies/${invitationId}`, {
+            method: "DELETE"
+        });
+
+        if (!res.ok) throw new Error("Failed to decline");
+
+        showToast("Invitation declined.", "success");
+        await loadBuddiesList();
+    } catch (e) {
+        showToast("Could not decline invitation.", "error");
+    }
+}
+window.declineBuddyInvitation = declineBuddyInvitation;
 
 async function removeBuddyClassmate(buddyId) {
     const confirmed = await showConfirm("Remove Buddy", "Are you sure you want to remove this buddy?");
