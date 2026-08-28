@@ -1049,7 +1049,24 @@ async function saveCourse() {
             return;
         }
 
-        resetCourseForm();
+        const resData = await response.json().catch(() => ({}));
+        const newId = resData.id || ("temp_" + Date.now());
+        const savedItem = { id: newId, ...course };
+
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const cachedList = getOfflineCache(`${API_URL}/courses`) || window._allCourses || [];
+            if (Array.isArray(cachedList)) {
+                const deduped = cachedList.filter(c => String(c.id) !== String(newId));
+                saveOfflineCache(`${API_URL}/courses`, [...deduped, savedItem]);
+                saveOfflineCache(`${API_URL}/courses?includeUnlisted=1`, [...deduped, savedItem]);
+            }
+        }
+
+        if (window._allCourses) {
+            window._allCourses = [...window._allCourses.filter(c => String(c.id) !== String(newId)), savedItem];
+            window._coursesForGPA = window._allCourses;
+        }
+
         showToast("Course added successfully!", "success");
         await loadCourses();
     } catch (err) {

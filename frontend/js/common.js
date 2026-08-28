@@ -507,16 +507,39 @@ function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
                 if (k && k.startsWith(prefix) && k.includes("/courses")) courseKeys.push(k);
             }
             if (method === "POST" && body) {
-                const newCourse = { id: syntheticId, ...body, midtermGrade: null, projectGrade: null, finalGrade: null };
-                window._allCourses = [...(window._allCourses || []), newCourse];
+                const newCourse = {
+                    id: syntheticId,
+                    midtermGrade: null,
+                    projectGrade: null,
+                    finalGrade: null,
+                    makeupGrade: null,
+                    midtermWeight: 0,
+                    projectWeight: 0,
+                    passingGrade: 60,
+                    extraGrades: [],
+                    ...body
+                };
+                window._allCourses = [...(window._allCourses || []).filter(c => String(c.id) !== String(syntheticId)), newCourse];
+                window._coursesForGPA = window._allCourses;
                 window._currentPageCourses = window._allCourses;
                 window._allCoursesForDeadlines = window._allCourses;
+
+                const primaryKey = `${prefix}${API_URL}/courses`;
+                const unlistedKey = `${prefix}${API_URL}/courses?includeUnlisted=1`;
+                if (!courseKeys.includes(primaryKey)) courseKeys.push(primaryKey);
+                if (!courseKeys.includes(unlistedKey)) courseKeys.push(unlistedKey);
+
                 courseKeys.forEach(k => {
-                    const cached = JSON.parse(localStorage.getItem(k) || "{}");
-                    if (Array.isArray(cached.data)) {
-                        cached.data.push(newCourse);
-                        localStorage.setItem(k, JSON.stringify(cached));
+                    let cached = null;
+                    try { cached = JSON.parse(localStorage.getItem(k) || "{}"); } catch (e) {}
+                    if (!cached || !Array.isArray(cached.data)) {
+                        cached = { savedAt: Date.now(), data: [] };
                     }
+                    if (!cached.data.some(c => String(c.id) === String(newCourse.id))) {
+                        cached.data.push(newCourse);
+                    }
+                    cached.savedAt = Date.now();
+                    localStorage.setItem(k, JSON.stringify(cached));
                 });
             } else if (method === "DELETE") {
                 const idMatch = url.match(/\/courses\/([^\/?#]+)/);
