@@ -183,10 +183,37 @@ function getOfflineCacheKey(url) {
 function saveOfflineCache(url, data) {
     try {
         const key = getOfflineCacheKey(url);
-        localStorage.setItem(key, JSON.stringify({
+        const record = JSON.stringify({
             savedAt: Date.now(),
             data: data
-        }));
+        });
+        localStorage.setItem(key, record);
+
+        // If courses are saved, keep other course query caches and in-memory lists strictly in sync
+        if (url.includes("/courses") && Array.isArray(data)) {
+            window._allCourses = data;
+            window._currentPageCourses = data;
+            window._allCoursesForDeadlines = data;
+            window._coursesForGPA = data;
+
+            const user = (typeof getStoredUser === "function") ? getStoredUser() : null;
+            const uid = user ? (user.id || user.email || "user") : "guest";
+            const prefix = `${ATS_CACHE_PREFIX}${uid}_`;
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/courses") && k !== key) {
+                    try {
+                        const old = JSON.parse(localStorage.getItem(k) || "{}");
+                        if (Array.isArray(old.data)) {
+                            const map = new Map(data.map(c => [String(c.id), c]));
+                            const merged = old.data.map(c => map.get(String(c.id)) ? { ...c, ...map.get(String(c.id)) } : c);
+                            localStorage.setItem(k, JSON.stringify({ savedAt: Date.now(), data: merged }));
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
     } catch (e) {
         console.warn("[Offline Cache] LocalStorage quota or write error:", e);
     }
@@ -207,25 +234,46 @@ function getOfflineCache(url) {
         const prefix = `${ATS_CACHE_PREFIX}${uid}_`;
 
         const scanCache = (endpoint) => {
+            let bestData = null;
+            let bestSavedAt = -1;
+
+            // 1. Check user prefix keys
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
                 if (k && k.startsWith(prefix) && k.includes(endpoint)) {
                     try {
                         const item = JSON.parse(localStorage.getItem(k) || "{}");
-                        if (item && item.data !== undefined) return item.data;
+                        if (item && item.data !== undefined) {
+                            const time = Number(item.savedAt) || 0;
+                            if (time >= bestSavedAt) {
+                                bestSavedAt = time;
+                                bestData = item.data;
+                            }
+                        }
                     } catch (e) {}
                 }
             }
+
+            if (bestData !== null) return bestData;
+
+            // 2. Fallback: check any ATS_CACHE_PREFIX key
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
                 if (k && k.startsWith(ATS_CACHE_PREFIX) && k.includes(endpoint)) {
                     try {
                         const item = JSON.parse(localStorage.getItem(k) || "{}");
-                        if (item && item.data !== undefined) return item.data;
+                        if (item && item.data !== undefined) {
+                            const time = Number(item.savedAt) || 0;
+                            if (time >= bestSavedAt) {
+                                bestSavedAt = time;
+                                bestData = item.data;
+                            }
+                        }
                     } catch (e) {}
                 }
             }
-            return null;
+
+            return bestData;
         };
 
         // 1. Courses fallback

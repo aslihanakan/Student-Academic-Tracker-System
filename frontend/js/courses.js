@@ -1006,6 +1006,16 @@ async function saveCourse() {
             return;
         }
 
+        const resData = await response.json().catch(() => ({}));
+        const savedItem = { id: resData.id || ("temp_" + Date.now()), ...course };
+        if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+            const cachedList = getOfflineCache(`${API_URL}/courses`) || window._coursesForGPA || [];
+            if (Array.isArray(cachedList)) {
+                saveOfflineCache(`${API_URL}/courses`, [...cachedList, savedItem]);
+                saveOfflineCache(`${API_URL}/courses?includeUnlisted=1`, [...cachedList, savedItem]);
+            }
+        }
+
         await loadCourses();
     } catch (err) {
         console.error("Course Save Error:", err);
@@ -1141,6 +1151,16 @@ function editCourse(
                 const error = await response.json().catch(() => ({}));
                 showToast(error.message || "Course could not be updated.", "error");
                 return;
+            }
+
+            // Immediately write updated grades to offline cache and state
+            if (typeof getOfflineCache === "function" && typeof saveOfflineCache === "function") {
+                const cachedList = getOfflineCache(`${API_URL}/courses`) || window._coursesForGPA || [];
+                if (Array.isArray(cachedList)) {
+                    const mergedList = cachedList.map(c => String(c.id) === String(id) ? { ...c, ...updated } : c);
+                    saveOfflineCache(`${API_URL}/courses`, mergedList);
+                    saveOfflineCache(`${API_URL}/courses?includeUnlisted=1`, mergedList);
+                }
             }
 
             await loadCourses();

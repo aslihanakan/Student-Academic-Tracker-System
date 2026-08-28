@@ -1,5 +1,4 @@
-const CACHE_NAME = "academi-buddy-static-v9";
-const API_CACHE_NAME = "academi-buddy-api-v9";
+const CACHE_NAME = "academi-buddy-static-v10";
 
 const STATIC_ASSETS = [
     "./",
@@ -113,12 +112,15 @@ self.addEventListener("activate", (event) => {
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
-                    // Do not purge v8 or v7 immediately to prevent black screen if offline
+                    // Purge any stale API caches so they never overwrite fresh client data
+                    if (key.includes("api")) {
+                        console.log(`[SW] Purging API cache: ${key}`);
+                        return caches.delete(key);
+                    }
                     if (
                         key !== CACHE_NAME &&
-                        key !== API_CACHE_NAME &&
-                        !key.includes("v8") &&
-                        !key.includes("v7")
+                        !key.includes("v10") &&
+                        !key.includes("v9")
                     ) {
                         console.log(`[SW] Purging legacy cache: ${key}`);
                         return caches.delete(key);
@@ -139,41 +141,10 @@ self.addEventListener("fetch", (event) => {
 
     const url = new URL(request.url);
 
-    // 1. API Requests: Network-First with Cache Fallback
+    // 1. API Requests: Pass directly to network!
+    // Offline caching, optimistic mutations, and syncing are handled cleanly in common.js
+    // to prevent stale API responses from overwriting updated grades.
     if (url.pathname.includes("/api/")) {
-        if (
-            url.pathname.includes("/api/auth/login") ||
-            url.pathname.includes("/api/auth/register")
-        ) {
-            return;
-        }
-
-        event.respondWith(
-            fetch(request)
-                .then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        const responseClone = networkResponse.clone();
-                        caches.open(API_CACHE_NAME).then((cache) => {
-                            cache.put(request, responseClone);
-                        });
-                    }
-                    return networkResponse;
-                })
-                .catch(async () => {
-                    const cachedResponse = await caches.match(request);
-                    if (cachedResponse) {
-                        return cachedResponse;
-                    }
-                    return new Response(
-                        JSON.stringify({ offline: true, message: "Offline mode - data unavailable" }),
-                        {
-                            status: 503,
-                            statusText: "Service Unavailable (Offline)",
-                            headers: { "Content-Type": "application/json" }
-                        }
-                    );
-                })
-        );
         return;
     }
 

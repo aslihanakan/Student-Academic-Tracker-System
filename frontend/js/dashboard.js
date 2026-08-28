@@ -35,9 +35,14 @@ async function loadDashboard() {
         window._dayNotes = Array.isArray(dayNotesResult) ? dayNotesResult : [];
 
         if (typeof saveOfflineCache === "function") {
+            saveOfflineCache(`${API_URL}/courses`, courses);
+            saveOfflineCache(`${API_URL}/courses?includeUnlisted=1`, courses);
             saveOfflineCache(`${API_URL}/courses?includeUnlisted=1&scope=study`, courses);
             saveOfflineCache(`${API_URL}/courses?includeUnlisted=1&scope=exams`, courses);
             saveOfflineCache(`${API_URL}/study-sessions`, sessions);
+            saveOfflineCache(`${API_URL}/exams`, exams);
+            saveOfflineCache(`${API_URL}/projects`, projects);
+            saveOfflineCache(`${API_URL}/todos`, todos);
         }
 
         await migrateLocalDayNotesIfNeeded();
