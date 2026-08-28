@@ -1411,36 +1411,75 @@ function openCalendarExportModal() {
 
                 <hr style="border:none; border-top:1px solid #e2e8f0; margin:20px 0;">
 
-                <!-- Method 2: Bulk .ics Export with Direct Import Link -->
+                <!-- Method 2: Bulk .ics Export with Step-by-Step Guide -->
                 <div>
-                    <div style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px;">
+                    <div style="font-size:14px; font-weight:800; color:#1e293b; margin-bottom:6px;">
                         Option 2: Import All Deadlines at Once (${upcomingEvents.length} Events)
                     </div>
-                    <div style="font-size:12px; color:#64748b; margin-bottom:14px;">
-                        Want all your exams and projects in your calendar at the same time? Follow these 2 easy steps:
+                    <div style="font-size:12px; color:#475569; margin-bottom:12px; line-height:1.5;">
+                        To add all your exams and projects to Google Calendar at the same time, follow these <strong>3 simple steps</strong>:
                     </div>
 
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
-                        <button
-                            type="button"
-                            onclick="downloadAllDeadlinesIcs()"
-                            style="padding:11px 14px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:12px; color:#1e293b; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;"
-                        >
-                            <span>📥</span> 1. Download .ics File
-                        </button>
-                        <a
-                            href="https://calendar.google.com/calendar/u/0/r/settings/export"
-                            target="_blank"
-                            rel="noopener"
-                            style="padding:11px 14px; background:linear-gradient(135deg, #2563eb, #1d4ed8); border:none; border-radius:8px; font-weight:700; font-size:12px; color:#ffffff; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;"
-                        >
-                            <span>🔗</span> 2. Open Google Import ↗
-                        </a>
+                    <!-- Step Cards Container -->
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:12px;">
+                        <!-- Step 1 -->
+                        <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:14px;">
+                            <div style="background:#2563eb; color:#ffffff; font-weight:800; font-size:12px; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</div>
+                            <div style="flex:1;">
+                                <div style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:2px;">
+                                    Step 1: Download your schedule file
+                                </div>
+                                <div style="font-size:11.5px; color:#64748b; margin-bottom:8px;">
+                                    Click the button below to download the calendar file (<strong style="color:#0f172a;">Academi_Buddy_Deadlines.ics</strong>) to your computer.
+                                </div>
+                                <button
+                                    type="button"
+                                    onclick="downloadAllDeadlinesIcs()"
+                                    style="padding:8px 16px; background:#ffffff; border:1.5px solid #2563eb; color:#2563eb; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
+                                >
+                                    📥 Download .ics File
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:14px;">
+                            <div style="background:#2563eb; color:#ffffff; font-weight:800; font-size:12px; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</div>
+                            <div style="flex:1;">
+                                <div style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:2px;">
+                                    Step 2: Open Google Calendar Import page
+                                </div>
+                                <div style="font-size:11.5px; color:#64748b; margin-bottom:8px;">
+                                    Click below to open the official Google Calendar Import tab directly in your browser.
+                                </div>
+                                <a
+                                    href="https://calendar.google.com/calendar/u/0/r/settings/export"
+                                    target="_blank"
+                                    rel="noopener"
+                                    style="padding:8px 16px; background:#2563eb; color:#ffffff; border-radius:6px; font-weight:700; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;"
+                                >
+                                    🔗 Open Google Calendar Import Page ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div style="display:flex; align-items:flex-start; gap:12px;">
+                            <div style="background:#2563eb; color:#ffffff; font-weight:800; font-size:12px; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</div>
+                            <div style="flex:1;">
+                                <div style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:2px;">
+                                    Step 3: Select &amp; Import the downloaded file
+                                </div>
+                                <div style="font-size:11.5px; color:#64748b; line-height:1.45;">
+                                    On the opened Google Calendar page, click <em>"Select file from your computer"</em>, choose <strong style="color:#0f172a;">Academi_Buddy_Deadlines.ics</strong> from your Downloads folder, and click <strong>"Import"</strong>.
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Helpful Notice -->
-                    <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; padding:12px; font-size:11.5px; color:#92400e; line-height:1.45;">
-                        <strong>💡 Helpful Tip:</strong> If your computer tries to open <em>Microsoft Outlook</em> when you download the file, you can safely close Outlook. Simply click <strong>"2. Open Google Import"</strong> and drop the downloaded file directly into Google Calendar!
+                    <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#92400e; line-height:1.45;">
+                        <strong>💡 Note:</strong> If Microsoft Outlook tries to open automatically on your computer, you can safely close it. Simply upload the downloaded file directly to the Google Calendar webpage in Step 2!
                     </div>
                 </div>
             </div>
