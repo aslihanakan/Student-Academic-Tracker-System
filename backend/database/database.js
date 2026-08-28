@@ -555,6 +555,56 @@ function initializeDatabase() {
             `);
 
             db.run(`
+                CREATE TABLE IF NOT EXISTS buddies (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    userId INTEGER NOT NULL,
+                    buddyId INTEGER NOT NULL,
+                    status TEXT DEFAULT 'accepted',
+                    createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (buddyId) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `);
+
+            db.run(`
+                CREATE TABLE IF NOT EXISTS group_projects (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    courseName TEXT,
+                    ownerId INTEGER NOT NULL,
+                    dueDate TEXT,
+                    description TEXT,
+                    createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (ownerId) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `);
+
+            db.run(`
+                CREATE TABLE IF NOT EXISTS group_project_members (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    projectId INTEGER NOT NULL,
+                    userId INTEGER NOT NULL,
+                    role TEXT DEFAULT 'member',
+                    FOREIGN KEY (projectId) REFERENCES group_projects(id) ON DELETE CASCADE,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `);
+
+            db.run(`
+                CREATE TABLE IF NOT EXISTS group_tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    projectId INTEGER NOT NULL,
+                    assignedUserId INTEGER,
+                    title TEXT NOT NULL,
+                    isDone INTEGER DEFAULT 0,
+                    dueDate TEXT,
+                    createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (projectId) REFERENCES group_projects(id) ON DELETE CASCADE,
+                    FOREIGN KEY (assignedUserId) REFERENCES users(id) ON DELETE SET NULL
+                )
+            `);
+
+            db.run(`
                 CREATE TABLE IF NOT EXISTS dashboard_summary (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     totalStudyHours REAL DEFAULT 0,

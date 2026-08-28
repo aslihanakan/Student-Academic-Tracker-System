@@ -1,4 +1,4 @@
-const CACHE_NAME = "academi-buddy-static-v10";
+const CACHE_NAME = "academi-buddy-static-v11";
 
 const STATIC_ASSETS = [
     "./",
@@ -17,6 +17,8 @@ const STATIC_ASSETS = [
     "./js/exams.js",
     "./js/dashboard.js",
     "./js/study.js",
+    "./js/aiCoach.js",
+    "./js/buddies.js",
     "./js/settings.js",
     "./js/main.js",
     "./videos/login-background.mp4",

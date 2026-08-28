@@ -1044,6 +1044,10 @@ function updateStickyHeader(pageKey) {
         ? `<span class="sticky-header-icon" style="display:inline-flex; align-items:center; justify-content:center;">${meta.iconHtml}</span>`
         : `<span class="sticky-header-icon">${meta.icon}</span>`;
 
+    const isOnline = navigator.onLine;
+    const syncStatusClass = isOnline ? "online" : "offline";
+    const syncStatusText = isOnline ? "Cloud Synced" : "Offline Mode";
+
     header.innerHTML = `
         <div class="sticky-header-left">
             ${iconContent}
@@ -1057,21 +1061,227 @@ function updateStickyHeader(pageKey) {
             </div>
         </div>
 
-        ${
-            meta.searchable
-                ? `
-                    <input
-                        type="text"
-                        class="sticky-search"
-                        placeholder="${escapeHtml(meta.placeholder || "Search...")}"
-                        autocomplete="off"
-                        oninput="handleStickySearch(this.value)"
-                    >
-                `
-                : ""
-        }
+        <div class="sticky-header-right">
+            ${
+                meta.searchable
+                    ? `
+                        <input
+                            type="text"
+                            class="sticky-search"
+                            placeholder="${escapeHtml(meta.placeholder || "Search...")}"
+                            autocomplete="off"
+                            oninput="handleStickySearch(this.value)"
+                        >
+                    `
+                    : ""
+            }
+
+            <div class="header-notification-wrapper">
+                <button type="button" class="header-icon-btn" onclick="toggleNotificationDropdown()" title="Upcoming Deadlines & Notifications" aria-label="Notifications">
+                    🔔
+                    <span id="headerNotificationCount" class="notification-badge-count" style="display:none;">0</span>
+                </button>
+                <div id="headerNotificationDropdown" class="notification-dropdown">
+                    <div class="notification-dropdown-header">
+                        <span>🔔 Upcoming Deadlines</span>
+                        <span id="notifSubtext" style="font-size:11px; font-weight:500; color:#94a3b8;">Next 7 days</span>
+                    </div>
+                    <div id="headerNotificationList" class="notification-dropdown-list">
+                        <div style="padding:14px; text-align:center; color:#94a3b8; font-size:12px;">No upcoming deadlines soon.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cloudSyncBadge" class="cloud-sync-badge ${syncStatusClass}">
+                <span class="sync-dot"></span>
+                <span id="cloudSyncBadgeText">${syncStatusText}</span>
+            </div>
+        </div>
     `;
+
+    setTimeout(checkDeadlineNotifications, 120);
 }
+
+function updateCloudSyncStatus(status) {
+    const badge = document.getElementById("cloudSyncBadge");
+    const badgeText = document.getElementById("cloudSyncBadgeText");
+    if (!badge || !badgeText) return;
+
+    badge.classList.remove("online", "syncing", "offline");
+
+    if (status === "syncing") {
+        badge.classList.add("syncing");
+        badgeText.textContent = "Syncing...";
+    } else if (status === "offline" || !navigator.onLine) {
+        badge.classList.add("offline");
+        badgeText.textContent = "Offline Mode";
+    } else {
+        badge.classList.add("online");
+        badgeText.textContent = "Cloud Synced";
+    }
+}
+window.updateCloudSyncStatus = updateCloudSyncStatus;
+
+window.addEventListener("online", () => {
+    updateCloudSyncStatus("syncing");
+    if (typeof processOfflineSyncQueue === "function") {
+        processOfflineSyncQueue().finally(() => updateCloudSyncStatus("online"));
+    } else {
+        updateCloudSyncStatus("online");
+    }
+});
+
+window.addEventListener("offline", () => {
+    updateCloudSyncStatus("offline");
+});
+
+function toggleNotificationDropdown() {
+    const dropdown = document.getElementById("headerNotificationDropdown");
+    if (!dropdown) return;
+    dropdown.classList.toggle("is-open");
+}
+
+document.addEventListener("click", function (e) {
+    const dropdown = document.getElementById("headerNotificationDropdown");
+    const wrapper = document.querySelector(".header-notification-wrapper");
+    if (dropdown && dropdown.classList.contains("is-open") && wrapper && !wrapper.contains(e.target)) {
+        dropdown.classList.remove("is-open");
+    }
+});
+
+function checkDeadlineNotifications() {
+    const exams = window._allExams || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/exams`) : []) || [];
+    const projects = window._allProjects || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/projects`) : []) || [];
+    const activities = window._dashboardActivities || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/todos`) : []) || [];
+
+    const upcoming = [];
+
+    const checkItem = (title, courseName, type, dateStr, isDone, id) => {
+        if (isDone || !dateStr) return;
+        const days = calculateDaysLeft(dateStr);
+        if (days !== null && days >= 0 && days <= 7) {
+            upcoming.push({ title, courseName, type, dateStr, days, id });
+        }
+    };
+
+    exams.forEach(e => checkItem(e.examName || "Exam", e.courseName, "Exam", e.examDate, Number(e.isDone) === 1, e.id));
+    projects.forEach(p => checkItem(p.projectName || "Project", p.courseName, "Project", p.dueDate, p.status === "completed", p.id));
+    activities.forEach(a => checkItem(a.title || "Activity", a.courseName, toTitleCase(a.type || "Task"), a.dueDate, Number(a.isDone) === 1, a.id));
+
+    upcoming.sort((a, b) => a.days - b.days);
+
+    const countBadge = document.getElementById("headerNotificationCount");
+    const listEl = document.getElementById("headerNotificationList");
+
+    if (countBadge) {
+        if (upcoming.length > 0) {
+            countBadge.textContent = upcoming.length;
+            countBadge.style.display = "inline-block";
+        } else {
+            countBadge.style.display = "none";
+        }
+    }
+
+    if (listEl) {
+        if (!upcoming.length) {
+            listEl.innerHTML = `<div style="padding:16px; text-align:center; color:#94a3b8; font-size:12px;">🎉 No pending deadlines in the next 7 days!</div>`;
+        } else {
+            listEl.innerHTML = upcoming.map(item => `
+                <div class="notification-dropdown-item">
+                    <span style="font-size:16px;">${item.type === "Exam" ? "📝" : item.type === "Project" ? "🚀" : "📌"}</span>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; color:#f8fafc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            ${escapeHtml(item.title)}
+                        </div>
+                        <div style="font-size:11px; color:#94a3b8;">
+                            ${escapeHtml(item.courseName || "")} • 📅 ${escapeHtml(toDateText(item.dateStr))}
+                        </div>
+                    </div>
+                    <span style="font-size:11px; font-weight:700; color:${item.days <= 1 ? "#ef4444" : "#f59e0b"};">
+                        ${item.days === 0 ? "Today!" : item.days === 1 ? "Tomorrow" : `${item.days}d left`}
+                    </span>
+                </div>
+            `).join("");
+        }
+    }
+}
+window.checkDeadlineNotifications = checkDeadlineNotifications;
+
+/* ─── GOOGLE CALENDAR & .ICS EXPORT UTILITIES ────────────────────────────────*/
+
+function getGoogleCalendarUrl(title, dateStr, description) {
+    if (!dateStr) return "";
+    const cleanDate = dateStr.replace(/[^0-9]/g, "").slice(0, 8);
+    if (cleanDate.length < 8) return "";
+
+    const dateObj = new Date(dateStr);
+    dateObj.setDate(dateObj.getDate() + 1);
+    const cleanEnd = dateObj.toISOString().slice(0, 10).replace(/[^0-9]/g, "");
+
+    const params = new URLSearchParams({
+        action: "TEMPLATE",
+        text: title || "Academic Deadline",
+        dates: `${cleanDate}/${cleanEnd}`,
+        details: description || "Tracked in Academi Buddy",
+        sf: "true",
+        output: "xml"
+    });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+window.getGoogleCalendarUrl = getGoogleCalendarUrl;
+
+function generateIcsCalendar(events) {
+    const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Academi Buddy//Academic Tracker//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH"
+    ];
+
+    (events || []).forEach((evt, idx) => {
+        if (!evt.date) return;
+        const cleanDate = evt.date.replace(/[^0-9]/g, "").slice(0, 8);
+        if (cleanDate.length < 8) return;
+        const uid = `academi-buddy-${evt.id || (Date.now() + "_" + idx)}-${cleanDate}@academibuddy.app`;
+        const summary = (evt.title || "Academic Event").replace(/[,;\n\r]/g, " ");
+        const description = (evt.description || "Academi Buddy").replace(/[,;\n\r]/g, " ");
+
+        lines.push("BEGIN:VEVENT");
+        lines.push(`UID:${uid}`);
+        lines.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`);
+        lines.push(`DTSTART;VALUE=DATE:${cleanDate}`);
+        lines.push(`SUMMARY:${summary}`);
+        if (description) lines.push(`DESCRIPTION:${description}`);
+        lines.push("STATUS:CONFIRMED");
+        lines.push("END:VEVENT");
+    });
+
+    lines.push("END:VCALENDAR");
+    return lines.join("\r\n");
+}
+window.generateIcsCalendar = generateIcsCalendar;
+
+function downloadIcsCalendar(events, filename = "Academi_Buddy_Deadlines.ics") {
+    if (!events || !events.length) {
+        showToast("No deadlines found to export.", "warning");
+        return;
+    }
+    const icsContent = generateIcsCalendar(events);
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (typeof showToast === "function") {
+        showToast("Calendar file (.ics) downloaded! Open it to import to Apple/Google/Outlook.", "success");
+    }
+}
+window.downloadIcsCalendar = downloadIcsCalendar;
 
 function handleStickySearch(query) {
     const lowerQuery = query.toLowerCase().trim();

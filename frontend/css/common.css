@@ -1050,3 +1050,165 @@ table tbody tr:hover {
         grid-template-columns: repeat(4, 1fr);
     }
 }
+
+/* =========================================================
+   STICKY HEADER CONTROLS (CLOUD SYNC & NOTIFICATIONS)
+   ========================================================= */
+
+.sticky-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Cloud Sync Badge */
+.cloud-sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: all 0.25s ease;
+    border: 1px solid transparent;
+    user-select: none;
+}
+.cloud-sync-badge.online {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+.cloud-sync-badge.syncing {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+.cloud-sync-badge.offline {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+.sync-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+}
+
+/* Header Notification Bell */
+.header-notification-wrapper {
+    position: relative;
+}
+.header-icon-btn {
+    position: relative;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 9px;
+    padding: 8px 12px;
+    color: #f1f5f9;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.header-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+.notification-badge-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 10px;
+    border: 2px solid #040e21;
+    line-height: 1.2;
+}
+
+/* Notification Dropdown */
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    max-width: 90vw;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: none;
+    overflow: hidden;
+}
+.notification-dropdown.is-open {
+    display: block;
+    animation: fadeInDown 0.2s ease;
+}
+.notification-dropdown-header {
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+.notification-dropdown-list {
+    max-height: 280px;
+    overflow-y: auto;
+}
+.notification-dropdown-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #cbd5e1;
+    transition: background 0.15s;
+    text-decoration: none;
+}
+.notification-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+.notification-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+/* =========================================================
+   PRINT TRANSCRIPT (OFFICIAL REPORT PDF)
+   ========================================================= */
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #officialTranscriptPrintArea,
+    #officialTranscriptPrintArea * {
+        visibility: visible !important;
+    }
+    #officialTranscriptPrintArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 20px !important;
+    }
+    .no-print {
+        display: none !important;
+    }
+}

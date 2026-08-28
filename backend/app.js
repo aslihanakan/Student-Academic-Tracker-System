@@ -13,6 +13,9 @@ const studySessionRoutes = require("./routes/studySessionRoutes");
 const todoRoutes = require("./routes/todoRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const dayNoteRoutes = require("./routes/dayNoteRoutes");
+const aiRoutes = require("./routes/aiRoutes");
+const buddyRoutes = require("./routes/buddyRoutes");
+const groupProjectRoutes = require("./routes/groupProjectRoutes");
 
 const { requireAuth } = require("./middleware/authMiddleware");
 
@@ -139,6 +142,21 @@ app.use(
     "/api/day-notes",
     requireAuth,
     dayNoteRoutes
+);
+
+app.use(
+    "/api/ai",
+    aiRoutes
+);
+
+app.use(
+    "/api/buddies",
+    buddyRoutes
+);
+
+app.use(
+    "/api/group-projects",
+    groupProjectRoutes
 );
 
 

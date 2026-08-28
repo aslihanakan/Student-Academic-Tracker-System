@@ -559,7 +559,11 @@ async function loadCourses() {
                     <h2>🎓 GPA Calculator</h2>
                     <p style="font-size:13px; color:#94a3b8; margin-bottom:12px;">Uses each course's own grade weights.</p>
                     <div id="gpa-result"><span style="color:#94a3b8; font-size:14px;">Click below to calculate your GPA.</span></div>
-                    <button onclick="calculateGPA()" style="margin-top:12px;">Calculate GPA</button>
+                    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                        <button onclick="calculateGPA()" style="flex:1;">Calculate GPA</button>
+                        <button type="button" onclick="openAiCoachModal()" style="flex:1; background:linear-gradient(135deg, #4f46e5, #4338ca); border:none; color:#fff; cursor:pointer; font-weight:700; border-radius:8px; font-size:13px; padding:10px 14px;">🤖 AI GPA Advisor</button>
+                        <button type="button" onclick="openOfficialTranscriptModal()" style="flex:100%; background:linear-gradient(135deg, #10b981, #059669); border:none; color:#fff; cursor:pointer; font-weight:700; border-radius:8px; font-size:13px; padding:10px 14px;">📄 Export Official Transcript (PDF)</button>
+                    </div>
                 </div>
             </div>
 
@@ -1288,3 +1292,198 @@ async function deleteCourse(id, courseName) {
         showToast("Course could not be deleted.", "error");
     }
 }
+
+function getGradeLetterAndPoints(avg) {
+    if (avg === null || avg === undefined) return { letter: "-", points: 0, status: "In Progress" };
+    if (avg >= 90) return { letter: "AA", points: 4.0, status: "Passed" };
+    if (avg >= 85) return { letter: "BA", points: 3.5, status: "Passed" };
+    if (avg >= 75) return { letter: "BB", points: 3.0, status: "Passed" };
+    if (avg >= 65) return { letter: "CB", points: 2.5, status: "Passed" };
+    if (avg >= 55) return { letter: "CC", points: 2.0, status: "Passed" };
+    if (avg >= 45) return { letter: "DC", points: 1.5, status: "Conditional" };
+    if (avg >= 35) return { letter: "DD", points: 1.0, status: "Conditional" };
+    return { letter: "FF", points: 0.0, status: "Failed" };
+}
+
+function openOfficialTranscriptModal() {
+    const user = (typeof getStoredUser === "function") ? getStoredUser() : null;
+    const studentName = user ? (user.name || user.username || "Student") : "Student";
+    const studentEmail = user ? (user.email || "-") : "-";
+    const studentGrade = user?.gradeLevel || "Undergraduate";
+
+    const courses = window._coursesForGPA || window._allCourses || [];
+    if (!courses.length) {
+        showToast("No courses available to generate transcript.", "warning");
+        return;
+    }
+
+    let totalEarnedPoints = 0;
+    let totalCreditsAttempted = 0;
+    let totalCreditsEarned = 0;
+
+    const termGroups = groupCoursesByTerm(courses);
+    let tablesHtml = "";
+
+    termGroups.forEach((termCourses, termLabel) => {
+        let termCredits = 0;
+        let termPoints = 0;
+
+        const rows = termCourses.map(c => {
+            const mw = c.midtermWeight ?? 0;
+            const pw = c.projectWeight ?? 0;
+            const fw = Math.max(0, 100 - mw - pw);
+            const cr = Number(c.credit) || 0;
+
+            const mVal = c.midtermGrade !== null && c.midtermGrade !== "" ? Number(c.midtermGrade) : null;
+            const pVal = c.projectGrade !== null && c.projectGrade !== "" ? Number(c.projectGrade) : null;
+            const fVal = c.finalGrade !== null && c.finalGrade !== "" ? Number(c.finalGrade) : null;
+
+            let finalAvg = null;
+            if (fVal !== null || mVal !== null) {
+                finalAvg = Math.round(((mVal || 0) * mw / 100) + ((pVal || 0) * pw / 100) + ((fVal || 0) * fw / 100));
+            }
+
+            const { letter, points, status } = getGradeLetterAndPoints(finalAvg);
+
+            if (finalAvg !== null) {
+                termCredits += cr;
+                termPoints += points * cr;
+                totalCreditsAttempted += cr;
+                totalEarnedPoints += points * cr;
+                if (status !== "Failed") totalCreditsEarned += cr;
+            }
+
+            const badgeColor = status === "Passed" ? "#16a34a" : status === "Failed" ? "#dc2626" : "#475569";
+
+            return `
+                <tr>
+                    <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-weight:600; color:#1e293b;">${escapeHtml(c.courseName)}</td>
+                    <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; color:#64748b;">${escapeHtml(c.instructorName || "-")}</td>
+                    <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; text-align:center; color:#1e293b;">${cr}</td>
+                    <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; text-align:center; color:#1e293b;">${finalAvg !== null ? finalAvg : "-"}</td>
+                    <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700; color:#1e293b;">${letter}</td>
+                    <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; text-align:center; color:${badgeColor}; font-weight:600;">${status}</td>
+                </tr>
+            `;
+        }).join("");
+
+        const termGpa = termCredits > 0 ? (termPoints / termCredits).toFixed(2) : "-";
+
+        tablesHtml += `
+            <div style="margin-bottom:24px;">
+                <div style="background:#f1f5f9; padding:8px 12px; font-weight:700; color:#334155; font-size:13px; border-radius:6px 6px 0 0; display:flex; justify-content:space-between;">
+                    <span>📅 ${escapeHtml(termLabel)}</span>
+                    <span>Term GPA: <strong>${termGpa}</strong> (${termCredits} Credits)</span>
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:12px; background:#ffffff; border:1px solid #e2e8f0; border-top:none;">
+                    <thead>
+                        <tr style="background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase;">
+                            <th style="padding:6px 10px; text-align:left;">Course Name</th>
+                            <th style="padding:6px 10px; text-align:left;">Instructor</th>
+                            <th style="padding:6px 10px; text-align:center;">Credits</th>
+                            <th style="padding:6px 10px; text-align:center;">Score</th>
+                            <th style="padding:6px 10px; text-align:center;">Grade</th>
+                            <th style="padding:6px 10px; text-align:center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        `;
+    });
+
+    const cumulativeGpa = totalCreditsAttempted > 0 ? (totalEarnedPoints / totalCreditsAttempted).toFixed(2) : "0.00";
+    const gpaNum = parseFloat(cumulativeGpa);
+    const standing = gpaNum >= 3.50 ? "High Honors" : gpaNum >= 3.00 ? "Honors" : gpaNum >= 2.00 ? "Satisfactory" : "Academic Warning";
+
+    const issueDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+    // Remove any existing modal
+    const existing = document.getElementById("transcriptModal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay is-open";
+    modal.id = "transcriptModal";
+    modal.style.position = "fixed";
+    modal.style.top = "0";
+    modal.style.left = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
+    modal.style.display = "flex";
+    modal.style.alignItems = "center";
+    modal.style.justifyContent = "center";
+    modal.style.zIndex = "9999";
+    modal.style.padding = "20px";
+
+    modal.innerHTML = `
+        <div class="modal-box" style="max-width:850px; width:100%; max-height:90vh; overflow-y:auto; padding:0; background:#ffffff; border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.3);">
+            <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:#0f172a; color:#ffffff; border-radius:12px 12px 0 0;">
+                <div style="font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;">
+                    <span>📄</span> Official Academic Transcript Preview
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" onclick="window.print()" style="padding:6px 16px; background:#2563eb; color:#ffffff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">
+                        🖨️ Print / Save as PDF
+                    </button>
+                    <button type="button" onclick="document.getElementById('transcriptModal').remove()" style="padding:6px 12px; background:rgba(255,255,255,0.1); color:#ffffff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">
+                        ✕ Close
+                    </button>
+                </div>
+            </div>
+
+            <div id="officialTranscriptPrintArea" style="padding:32px 40px; font-family:system-ui, -apple-system, sans-serif; background:#ffffff; color:#0f172a;">
+                <!-- Header -->
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0f172a; padding-bottom:18px; margin-bottom:20px;">
+                    <div>
+                        <h1 style="margin:0; font-size:22px; font-weight:800; letter-spacing:-0.5px; color:#0f172a;">ACADEMI BUDDY</h1>
+                        <div style="font-size:12px; font-weight:700; color:#475569; letter-spacing:1px; text-transform:uppercase; margin-top:3px;">Official Academic Progress &amp; Transcript Report</div>
+                        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Date of Issue: ${issueDate}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:15px; font-weight:800; color:#0f172a;">${escapeHtml(studentName)}</div>
+                        <div style="font-size:12px; color:#475569;">${escapeHtml(studentEmail)}</div>
+                        <div style="font-size:12px; color:#64748b; margin-top:2px;">Status: <strong>${escapeHtml(studentGrade)}</strong></div>
+                    </div>
+                </div>
+
+                <!-- Cumulative Stats Banner -->
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:24px; text-align:center;">
+                    <div>
+                        <div style="font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase;">Cumulative GPA</div>
+                        <div style="font-size:24px; font-weight:800; color:#2563eb; margin-top:2px;">${cumulativeGpa}</div>
+                        <div style="font-size:10px; color:#94a3b8;">Out of 4.00</div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase;">Credits Attempted</div>
+                        <div style="font-size:24px; font-weight:800; color:#0f172a; margin-top:2px;">${totalCreditsAttempted}</div>
+                        <div style="font-size:10px; color:#94a3b8;">Total Enrolled</div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase;">Credits Earned</div>
+                        <div style="font-size:24px; font-weight:800; color:#16a34a; margin-top:2px;">${totalCreditsEarned}</div>
+                        <div style="font-size:10px; color:#94a3b8;">Passed Credits</div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase;">Standing</div>
+                        <div style="font-size:16px; font-weight:800; color:#0f172a; margin-top:8px;">${standing}</div>
+                        <div style="font-size:10px; color:#94a3b8;">Academic Standing</div>
+                    </div>
+                </div>
+
+                <!-- Course Tables -->
+                ${tablesHtml}
+
+                <!-- Footer -->
+                <div style="border-top:1px solid #e2e8f0; padding-top:14px; margin-top:30px; display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#94a3b8;">
+                    <span>Generated securely via Academi Buddy Student Academic Tracker System.</span>
+                    <span>Document ID: SAT-${Date.now().toString(36).toUpperCase()}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+window.openOfficialTranscriptModal = openOfficialTranscriptModal;

@@ -348,6 +348,18 @@ async function loadDashboard() {
                         <div class="mini-stat-number">${totalHours}h</div>
                         <div class="mini-stat-label">Total Study</div>
                     </div>
+
+                    <div class="mini-stat-card" onclick="openAiCoachModal()" style="cursor:pointer; background:linear-gradient(135deg, #1e1b4b, #312e81); border:1px solid rgba(199,210,254,0.3); color:#fff;" title="Click to open AI Coach">
+                        <div class="mini-stat-icon">🤖</div>
+                        <div class="mini-stat-number" style="font-size:15px; margin:4px 0; color:#c7d2fe;">AI Coach</div>
+                        <div class="mini-stat-label" style="color:#a5b4fc;">GPA Strategy</div>
+                    </div>
+
+                    <div class="mini-stat-card" onclick="openBuddiesModal()" style="cursor:pointer; background:linear-gradient(135deg, #064e3b, #065f46); border:1px solid rgba(167,243,208,0.3); color:#fff;" title="Click to view Academi Buddies">
+                        <div class="mini-stat-icon">🔥</div>
+                        <div class="mini-stat-number" style="font-size:15px; margin:4px 0; color:#a7f3d0;">Buddies</div>
+                        <div class="mini-stat-label" style="color:#6ee7b7;">Streaks &amp; Rank</div>
+                    </div>
                 </div>
 
                 <div class="vertical-motivation-card">
@@ -359,7 +371,18 @@ async function loadDashboard() {
             </div>
 
             <div class="panel calendar-panel">
-                <h2>Monthly Calendar</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                    <h2 style="margin:0;">Monthly Calendar</h2>
+                    <button
+                        type="button"
+                        class="calendar-nav-btn"
+                        onclick="exportCalendarSchedule()"
+                        style="padding:6px 12px; font-size:12px; font-weight:600; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#334155;"
+                        title="Download .ics calendar"
+                    >
+                        📅 Export Month (.ics)
+                    </button>
+                </div>
                 <div class="calendar-nav">
                     <button class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">&#8592; Previous</button>
                     <span id="calendar-month-label" class="calendar-month-label"></span>
@@ -796,3 +819,20 @@ async function toggleDayModalActivityDone(id, isDone, dateText) {
         showToast("Activity status could not be updated.", "error");
     }
 }
+
+function exportCalendarSchedule() {
+    const events = [];
+    (calendarDeadlines || []).forEach((e, idx) => {
+        if (!e.date) return;
+        events.push({
+            id: `cal-${idx}`,
+            title: `[${e.type || 'Event'}] ${e.title || ''}`,
+            date: e.date,
+            description: e.detail || 'Academi Buddy Calendar'
+        });
+    });
+    if (typeof downloadIcsCalendar === "function") {
+        downloadIcsCalendar(events, "Academi_Buddy_Calendar.ics");
+    }
+}
+window.exportCalendarSchedule = exportCalendarSchedule;

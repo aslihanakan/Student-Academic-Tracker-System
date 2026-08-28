@@ -166,6 +166,30 @@ async function loadExamsPage() {
         window._examsPageCourseOptions = courseNameDatalistOptions;
 
         document.getElementById("app").innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <div style="font-size:13px; color:#64748b; font-weight:600;">
+                    Track and manage your upcoming exams, projects, and assignments.
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button
+                        type="button"
+                        class="btn-primary"
+                        onclick="openSyllabusImportModal()"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:700; border-radius:9px; background:linear-gradient(135deg, #059669, #047857); color:#fff; border:none; cursor:pointer; box-shadow:0 2px 4px rgba(5,150,105,0.2);"
+                    >
+                        📑 Smart Syllabus Import
+                    </button>
+                    <button
+                        type="button"
+                        class="btn-primary"
+                        onclick="exportDeadlinesToCalendarFile()"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:700; border-radius:9px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; border:none; cursor:pointer; box-shadow:0 2px 4px rgba(37,99,235,0.2);"
+                    >
+                        📅 Export Schedule (.ics)
+                    </button>
+                </div>
+            </div>
+
             <div class="form-box add-form-box">
                 <div class="form-box-header" onclick="toggleAddFormBox(this)">
                     <h2>Add Exam</h2>
@@ -343,6 +367,14 @@ function renderExamsTableBody() {
                     <input type="checkbox" class="done-checkbox" ${Number(e.isDone) === 1 ? "checked" : ""} onchange="toggleExamDone('${escapeForOnclick(String(e.id))}', this.checked)">
                 </td>
                 <td class="action-buttons">
+                    <a
+                        href="${getGoogleCalendarUrl('[Exam] ' + (e.courseName || '') + ' - ' + (e.examName || 'Exam'), e.examDate, 'Type: ' + (e.examType || '') + ' | Instructor: ' + (e.instructorName || '-'))}"
+                        target="_blank"
+                        rel="noopener"
+                        class="icon-btn"
+                        title="Add to Google Calendar"
+                        style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:5px 7px; font-size:12px; border-radius:6px; background:#f1f5f9; border:1px solid #cbd5e1;"
+                    >📅+</a>
                     <button
                         class="btn-edit"
                         onclick="editExam(
@@ -422,6 +454,14 @@ function renderProjectsTableBody() {
                     <input type="checkbox" class="done-checkbox" ${p.status === "completed" ? "checked" : ""} onchange="toggleProjectDone('${escapeForOnclick(String(p.id))}', this.checked)">
                 </td>
                 <td class="action-buttons">
+                    <a
+                        href="${getGoogleCalendarUrl('[Project] ' + (p.courseName || '') + ' - ' + (p.projectName || 'Project'), p.dueDate, 'Description: ' + (p.description || '') + ' | Status: ' + (p.status || ''))}"
+                        target="_blank"
+                        rel="noopener"
+                        class="icon-btn"
+                        title="Add to Google Calendar"
+                        style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:5px 7px; font-size:12px; border-radius:6px; background:#f1f5f9; border:1px solid #cbd5e1;"
+                    >📅+</a>
                     <button
                         class="btn-edit"
                         onclick="editProject(
@@ -974,3 +1014,44 @@ function editProject(id, courseName, projectName, dueDate, description, status, 
     scrollAppFormIntoView();
     expandAddFormBoxIfCollapsed(saveButton);
 }
+
+function exportDeadlinesToCalendarFile() {
+    const data = window._examsPageData;
+    if (!data) return;
+    const events = [];
+
+    (data.exams || []).forEach(e => {
+        if (!e.examDate) return;
+        events.push({
+            id: `exam-${e.id}`,
+            title: `[Exam] ${e.courseName || ''} - ${e.examName || 'Exam'}`,
+            date: e.examDate,
+            description: `Type: ${toTitleCase(e.examType || '')} | Course: ${e.courseName || ''}`
+        });
+    });
+
+    (data.projects || []).forEach(p => {
+        if (!p.dueDate) return;
+        events.push({
+            id: `proj-${p.id}`,
+            title: `[Project] ${p.courseName || ''} - ${p.projectName || 'Project'}`,
+            date: p.dueDate,
+            description: `Project: ${p.projectName || ''} | Description: ${p.description || ''}`
+        });
+    });
+
+    (data.activities || []).forEach(a => {
+        if (!a.dueDate) return;
+        events.push({
+            id: `todo-${a.id}`,
+            title: `[${toTitleCase(a.type || 'Task')}] ${a.courseName || ''} - ${a.title || 'Task'}`,
+            date: a.dueDate,
+            description: `Task for ${a.courseName || ''}`
+        });
+    });
+
+    if (typeof downloadIcsCalendar === "function") {
+        downloadIcsCalendar(events, "Academi_Buddy_Deadlines.ics");
+    }
+}
+window.exportDeadlinesToCalendarFile = exportDeadlinesToCalendarFile;
