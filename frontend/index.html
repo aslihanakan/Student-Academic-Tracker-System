@@ -430,28 +430,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
 </script>
 
-<!-- EXISTING JAVASCRIPT -->
-<script src="js/auth.js?v=12"></script>
-<script src="js/common.js?v=13"></script>
-<script src="js/courses.js?v=12"></script>
-<script src="js/exams.js?v=12"></script>
-<script src="js/dashboard.js?v=12"></script>
-<script src="js/study.js?v=12"></script>
-<script src="js/settings.js?v=12"></script>
-<script src="js/main.js?v=12"></script>
+<!-- JAVASCRIPT MODULES -->
+<script src="js/auth.js?v=14"></script>
+<script src="js/common.js?v=14"></script>
+<script src="js/courses.js?v=14"></script>
+<script src="js/exams.js?v=14"></script>
+<script src="js/dashboard.js?v=14"></script>
+<script src="js/study.js?v=14"></script>
+<script src="js/settings.js?v=14"></script>
+<script src="js/main.js?v=14"></script>
 
-<!-- PWA: Service Worker kaydı -->
+<!-- PWA: Service Worker Registration & Auto-Update -->
 <script>
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
             navigator.serviceWorker
                 .register("./service-worker.js")
                 .then(function (reg) {
-                    console.log("Service worker registered:", reg.scope);
+                    console.log("[PWA] Service worker registered:", reg.scope);
+                    reg.update();
                 })
                 .catch(function (err) {
-                    console.log("Service worker registration failed:", err);
+                    console.log("[PWA] Service worker registration failed:", err);
                 });
+        });
+
+        let isRefreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", function () {
+            if (!isRefreshing) {
+                isRefreshing = true;
+                window.location.reload();
+            }
         });
     }
 </script>

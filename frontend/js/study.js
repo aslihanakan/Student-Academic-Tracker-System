@@ -7,21 +7,35 @@ async function loadStudyPage(resetToToday = true) {
     updateStickyHeader("study");
 
     try {
-        const [courses, sessions] = await Promise.all([
-            fetchJson(`${API_URL}/courses?includeUnlisted=1&scope=study`),
-            fetchJson(`${API_URL}/study-sessions`)
-        ]);
+        let courses = window._allCourses || window._currentPageCourses || window._allCoursesForDeadlines || [];
+        let sessions = window._allSessions || [];
+
+        try {
+            const results = await Promise.all([
+                fetchJson(`${API_URL}/courses?includeUnlisted=1&scope=study`),
+                fetchJson(`${API_URL}/study-sessions`)
+            ]);
+            if (Array.isArray(results[0])) courses = results[0];
+            if (Array.isArray(results[1])) sessions = results[1];
+        } catch (fetchErr) {
+            console.warn("Study Page Network/Cache Fallback:", fetchErr);
+            if (!courses.length) {
+                courses = (await fetchJson(`${API_URL}/courses?includeUnlisted=1`).catch(() => [])) || [];
+            }
+            if (!sessions.length) {
+                sessions = (await fetchJson(`${API_URL}/study-sessions`).catch(() => [])) || [];
+            }
+        }
 
         window._allCourses = courses;
         window._currentPageCourses = courses;
-
-        const studyCourseDatalistOptions = courses.map(c => `<option value="${escapeHtml(c.courseName)}"></option>`).join("");
-        const courseFilterOptions = courses.map(c => `<option value="${escapeHtml(c.courseName)}">${escapeHtml(c.courseName)}</option>`).join("");
-
-        const uniqueDates = [...new Set(sessions.map(s => String(s.studyDate).split("T")[0]))].sort().reverse();
-        const dateFilterOptions = uniqueDates.map(d => `<option value="${d}">${d}</option>`).join("");
-
         window._allSessions = sessions;
+
+        const studyCourseDatalistOptions = (courses || []).map(c => `<option value="${escapeHtml(c.courseName)}"></option>`).join("");
+        const courseFilterOptions = (courses || []).map(c => `<option value="${escapeHtml(c.courseName)}">${escapeHtml(c.courseName)}</option>`).join("");
+
+        const uniqueDates = [...new Set((sessions || []).map(s => String(s.studyDate).split("T")[0]))].sort().reverse();
+        const dateFilterOptions = uniqueDates.map(d => `<option value="${d}">${d}</option>`).join("");
 
         const todayText = new Date().toLocaleDateString("sv-SE");
 
@@ -78,7 +92,8 @@ async function loadStudyPage(resetToToday = true) {
             </div>
         `;
 
-        document.getElementById("filterDate").value = selectedStudyDate;
+        const filterDateEl = document.getElementById("filterDate");
+        if (filterDateEl) filterDateEl.value = selectedStudyDate;
         renderSessionsBySelectedDate();
 
         if (typeof autoFormatInput === "function") {
@@ -87,7 +102,7 @@ async function loadStudyPage(resetToToday = true) {
         }
     } catch (err) {
         console.error("Study Page Load Error:", err);
-        document.getElementById("app").innerHTML = `<p>Study sessions could not be loaded.</p>`;
+        document.getElementById("app").innerHTML = `<div class="empty-day-box"><h3>Study Sessions</h3><p>Could not load sessions. You can still add new sessions or reconnect to sync.</p></div>`;
     }
 }
 
@@ -270,6 +285,33 @@ async function saveStudySession() {
         editingStudySessionId = null;
         await loadStudyPage(false);
     } catch (err) {
+        if (!navigator.onLine || err.name === "TypeError") {
+            if (typeof queueOfflineAction === "function") {
+                queueOfflineAction({
+                    url: editingStudySessionId ? `${API_URL}/study-sessions/${editingStudySessionId}` : `${API_URL}/study-sessions`,
+                    method: editingStudySessionId ? "PUT" : "POST",
+                    body: session,
+                    description: `Study session for ${enteredCourseName}`
+                });
+            }
+            const localItem = {
+                id: editingStudySessionId || ("temp_" + Date.now()),
+                courseName: enteredCourseName,
+                courseId: courseId,
+                studyDate: session.studyDate,
+                hours: session.hours,
+                note: session.note
+            };
+            window._allSessions = [localItem, ...(window._allSessions || []).filter(s => s.id !== localItem.id)];
+            if (typeof saveOfflineCache === "function") {
+                saveOfflineCache(`${API_URL}/study-sessions`, window._allSessions);
+            }
+            cancelStudyEdit();
+            renderSessionsBySelectedDate();
+            showToast("Saved offline. It will sync automatically when back online.", "warning");
+            return;
+        }
+
         console.error("Study Session Save Error:", err);
         showToast("Study session could not be saved.", "error");
     }
