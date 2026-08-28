@@ -169,14 +169,291 @@ function isItemOverdue(dateText, isDone) {
     return !isDone && days < 0;
 }
 
-async function fetchJson(url) {
-    const response = await fetch(url);
+/* ─── OFFLINE DATA CACHE & STATUS MANAGEMENT ─────────────────────────────────*/
 
-    if (!response.ok) {
-        throw new Error(`Request failed: ${url}`);
+const ATS_CACHE_PREFIX = "ats_cache_";
+const ATS_QUEUE_KEY = "ats_offline_sync_queue";
+
+function getOfflineCacheKey(url) {
+    const user = (typeof getStoredUser === "function") ? getStoredUser() : null;
+    const uid = user ? (user.id || user.email || "user") : "guest";
+    return `${ATS_CACHE_PREFIX}${uid}_${url}`;
+}
+
+function saveOfflineCache(url, data) {
+    try {
+        const key = getOfflineCacheKey(url);
+        localStorage.setItem(key, JSON.stringify({
+            savedAt: Date.now(),
+            data: data
+        }));
+    } catch (e) {
+        console.warn("[Offline Cache] LocalStorage quota or write error:", e);
+    }
+}
+
+function getOfflineCache(url) {
+    try {
+        const key = getOfflineCacheKey(url);
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && parsed.data !== undefined ? parsed.data : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function fetchJson(url) {
+    // 1. Cihaz kesin olarak çevrimdışıysa doğrudan önbellekten dön
+    if (!navigator.onLine) {
+        const cached = getOfflineCache(url);
+        if (cached !== null) {
+            console.log(`[Offline Cache] Serving offline data: ${url}`);
+            return cached;
+        }
     }
 
-    return response.json();
+    // 2. Ağ isteğini dene
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            // Sunucu hatası varsa veya Service Worker çevrimdışı 503 döndüyse önbelleğe bak
+            const cached = getOfflineCache(url);
+            if (cached !== null) {
+                console.warn(`[Offline Cache Fallback] Server status ${response.status}, using cached data: ${url}`);
+                return cached;
+            }
+            throw new Error(`Request failed: ${url} (status ${response.status})`);
+        }
+
+        const data = await response.json();
+        // Başarılı yanıtı çevrimdışı kullanım için kaydet
+        saveOfflineCache(url, data);
+        return data;
+
+    } catch (err) {
+        // Ağ hatası (çevrimdışı, timeout vb.)
+        const cached = getOfflineCache(url);
+        if (cached !== null) {
+            console.log(`[Offline Cache Fallback] Network failed, serving cached: ${url}`);
+            if (typeof showOfflineIndicator === "function") {
+                showOfflineIndicator(true);
+            }
+            return cached;
+        }
+        throw err;
+    }
+}
+
+function ensureOfflineIndicatorElement() {
+    let el = document.getElementById("ats-offline-badge");
+    if (el) return el;
+
+    el = document.createElement("div");
+    el.id = "ats-offline-badge";
+    el.innerHTML = `
+        <div class="ats-offline-content">
+            <span class="ats-offline-dot"></span>
+            <span class="ats-offline-text">Çevrimdışı Mod (Kayıtlı veriler gösteriliyor)</span>
+        </div>
+    `;
+
+    const style = document.createElement("style");
+    style.id = "ats-offline-badge-style";
+    style.textContent = `
+        #ats-offline-badge {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            backdrop-filter: blur(12px);
+            color: #fef08a;
+            padding: 10px 22px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 16px rgba(245, 158, 11, 0.2);
+            z-index: 10001;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            opacity: 0;
+        }
+        #ats-offline-badge.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        #ats-offline-badge.online-back {
+            border-color: rgba(34, 197, 94, 0.45);
+            color: #86efac;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 16px rgba(34, 197, 94, 0.2);
+        }
+        .ats-offline-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .ats-offline-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #f59e0b;
+            box-shadow: 0 0 8px #f59e0b;
+            animation: ats-pulse 1.8s infinite ease-in-out;
+        }
+        #ats-offline-badge.online-back .ats-offline-dot {
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+            animation: none;
+        }
+        @keyframes ats-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(0.8); }
+        }
+    `;
+
+    document.head.appendChild(style);
+    document.body.appendChild(el);
+    return el;
+}
+
+function showOfflineIndicator(isOffline) {
+    const badge = ensureOfflineIndicatorElement();
+    if (!badge) return;
+
+    if (isOffline) {
+        badge.classList.remove("online-back");
+        badge.querySelector(".ats-offline-text").textContent = "⚡ Çevrimdışı Mod (Kayıtlı veriler gösteriliyor)";
+        badge.classList.add("visible");
+    } else {
+        badge.classList.add("online-back");
+        badge.querySelector(".ats-offline-text").textContent = "🟢 Çevrimiçi - Veriler senkronize ediliyor";
+        badge.classList.add("visible");
+        setTimeout(() => {
+            badge.classList.remove("visible");
+        }, 3500);
+    }
+}
+window.showOfflineIndicator = showOfflineIndicator;
+
+function getOfflineQueue() {
+    try {
+        return JSON.parse(localStorage.getItem(ATS_QUEUE_KEY) || "[]");
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveOfflineQueue(queue) {
+    try {
+        localStorage.setItem(ATS_QUEUE_KEY, JSON.stringify(queue));
+    } catch (e) {}
+}
+
+function queueOfflineAction(action) {
+    const queue = getOfflineQueue();
+    queue.push({
+        id: Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+        ...action,
+        queuedAt: new Date().toISOString()
+    });
+    saveOfflineQueue(queue);
+    console.log("[Offline Queue] Queued action:", action);
+    if (typeof showToast === "function") {
+        showToast("İşlem çevrimdışı kaydedildi. İnternet bağlantısı sağlandığında senkronize edilecek.", "warning");
+    }
+}
+window.queueOfflineAction = queueOfflineAction;
+
+async function processOfflineSyncQueue() {
+    const queue = getOfflineQueue();
+    if (!queue.length) return;
+
+    console.log(`[Offline Sync] Processing ${queue.length} queued action(s)...`);
+    const remaining = [];
+
+    for (const item of queue) {
+        try {
+            const res = await fetch(item.url, {
+                method: item.method || "POST",
+                headers: item.headers || { "Content-Type": "application/json" },
+                body: item.body ? JSON.stringify(item.body) : undefined
+            });
+
+            if (!res.ok && res.status < 500) {
+                console.warn("[Offline Sync] Dropping invalid request (4xx):", res.status, item);
+            } else if (!res.ok) {
+                remaining.push(item);
+            } else {
+                console.log("[Offline Sync] Action synced successfully:", item.description || item.url);
+            }
+        } catch (e) {
+            remaining.push(item);
+        }
+    }
+
+    saveOfflineQueue(remaining);
+
+    if (queue.length > remaining.length && typeof showToast === "function") {
+        showToast(`${queue.length - remaining.length} çevrimdışı işlem senkronize edildi.`, "success");
+        refreshCurrentView();
+    }
+}
+window.processOfflineSyncQueue = processOfflineSyncQueue;
+
+function refreshCurrentView() {
+    if (!window._currentActivePage) return;
+    switch (window._currentActivePage) {
+        case "courses":
+            if (typeof loadCourses === "function") loadCourses();
+            break;
+        case "exams":
+            if (typeof loadExamsPage === "function") loadExamsPage();
+            break;
+        case "study":
+            if (typeof loadStudyPage === "function") loadStudyPage(false);
+            break;
+        case "settings":
+            if (typeof loadSettingsPage === "function") loadSettingsPage();
+            break;
+        case "dashboard":
+        default:
+            if (typeof loadDashboard === "function") loadDashboard();
+            break;
+    }
+}
+window.refreshCurrentView = refreshCurrentView;
+
+function initOnlineOfflineListeners() {
+    window.addEventListener("online", () => {
+        console.log("[Network] Application is online.");
+        showOfflineIndicator(false);
+        refreshCurrentView();
+        processOfflineSyncQueue();
+    });
+
+    window.addEventListener("offline", () => {
+        console.log("[Network] Application went offline.");
+        showOfflineIndicator(true);
+        if (typeof showToast === "function") {
+            showToast("İnternet bağlantısı kesildi. Çevrimdışı moda geçildi.", "warning");
+        }
+    });
+
+    if (!navigator.onLine) {
+        showOfflineIndicator(true);
+    }
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initOnlineOfflineListeners);
+} else {
+    initOnlineOfflineListeners();
 }
 
 
@@ -361,6 +638,7 @@ const PAGE_META = {
 };
 
 function updateStickyHeader(pageKey) {
+    window._currentActivePage = pageKey;
     const meta = PAGE_META[pageKey] || PAGE_META.dashboard;
     const header = document.getElementById("sticky-header");
 

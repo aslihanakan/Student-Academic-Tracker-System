@@ -26,34 +26,42 @@ function getApiBaseUrl() {
     const hostname = window.location.hostname;
 
     /*
+     * Kullanıcı veya APK tarafından belirlenen özel API adresi
+     */
+    const customApi = localStorage.getItem("ats_custom_api_url");
+    if (customApi) {
+        return customApi.replace(/\/+$/, "");
+    }
+
+    /*
      * VS Code Live Server / local frontend.
-     *
-     * Not: hostname kontrolü kaldırıldı, çünkü mobil cihazdan
-     * bilgisayarın yerel ağ IP'si (ör. 192.168.x.x) üzerinden
-     * bağlanıldığında hostname "localhost" olmuyor. Bunun yerine
-     * PORT'a bakıyoruz: sayfa 3000'den açıldıysa (Live Server),
-     * backend'in AYNI HOST üzerinde 5000 portunda çalıştığını
-     * varsayıyoruz. Böylece hem bilgisayardan hem mobilden
-     * doğru backend adresine gidilir.
      */
     if (window.location.port === "3000") {
         return `${window.location.protocol}//${hostname}:5000`;
     }
 
     /*
-     * Sayfa zaten Express tarafından 5000
-     * üzerinden servis ediliyorsa.
+     * Sayfa zaten Express tarafından 5000 üzerinden servis ediliyorsa.
      */
     if (window.location.port === "5000") {
         return "";
     }
 
+    /*
+     * Capacitor mobil ortamı (Android APK / iOS)
+     */
+    const isCapacitor =
+        (typeof window !== "undefined" && window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform()) ||
+        window.location.protocol === "capacitor:" ||
+        (window.location.protocol === "http:" && window.location.hostname === "localhost" && !window.location.port);
+
+    if (isCapacitor) {
+        return window.ATS_PROD_API_URL || "";
+    }
 
     /*
-     * Render / production.
-     *
-     * Frontend ve backend aynı Render servisi
-     * üzerinden servis ediliyorsa relative URL kullanılır.
+     * Render / Vercel / production.
+     * Frontend ve backend aynı domain üzerinden servis ediliyorsa relative URL kullanılır.
      */
     return "";
 }
@@ -1029,10 +1037,31 @@ async function initAuth() {
     const token =
         getToken();
 
+    const storedUser =
+        getStoredUser();
+
 
     if (!token) {
 
         showAuthScreen();
+
+        return;
+
+    }
+
+
+    /*
+     * Doğrudan tarayıcı çevrimdışı ise ve kayıtlı kullanıcı varsa direkt uygulamayı aç
+     */
+    if (!navigator.onLine && storedUser) {
+
+        console.log("[Auth] Offline mode detected on load: logging in with cached session.");
+
+        showMainApp(storedUser);
+
+        if (typeof window.showOfflineIndicator === "function") {
+            window.showOfflineIndicator(true);
+        }
 
         return;
 
@@ -1056,6 +1085,23 @@ async function initAuth() {
 
 
         if (!response.ok) {
+
+            // Sadece 401/403 durumunda oturum geçersizdir
+            if (response.status === 401 || response.status === 403) {
+                clearSession();
+                showAuthScreen();
+                return;
+            }
+
+            // Diğer sunucu/servis hatalarında (500, 502, 503 veya SW çevrimdışı yanıtı)
+            if (storedUser) {
+                console.warn("[Auth] Server responded with error, falling back to cached user:", response.status);
+                showMainApp(storedUser);
+                if (typeof window.showOfflineIndicator === "function") {
+                    window.showOfflineIndicator(true);
+                }
+                return;
+            }
 
             clearSession();
 
@@ -1083,16 +1129,24 @@ async function initAuth() {
 
     } catch (err) {
 
-        console.error(
-            "Session check failed:",
+        console.warn(
+            "[Auth] Session check failed (offline or network error):",
             err
         );
 
 
         /*
-         * Server geçici olarak ulaşılmazsa
-         * mevcut oturumu hemen silmiyoruz.
+         * Server geçici olarak ulaşılmazsa veya cihaz çevrimdışıysa
+         * mevcut kayıtlı oturumla devam et.
          */
+        if (storedUser) {
+            console.log("[Auth] Continuing in offline mode with cached user data");
+            showMainApp(storedUser);
+            if (typeof window.showOfflineIndicator === "function") {
+                window.showOfflineIndicator(true);
+            }
+            return;
+        }
 
         showAuthScreen();
 
