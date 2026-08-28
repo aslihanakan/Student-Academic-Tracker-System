@@ -147,83 +147,43 @@ function clearSession() {
     );
 }
 
-function getOfflineUserSession(enteredEmail) {
-    const cleanEmail = (enteredEmail || "").toLowerCase().trim();
+const ATS_CREDENTIALS_KEY = "ats_saved_credentials";
 
-    // 1. ats_saved_users kontrolü
-    try {
-        const savedUsers = JSON.parse(localStorage.getItem("ats_saved_users") || "{}");
-        if (cleanEmail && savedUsers[cleanEmail]) {
-            return savedUsers[cleanEmail];
-        }
-        const emails = Object.keys(savedUsers);
-        if (emails.length > 0) {
-            return savedUsers[emails[0]];
-        }
-    } catch (e) {}
+async function hashOfflinePassword(email, password) {
+    const cleanEmail = (email || "").toLowerCase().trim();
+    const text = `${cleanEmail}::ats_secure_salt::${password}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
-    // 2. Mevcut atsUser kontrolü
+function saveOfflineCredentials(email, token, user, passwordHash) {
     try {
-        const stored = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || "null");
-        if (stored && (stored.id || stored.email)) {
-            return {
-                token: localStorage.getItem(AUTH_TOKEN_KEY) || "offline_token",
-                user: stored
+        const creds = JSON.parse(localStorage.getItem(ATS_CREDENTIALS_KEY) || "{}");
+        const key = (email || "").toLowerCase().trim();
+        if (key) {
+            creds[key] = {
+                token,
+                user,
+                passwordHash,
+                savedAt: Date.now()
             };
+            localStorage.setItem(ATS_CREDENTIALS_KEY, JSON.stringify(creds));
         }
     } catch (e) {}
-
-    // 3. Cihazdaki ats_cache_ anahtarlarından kullanıcı ID'sini tespit et
-    let detectedUid = 1;
-    for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith("ats_cache_")) {
-            const parts = k.split("_");
-            if (parts.length >= 3 && parts[2] && parts[2] !== "guest") {
-                detectedUid = isNaN(parts[2]) ? parts[2] : Number(parts[2]);
-                break;
-            }
-        }
-    }
-
-    // 4. E-postadan veya varsayılan Aslıhan profilinden kullanıcı oluştur
-    const emailToUse = cleanEmail || "aslihanakan2018@gmail.com";
-    let displayName = "Aslıhan Akan";
-    if (!emailToUse.includes("aslihan")) {
-        const prefix = emailToUse.split("@")[0].replace(/[._0-9]/g, " ").trim();
-        displayName = prefix ? (prefix.charAt(0).toUpperCase() + prefix.slice(1)) : "Student";
-    }
-
-    const offlineUser = {
-        id: detectedUid,
-        name: displayName,
-        email: emailToUse,
-        department: "Computer Engineering",
-        gradeLevel: "4th Year (Senior)",
-        avatar: "pp.png"
-    };
-
-    return {
-        token: "offline_token_" + Date.now(),
-        user: offlineUser
-    };
 }
-window.getOfflineUserSession = getOfflineUserSession;
 
-function enterOfflineMode(email) {
-    const emailInput = document.getElementById("loginEmail");
-    const mail = email || (emailInput ? emailInput.value : "") || "aslihanakan2018@gmail.com";
-    const session = getOfflineUserSession(mail);
-    setSession(session.token, session.user);
-    showMainApp(session.user);
-    if (typeof window.showOfflineIndicator === "function") {
-        window.showOfflineIndicator(true);
-    }
-    if (typeof showToast === "function") {
-        showToast(`Entered in offline mode. Welcome, ${session.user.name || "Student"}!`, "success");
+function getStoredOfflineCredential(email) {
+    try {
+        const creds = JSON.parse(localStorage.getItem(ATS_CREDENTIALS_KEY) || "{}");
+        const key = (email || "").toLowerCase().trim();
+        return creds[key] || null;
+    } catch (e) {
+        return null;
     }
 }
-window.enterOfflineMode = enterOfflineMode;
 
 
 /* ─── AUTHORIZED FETCH ─────────────────────────────────────────────────────── */
@@ -697,19 +657,44 @@ document
                 return;
             }
 
-            // Çevrimdışı Modda Doğrudan Giriş Yap (Hata verme, uygulamayı aç)
+            // Çevrimdışı Modda Güvenli Giriş: Şifre karmasını (hash) doğrula
             if (!navigator.onLine) {
-                const session = getOfflineUserSession(email);
-                console.log("[Auth] Offline sign-in active:", session.user);
-                setSession(session.token, session.user);
-                showMainApp(session.user);
-                if (typeof window.showOfflineIndicator === "function") {
-                    window.showOfflineIndicator(true);
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Logging in...";
+                try {
+                    const record = getStoredOfflineCredential(email);
+                    if (!record || !record.passwordHash) {
+                        setAuthError(
+                            "loginError",
+                            "No offline account found on this device. Please connect to the internet and sign in once."
+                        );
+                        return;
+                    }
+
+                    const enteredHash = await hashOfflinePassword(email, password);
+                    if (enteredHash !== record.passwordHash) {
+                        setAuthError("loginError", "Invalid email or password.");
+                        return;
+                    }
+
+                    // Şifre doğrulandı, güvenli oturum aç
+                    setSession(record.token, record.user);
+                    showMainApp(record.user);
+                    if (typeof window.showOfflineIndicator === "function") {
+                        window.showOfflineIndicator(true);
+                    }
+                    if (typeof showToast === "function") {
+                        showToast(`Signed in offline. Welcome back, ${record.user.name || "Student"}!`, "success");
+                    }
+                    event.target.reset();
+                    return;
+                } catch (err) {
+                    console.error("Offline login error:", err);
+                    setAuthError("loginError", "Offline sign-in failed. Please try again.");
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "Log In";
                 }
-                if (typeof showToast === "function") {
-                    showToast(`Signed in offline. Welcome, ${session.user.name || "Student"}!`, "success");
-                }
-                event.target.reset();
                 return;
             }
 
@@ -781,6 +766,14 @@ document
                     data.user
                 );
 
+                // Çevrimdışı şifreli giriş için parola karmasını güvenli kaydet
+                try {
+                    const passwordHash = await hashOfflinePassword(email, password);
+                    saveOfflineCredentials(email, data.token, data.user, passwordHash);
+                } catch (hashErr) {
+                    console.warn("[Auth] Failed to cache offline password hash:", hashErr);
+                }
+
                 showMainApp(
                     data.user
                 );
@@ -789,22 +782,33 @@ document
 
             } catch (err) {
                 console.warn(
-                    "[Auth] Network login failed, opening offline session:",
+                    "[Auth] Network login failed, checking offline credentials:",
                     err
                 );
 
-                // Ağ hatası olduğunda kullanıcıyı engelleme, çevrimdışı profil ile içeri al
-                const session = getOfflineUserSession(email);
-                setSession(session.token, session.user);
-                showMainApp(session.user);
-                if (typeof window.showOfflineIndicator === "function") {
-                    window.showOfflineIndicator(true);
-                }
-                if (typeof showToast === "function") {
-                    showToast(`Signed in offline. Welcome, ${session.user.name || "Student"}!`, "success");
-                }
-                event.target.reset();
-                return;
+                try {
+                    const record = getStoredOfflineCredential(email);
+                    if (record && record.passwordHash) {
+                        const enteredHash = await hashOfflinePassword(email, password);
+                        if (enteredHash === record.passwordHash) {
+                            setSession(record.token, record.user);
+                            showMainApp(record.user);
+                            if (typeof window.showOfflineIndicator === "function") {
+                                window.showOfflineIndicator(true);
+                            }
+                            if (typeof showToast === "function") {
+                                showToast(`Signed in offline. Welcome back, ${record.user.name || "Student"}!`, "success");
+                            }
+                            event.target.reset();
+                            return;
+                        } else {
+                            setAuthError("loginError", "Invalid email or password.");
+                            return;
+                        }
+                    }
+                } catch (e) {}
+
+                setAuthError("loginError", "Could not reach the server. Please check your internet connection.");
 
             } finally {
                 submitBtn.disabled = false;
@@ -1117,27 +1121,24 @@ document
 
 async function initAuth() {
 
-    let token = getToken();
-    let storedUser = getStoredUser();
+    const token = getToken();
+    const storedUser = getStoredUser();
 
-    // Çevrimdışı açılışta doğrudan oturumu aç ve uygulamayı göster
+    // 1. OTURUM AÇIK BIRAKILMADIYSA (Kullanıcı çıkış yaptıysa veya oturum yoksa):
+    // İster çevrimiçi ister çevrimdışı olsun, doğrudan içeri alma; giriş ekranını göster!
+    if (!token || !storedUser) {
+        showAuthScreen();
+        return;
+    }
+
+    // 2. OTURUM AÇIK BIRAKILDIYSA VE ÇEVRİMDIŞIYSA:
+    // Mevcut açık oturumla güvenle devam et
     if (!navigator.onLine) {
-        if (!token || !storedUser) {
-            const session = getOfflineUserSession("");
-            token = session.token;
-            storedUser = session.user;
-            setSession(token, storedUser);
-        }
-        console.log("[Auth] Offline mode detected on load: auto-entering main app:", storedUser);
+        console.log("[Auth] Session left open: continuing in offline mode with:", storedUser);
         showMainApp(storedUser);
         if (typeof window.showOfflineIndicator === "function") {
             window.showOfflineIndicator(true);
         }
-        return;
-    }
-
-    if (!token) {
-        showAuthScreen();
         return;
     }
 
