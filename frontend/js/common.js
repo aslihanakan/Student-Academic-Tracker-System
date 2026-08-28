@@ -456,6 +456,206 @@ function saveOfflineQueue(queue) {
     } catch (e) {}
 }
 
+function applyOptimisticOfflineMutation(url, method, body, syntheticId) {
+    const user = (typeof getStoredUser === "function") ? getStoredUser() : null;
+    const uid = user ? (user.id || user.email || "user") : "guest";
+    const prefix = `${ATS_CACHE_PREFIX}${uid}_`;
+
+    try {
+        if (url.includes("/courses")) {
+            const courseKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix) && k.includes("/courses")) courseKeys.push(k);
+            }
+            if (method === "POST" && body) {
+                const newCourse = { id: syntheticId, ...body, midtermGrade: null, projectGrade: null, finalGrade: null };
+                window._allCourses = [...(window._allCourses || []), newCourse];
+                window._currentPageCourses = window._allCourses;
+                window._allCoursesForDeadlines = window._allCourses;
+                courseKeys.forEach(k => {
+                    const cached = JSON.parse(localStorage.getItem(k) || "{}");
+                    if (Array.isArray(cached.data)) {
+                        cached.data.push(newCourse);
+                        localStorage.setItem(k, JSON.stringify(cached));
+                    }
+                });
+            } else if (method === "DELETE") {
+                const idMatch = url.match(/\/courses\/([^\/?#]+)/);
+                if (idMatch) {
+                    const idToDelete = idMatch[1];
+                    window._allCourses = (window._allCourses || []).filter(c => String(c.id) !== String(idToDelete));
+                    window._currentPageCourses = window._allCourses;
+                    window._allCoursesForDeadlines = window._allCourses;
+                    courseKeys.forEach(k => {
+                        const cached = JSON.parse(localStorage.getItem(k) || "{}");
+                        if (Array.isArray(cached.data)) {
+                            cached.data = cached.data.filter(c => String(c.id) !== String(idToDelete));
+                            localStorage.setItem(k, JSON.stringify(cached));
+                        }
+                    });
+                }
+            } else if (method === "PUT" && body) {
+                const idMatch = url.match(/\/courses\/([^\/?#]+)/);
+                if (idMatch) {
+                    const idToUpdate = idMatch[1];
+                    const updater = c => String(c.id) === String(idToUpdate) ? { ...c, ...body } : c;
+                    window._allCourses = (window._allCourses || []).map(updater);
+                    window._currentPageCourses = window._allCourses;
+                    window._allCoursesForDeadlines = window._allCourses;
+                    courseKeys.forEach(k => {
+                        const cached = JSON.parse(localStorage.getItem(k) || "{}");
+                        if (Array.isArray(cached.data)) {
+                            cached.data = cached.data.map(updater);
+                            localStorage.setItem(k, JSON.stringify(cached));
+                        }
+                    });
+                }
+            }
+        } else if (url.includes("/exams")) {
+            let exams = getOfflineCache(`${API_BASE_URL}/api/exams`) || window._allExams || [];
+            if (!Array.isArray(exams)) exams = [];
+
+            if (method === "POST" && body) {
+                const newExam = { id: syntheticId, ...body, isDone: 0 };
+                exams = [newExam, ...exams];
+                saveOfflineCache(`${API_BASE_URL}/api/exams`, exams);
+                window._allExams = exams;
+                if (window._examsPageData) window._examsPageData.exams = exams;
+            } else if (method === "PATCH" && url.includes("/status")) {
+                const idMatch = url.match(/\/exams\/([^\/?#]+)\/status/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    exams = exams.map(e => String(e.id) === String(id) ? { ...e, isDone: Number(body?.isDone ?? 1) } : e);
+                    saveOfflineCache(`${API_BASE_URL}/api/exams`, exams);
+                    window._allExams = exams;
+                    if (window._examsPageData) window._examsPageData.exams = exams;
+                }
+            } else if (method === "DELETE") {
+                const idMatch = url.match(/\/exams\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    exams = exams.filter(e => String(e.id) !== String(id));
+                    saveOfflineCache(`${API_BASE_URL}/api/exams`, exams);
+                    window._allExams = exams;
+                    if (window._examsPageData) window._examsPageData.exams = exams;
+                }
+            }
+        } else if (url.includes("/projects")) {
+            let projects = getOfflineCache(`${API_BASE_URL}/api/projects`) || window._allProjects || [];
+            if (!Array.isArray(projects)) projects = [];
+
+            if (method === "POST" && body) {
+                const newProject = { id: syntheticId, ...body, status: "in_progress" };
+                projects = [newProject, ...projects];
+                saveOfflineCache(`${API_BASE_URL}/api/projects`, projects);
+                window._allProjects = projects;
+                if (window._examsPageData) window._examsPageData.projects = projects;
+            } else if (method === "PATCH" && url.includes("/status")) {
+                const idMatch = url.match(/\/projects\/([^\/?#]+)\/status/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    projects = projects.map(p => String(p.id) === String(id) ? { ...p, status: body?.status || "completed" } : p);
+                    saveOfflineCache(`${API_BASE_URL}/api/projects`, projects);
+                    window._allProjects = projects;
+                    if (window._examsPageData) window._examsPageData.projects = projects;
+                }
+            } else if (method === "DELETE") {
+                const idMatch = url.match(/\/projects\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    projects = projects.filter(p => String(p.id) !== String(id));
+                    saveOfflineCache(`${API_BASE_URL}/api/projects`, projects);
+                    window._allProjects = projects;
+                    if (window._examsPageData) window._examsPageData.projects = projects;
+                }
+            }
+        } else if (url.includes("/todos")) {
+            let todos = getOfflineCache(`${API_BASE_URL}/api/todos`) || window._dashboardActivities || [];
+            if (!Array.isArray(todos)) todos = [];
+
+            if (method === "POST" && body) {
+                const newTodo = { id: syntheticId, ...body, isDone: 0 };
+                todos = [newTodo, ...todos];
+                saveOfflineCache(`${API_BASE_URL}/api/todos`, todos);
+                window._dashboardActivities = todos;
+                if (window._examsPageData) {
+                    window._examsPageData.activities = todos.filter(t => ["homework", "quiz", "other"].includes(t.type));
+                }
+            } else if (method === "PATCH") {
+                const idMatch = url.match(/\/todos\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    todos = todos.map(t => String(t.id) === String(id) ? { ...t, ...body } : t);
+                    saveOfflineCache(`${API_BASE_URL}/api/todos`, todos);
+                    window._dashboardActivities = todos;
+                    if (window._examsPageData) {
+                        window._examsPageData.activities = todos.filter(t => ["homework", "quiz", "other"].includes(t.type));
+                    }
+                }
+            } else if (method === "DELETE") {
+                const idMatch = url.match(/\/todos\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    todos = todos.filter(t => String(t.id) !== String(id));
+                    saveOfflineCache(`${API_BASE_URL}/api/todos`, todos);
+                    window._dashboardActivities = todos;
+                    if (window._examsPageData) {
+                        window._examsPageData.activities = todos.filter(t => ["homework", "quiz", "other"].includes(t.type));
+                    }
+                }
+            }
+        } else if (url.includes("/study-sessions")) {
+            let sessions = getOfflineCache(`${API_BASE_URL}/api/study-sessions`) || window._allSessions || [];
+            if (!Array.isArray(sessions)) sessions = [];
+
+            if (method === "POST" && body) {
+                const newSession = { id: syntheticId, ...body };
+                sessions = [newSession, ...sessions];
+                saveOfflineCache(`${API_BASE_URL}/api/study-sessions`, sessions);
+                window._allSessions = sessions;
+            } else if (method === "PUT" && body) {
+                const idMatch = url.match(/\/study-sessions\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    sessions = sessions.map(s => String(s.id) === String(id) ? { ...s, ...body } : s);
+                    saveOfflineCache(`${API_BASE_URL}/api/study-sessions`, sessions);
+                    window._allSessions = sessions;
+                }
+            } else if (method === "DELETE") {
+                const idMatch = url.match(/\/study-sessions\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    sessions = sessions.filter(s => String(s.id) !== String(id));
+                    saveOfflineCache(`${API_BASE_URL}/api/study-sessions`, sessions);
+                    window._allSessions = sessions;
+                }
+            }
+        } else if (url.includes("/day-notes")) {
+            let dayNotes = getOfflineCache(`${API_BASE_URL}/api/day-notes`) || window._dayNotes || [];
+            if (!Array.isArray(dayNotes)) dayNotes = [];
+
+            if (method === "POST" && body) {
+                const newNote = { id: syntheticId, ...body };
+                dayNotes = [...dayNotes, newNote];
+                saveOfflineCache(`${API_BASE_URL}/api/day-notes`, dayNotes);
+                window._dayNotes = dayNotes;
+            } else if (method === "DELETE") {
+                const idMatch = url.match(/\/day-notes\/([^\/?#]+)/);
+                if (idMatch) {
+                    const id = idMatch[1];
+                    dayNotes = dayNotes.filter(n => String(n.id) !== String(id));
+                    saveOfflineCache(`${API_BASE_URL}/api/day-notes`, dayNotes);
+                    window._dayNotes = dayNotes;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("[Offline Optimistic Update] Error updating state:", e);
+    }
+}
+window.applyOptimisticOfflineMutation = applyOptimisticOfflineMutation;
+
 function queueOfflineAction(action) {
     const queue = getOfflineQueue();
     queue.push({

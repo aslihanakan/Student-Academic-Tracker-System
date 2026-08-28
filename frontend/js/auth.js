@@ -119,6 +119,19 @@ function setSession(token, user) {
             AUTH_USER_KEY,
             JSON.stringify(user)
         );
+
+        // Çevrimdışı oturum açabilmek için profili sakla
+        try {
+            const savedUsers = JSON.parse(localStorage.getItem("ats_saved_users") || "{}");
+            if (user.email) {
+                savedUsers[user.email.toLowerCase().trim()] = {
+                    token: token || getToken(),
+                    user: user,
+                    savedAt: Date.now()
+                };
+                localStorage.setItem("ats_saved_users", JSON.stringify(savedUsers));
+            }
+        } catch (e) {}
     }
 }
 
@@ -146,81 +159,108 @@ const originalFetch =
 
 
 window.fetch = function (input, init) {
+    init = init ? Object.assign({}, init) : {};
 
-    init = init
-        ? Object.assign({}, init)
-        : {};
-
-
-    const url =
-        typeof input === "string"
-            ? input
-            : (input && input.url) || "";
-
-
-    const isApiCall =
-        url.includes("/api/");
-
+    const url = typeof input === "string" ? input : (input && input.url) || "";
+    const method = (init.method || "GET").toUpperCase();
+    const isApiCall = url.includes("/api/");
     const isPublicAuthCall =
         url.includes("/api/auth/login") ||
         url.includes("/api/auth/register") ||
         url.includes("/api/auth/avatars");
 
-    const token =
-        getToken();
+    const token = getToken();
 
-    if (
-        token &&
-        isApiCall &&
-        !isPublicAuthCall
-    ) {
-
-        const headers =
-            new Headers(
-                init.headers ||
-                (
-                    typeof input !== "string"
-                        ? input.headers
-                        : undefined
-                )
-            );
-
-        headers.set(
-            "Authorization",
-            "Bearer " + token
+    if (token && isApiCall && !isPublicAuthCall) {
+        const headers = new Headers(
+            init.headers || (typeof input !== "string" ? input.headers : undefined)
         );
-
+        headers.set("Authorization", "Bearer " + token);
         init.headers = headers;
-
     }
 
+    const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
 
-    return originalFetch(
-        input,
-        init
-    ).then(function (response) {
+    // 1. Cihaz kesin olarak çevrimdışıysa mutasyon isteklerini kuyruğa al ve başarılı dön
+    if (isApiCall && !isPublicAuthCall && isMutation && !navigator.onLine) {
+        console.log(`[Offline Mutation] Queuing offline action: ${method} ${url}`);
+        let parsedBody = null;
+        try {
+            parsedBody = typeof init.body === "string" ? JSON.parse(init.body) : init.body;
+        } catch (e) {}
 
-        /*
-         * API'den 401 gelirse oturumu temizle.
-         */
+        const syntheticId = "temp_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6);
 
-        if (
-            response.status === 401 &&
-            isApiCall &&
-            !isPublicAuthCall
-        ) {
-
-            clearSession();
-
-            showAuthScreen();
-
+        if (typeof queueOfflineAction === "function") {
+            queueOfflineAction({
+                url,
+                method,
+                body: parsedBody,
+                headers: init.headers ? Object.fromEntries(new Headers(init.headers).entries()) : undefined,
+                description: `${method} ${url.split("/api/")[1] || url}`
+            });
         }
 
+        if (typeof applyOptimisticOfflineMutation === "function") {
+            applyOptimisticOfflineMutation(url, method, parsedBody, syntheticId);
+        }
 
-        return response;
+        return Promise.resolve(new Response(JSON.stringify({
+            id: syntheticId,
+            offline: true,
+            ...(parsedBody || {})
+        }), {
+            status: 200,
+            statusText: "OK (Offline Queued)",
+            headers: { "Content-Type": "application/json" }
+        }));
+    }
 
-    });
+    return originalFetch(input, init)
+        .then(function (response) {
+            if (response.status === 401 && isApiCall && !isPublicAuthCall) {
+                clearSession();
+                showAuthScreen();
+            }
+            return response;
+        })
+        .catch(function (networkErr) {
+            // 2. Ağ isteği sırasında bağlantı koptuysa mutasyon işlemini yerel olarak kaydet
+            if (isApiCall && !isPublicAuthCall && isMutation) {
+                console.warn(`[Offline Mutation Fallback] Network failed on ${method} ${url}:`, networkErr);
+                let parsedBody = null;
+                try {
+                    parsedBody = typeof init.body === "string" ? JSON.parse(init.body) : init.body;
+                } catch (e) {}
 
+                const syntheticId = "temp_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6);
+
+                if (typeof queueOfflineAction === "function") {
+                    queueOfflineAction({
+                        url,
+                        method,
+                        body: parsedBody,
+                        headers: init.headers ? Object.fromEntries(new Headers(init.headers).entries()) : undefined,
+                        description: `${method} ${url.split("/api/")[1] || url}`
+                    });
+                }
+
+                if (typeof applyOptimisticOfflineMutation === "function") {
+                    applyOptimisticOfflineMutation(url, method, parsedBody, syntheticId);
+                }
+
+                return new Response(JSON.stringify({
+                    id: syntheticId,
+                    offline: true,
+                    ...(parsedBody || {})
+                }), {
+                    status: 200,
+                    statusText: "OK (Offline Queued)",
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+            throw networkErr;
+        });
 };
 
 
@@ -572,24 +612,41 @@ document
 
 
             if (!password) {
-
                 setAuthError(
                     "loginError",
                     "Please enter your password."
                 );
-
                 return;
-
             }
 
+            // Çevrimdışı Modda Oturum Açma Desteği
+            if (!navigator.onLine) {
+                try {
+                    const savedUsers = JSON.parse(localStorage.getItem("ats_saved_users") || "{}");
+                    const cached = savedUsers[email.toLowerCase().trim()];
+                    if (cached && cached.token && cached.user) {
+                        console.log("[Auth] Offline sign-in with cached profile:", cached.user);
+                        setSession(cached.token, cached.user);
+                        showMainApp(cached.user);
+                        if (typeof window.showOfflineIndicator === "function") {
+                            window.showOfflineIndicator(true);
+                        }
+                        if (typeof showToast === "function") {
+                            showToast("Signed in offline with cached profile.", "success");
+                        }
+                        event.target.reset();
+                        return;
+                    }
+                } catch (e) {}
+            }
 
             submitBtn.disabled = true;
-
-            submitBtn.textContent =
-                "Logging in...";
-
+            submitBtn.textContent = "Logging in...";
 
             try {
+                // 5 saniyelik timeout controller ekle ki çevrimdışında sonsuza kadar "Logging in..." kalmasın
+                const abortController = new AbortController();
+                const timeoutId = setTimeout(() => abortController.abort(), 6000);
 
                 const response =
                     await originalFetch(
@@ -598,134 +655,101 @@ document
                         ),
                         {
                             method: "POST",
-
                             headers: {
                                 "Content-Type":
                                     "application/json"
                             },
-
                             body: JSON.stringify({
                                 email,
                                 password
-                            })
+                            }),
+                            signal: abortController.signal
                         }
                     );
 
+                clearTimeout(timeoutId);
 
                 const data =
                     await readResponseData(
                         response
                     );
 
-
-                /*
-                 * Backend hata döndürdüyse
-                 * gerçek hata mesajını göster.
-                 */
-
                 if (!response.ok) {
-
-                    if (
-                        response.status === 401
-                    ) {
-
+                    if (response.status === 401) {
                         setAuthError(
                             "loginError",
                             "Invalid email or password."
                         );
-
-                    } else if (
-                        response.status === 400
-                    ) {
-
+                    } else if (response.status === 400) {
                         setAuthError(
                             "loginError",
                             data.message ||
                             "Please check your information."
                         );
-
                     } else {
-
                         setAuthError(
                             "loginError",
                             data.message ||
                             "An error occurred. Please try again."
                         );
-
                     }
-
                     return;
-
                 }
 
-
-                /*
-                 * Başarılı login'de token
-                 * ve user gelmeli.
-                 */
-
-                if (
-                    !data.token ||
-                    !data.user
-                ) {
-
-                    console.error(
-                        "Invalid login response:",
-                        data
-                    );
-
-
+                if (!data.token || !data.user) {
                     setAuthError(
                         "loginError",
                         "Login response was invalid. Please try again."
                     );
-
                     return;
-
                 }
-
 
                 setSession(
                     data.token,
                     data.user
                 );
 
-
                 showMainApp(
                     data.user
                 );
 
-
                 event.target.reset();
 
-
             } catch (err) {
-
                 console.error(
                     "Login error:",
                     err
                 );
 
-
-                /*
-                 * Bu mesaj artık sadece gerçekten
-                 * network / server bağlantısı
-                 * başarısız olduğunda gösterilir.
-                 */
+                // Ağ hatası veya timeout durumunda son çare olarak kayıtlı profili kontrol et
+                try {
+                    const savedUsers = JSON.parse(localStorage.getItem("ats_saved_users") || "{}");
+                    const cached = savedUsers[email.toLowerCase().trim()];
+                    if (cached && cached.token && cached.user) {
+                        console.log("[Auth] Network fallback: logging in with cached credentials:", cached.user);
+                        setSession(cached.token, cached.user);
+                        showMainApp(cached.user);
+                        if (typeof window.showOfflineIndicator === "function") {
+                            window.showOfflineIndicator(true);
+                        }
+                        if (typeof showToast === "function") {
+                            showToast("Signed in offline with cached profile.", "success");
+                        }
+                        event.target.reset();
+                        return;
+                    }
+                } catch (e) {}
 
                 setAuthError(
                     "loginError",
-                    "Could not reach the server. Please try again."
+                    !navigator.onLine
+                        ? "You are offline. To sign in offline, please log in with your account while online at least once."
+                        : "Could not reach the server. Please try again."
                 );
 
-
             } finally {
-
                 submitBtn.disabled = false;
-
-                submitBtn.textContent =
-                    "Log In";
-
+                submitBtn.textContent = "Log In";
             }
 
         }
@@ -1034,19 +1058,29 @@ document
 
 async function initAuth() {
 
-    const token =
-        getToken();
+    let token = getToken();
+    let storedUser = getStoredUser();
 
-    const storedUser =
-        getStoredUser();
-
+    // Çevrimdışı açılışta aktif token olmasa bile bu cihazda daha önce oturum açmış kullanıcıyı aç
+    if ((!token || !storedUser) && !navigator.onLine) {
+        try {
+            const savedUsers = JSON.parse(localStorage.getItem("ats_saved_users") || "{}");
+            const emails = Object.keys(savedUsers);
+            if (emails.length > 0) {
+                const last = savedUsers[emails[emails.length - 1]];
+                if (last && last.user) {
+                    console.log("[Auth] Restoring offline session from cached user:", last.user);
+                    token = last.token || "offline_token";
+                    storedUser = last.user;
+                    setSession(token, storedUser);
+                }
+            }
+        } catch (e) {}
+    }
 
     if (!token) {
-
         showAuthScreen();
-
         return;
-
     }
 
 
