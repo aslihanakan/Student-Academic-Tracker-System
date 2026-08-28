@@ -1,4 +1,4 @@
-const CACHE_NAME = "academi-buddy-static-v11";
+const CACHE_NAME = "academi-buddy-static-v12";
 
 const STATIC_ASSETS = [
     "./",
@@ -108,23 +108,14 @@ self.addEventListener("install", (event) => {
     );
 });
 
-// Clear old cache versions on activate, preserving recent caches as safety net
+// Clear old cache versions on activate: Delete ALL old caches so stale versions never ghost back
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
-                    // Purge any stale API caches so they never overwrite fresh client data
-                    if (key.includes("api")) {
-                        console.log(`[SW] Purging API cache: ${key}`);
-                        return caches.delete(key);
-                    }
-                    if (
-                        key !== CACHE_NAME &&
-                        !key.includes("v10") &&
-                        !key.includes("v9")
-                    ) {
-                        console.log(`[SW] Purging legacy cache: ${key}`);
+                    if (key !== CACHE_NAME) {
+                        console.log(`[SW] Purging old cache: ${key}`);
                         return caches.delete(key);
                     }
                 })
@@ -144,8 +135,6 @@ self.addEventListener("fetch", (event) => {
     const url = new URL(request.url);
 
     // 1. API Requests: Pass directly to network!
-    // Offline caching, optimistic mutations, and syncing are handled cleanly in common.js
-    // to prevent stale API responses from overwriting updated grades.
     if (url.pathname.includes("/api/")) {
         return;
     }
@@ -180,43 +169,48 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    // 3. Static Assets & App Navigation (App Shell)
+    // 3. Static Assets & App Navigation
     const isNavigate = request.mode === "navigate" || request.headers.get("accept")?.includes("text/html");
 
     event.respondWith(
         (async () => {
-            // First check if asset is in cache (Instant load & 100% offline guarantee)
-            const cached = await findInCaches(request, isNavigate);
-
-            // Fetch in background (or foreground if cache miss)
-            const networkPromise = fetch(request)
-                .then((networkResponse) => {
+            // When online: Network-First to guarantee newest code is loaded immediately
+            if (navigator.onLine) {
+                try {
+                    const networkResponse = await fetch(request);
                     if (networkResponse && networkResponse.status === 200) {
                         const clone = networkResponse.clone();
                         caches.open(CACHE_NAME).then((cache) => {
                             cache.put(request, clone);
                         });
+                        return networkResponse;
                     }
-                    return networkResponse;
-                })
-                .catch(() => null);
+                } catch (netErr) {
+                    // Fall back to cache on network drop
+                }
+            }
 
-            // If we have a cached copy, return it immediately!
+            // Offline or network error: return cached copy immediately!
+            const cached = await findInCaches(request, isNavigate);
             if (cached) {
                 return cached;
             }
 
-            // Not in cache: wait for network response
-            const netRes = await networkPromise;
-            if (netRes) return netRes;
-
-            // Both cache and network failed:
-            if (isNavigate) {
-                const fallbackHtml = await findInCaches(new Request("./index.html"), true);
-                if (fallbackHtml) return fallbackHtml;
+            // Not in cache: attempt one last network fetch
+            try {
+                const netRes = await fetch(request);
+                if (netRes && netRes.status === 200) {
+                    const clone = netRes.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+                    return netRes;
+                }
+            } catch (e) {
+                if (isNavigate) {
+                    const fallbackHtml = await findInCaches(new Request("./index.html"), true);
+                    if (fallbackHtml) return fallbackHtml;
+                }
             }
 
-            // Fallback response instead of undefined to avoid browser blank screen
             return new Response("App is loading...", {
                 status: 200,
                 headers: { "Content-Type": "text/html" }
