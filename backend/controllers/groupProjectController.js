@@ -170,6 +170,7 @@ exports.inviteMember = function (req, res) {
         );
     });
 };
+exports.addMember = exports.inviteMember;
 
 exports.getTasks = function (req, res) {
     const projectId = req.params.id;
