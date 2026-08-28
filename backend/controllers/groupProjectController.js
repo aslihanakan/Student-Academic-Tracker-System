@@ -86,17 +86,65 @@ exports.createGroupProject = function (req, res) {
     );
 };
 
-exports.addMember = function (req, res) {
-    const projectId = req.params.id;
-    const email = (req.body.email || "").trim().toLowerCase();
+function normalizeForSearch(str) {
+    if (!str) return "";
+    return str
+        .trim()
+        .toLocaleLowerCase("tr-TR")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ı/g, "i")
+        .replace(/İ/g, "i")
+        .replace(/ğ/g, "g")
+        .replace(/Ğ/g, "g")
+        .replace(/ü/g, "u")
+        .replace(/Ü/g, "u")
+        .replace(/ş/g, "s")
+        .replace(/Ş/g, "s")
+        .replace(/ö/g, "o")
+        .replace(/Ö/g, "o")
+        .replace(/ç/g, "c")
+        .replace(/Ç/g, "c")
+        .replace(/\s+/g, " ");
+}
 
-    if (!email) {
-        return res.status(400).json({ message: "Please provide the classmate's email." });
+exports.inviteMember = function (req, res) {
+    const projectId = req.params.id;
+    const rawInput = (req.body.email || req.body.emailOrName || "").trim();
+
+    if (!rawInput) {
+        return res.status(400).json({ message: "Please provide the classmate's email or username." });
     }
 
-    db.get(`SELECT id, name FROM users WHERE LOWER(email) = ?`, [email], function (err, user) {
-        if (err || !user) {
-            return res.status(404).json({ message: "No registered user found with this email." });
+    const searchClean = normalizeForSearch(rawInput);
+
+    db.all(`SELECT id, name, email FROM users`, [], function (err, allUsers) {
+        if (err || !allUsers || !allUsers.length) {
+            return res.status(404).json({ message: "No registered user found with this email/name." });
+        }
+
+        const user = allUsers.find(u => {
+            if (!u) return false;
+            const uEmail = (u.email || "").trim();
+            const uName = (u.name || "").trim();
+
+            const uEmailClean = normalizeForSearch(uEmail);
+            const uNameClean = normalizeForSearch(uName);
+
+            if (uEmail.toLowerCase() === rawInput.toLowerCase()) return true;
+            if (uEmailClean === searchClean) return true;
+            if (uNameClean === searchClean) return true;
+
+            if (searchClean.length >= 3) {
+                if (uNameClean.includes(searchClean) || searchClean.includes(uNameClean)) return true;
+                if (uEmailClean.includes(searchClean)) return true;
+            }
+
+            return false;
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "No registered user found with this email/name." });
         }
 
         db.get(

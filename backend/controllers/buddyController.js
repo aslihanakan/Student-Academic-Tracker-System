@@ -125,19 +125,67 @@ exports.getBuddies = function (req, res) {
     });
 };
 
+function normalizeForSearch(str) {
+    if (!str) return "";
+    return str
+        .trim()
+        .toLocaleLowerCase("tr-TR")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ı/g, "i")
+        .replace(/İ/g, "i")
+        .replace(/ğ/g, "g")
+        .replace(/Ğ/g, "g")
+        .replace(/ü/g, "u")
+        .replace(/Ü/g, "u")
+        .replace(/ş/g, "s")
+        .replace(/Ş/g, "s")
+        .replace(/ö/g, "o")
+        .replace(/Ö/g, "o")
+        .replace(/ç/g, "c")
+        .replace(/Ç/g, "c")
+        .replace(/\s+/g, " ");
+}
+
 exports.addBuddy = function (req, res) {
     const userId = req.user.id;
-    const query = (req.body.emailOrName || "").trim().toLowerCase();
+    const rawInput = (req.body.emailOrName || "").trim();
 
-    if (!query) {
+    if (!rawInput) {
         return res.status(400).json({ message: "Please provide an email or username." });
     }
 
-    db.get(
-        `SELECT id, name, email FROM users WHERE LOWER(email) = ? OR LOWER(name) = ?`,
-        [query, query],
-        function (err, targetUser) {
-            if (err || !targetUser) {
+    const searchClean = normalizeForSearch(rawInput);
+
+    db.all(
+        `SELECT id, name, email FROM users`,
+        [],
+        function (err, allUsers) {
+            if (err || !allUsers || !allUsers.length) {
+                return res.status(404).json({ message: "Student could not be found with this email/name." });
+            }
+
+            const targetUser = allUsers.find(u => {
+                if (!u) return false;
+                const uEmail = (u.email || "").trim();
+                const uName = (u.name || "").trim();
+
+                const uEmailClean = normalizeForSearch(uEmail);
+                const uNameClean = normalizeForSearch(uName);
+
+                if (uEmail.toLowerCase() === rawInput.toLowerCase()) return true;
+                if (uEmailClean === searchClean) return true;
+                if (uNameClean === searchClean) return true;
+
+                if (searchClean.length >= 3) {
+                    if (uNameClean.includes(searchClean) || searchClean.includes(uNameClean)) return true;
+                    if (uEmailClean.includes(searchClean)) return true;
+                }
+
+                return false;
+            });
+
+            if (!targetUser) {
                 return res.status(404).json({ message: "Student could not be found with this email/name." });
             }
 
