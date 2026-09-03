@@ -239,7 +239,7 @@ async function loadSettingsPage() {
                     <div style="min-width:240px;">
                         <select
                             id="settingsLanguageSelect"
-                            onchange="setLanguage(this.value)"
+                            onchange="setLanguage(this.value, true)"
                             style="width:100%; padding:10px 14px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:13.5px; color:#1e293b; cursor:pointer; outline:none;"
                         >
                             ${(typeof getSupportedLanguages === "function" ? getSupportedLanguages() : []).map(l => {

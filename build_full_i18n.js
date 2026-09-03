@@ -751,7 +751,7 @@ function updateNavTranslations() {
 }
 window.updateNavTranslations = updateNavTranslations;
 
-function setLanguage(langCode) {
+function setLanguage(langCode, notify = false) {
     if (!TRANSLATIONS[langCode]) {
         console.warn('Unsupported language code:', langCode);
         return;
@@ -760,7 +760,7 @@ function setLanguage(langCode) {
     localStorage.setItem('ats_lang', langCode);
     document.documentElement.lang = langCode;
 
-    if (typeof syncUserPreferenceToCloud === 'function') {
+    if (notify && typeof syncUserPreferenceToCloud === 'function') {
         syncUserPreferenceToCloud({ language: langCode });
     }
 
@@ -798,7 +798,7 @@ function setLanguage(langCode) {
         updateForgotPasswordModalTranslations();
     }
 
-    if (typeof showToast === 'function') {
+    if (notify && typeof showToast === 'function') {
         showToast(t('toast_lang_changed'), 'success');
     }
 }
