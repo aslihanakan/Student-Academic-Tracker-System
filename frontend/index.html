@@ -573,7 +573,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
             navigator.serviceWorker
-                .register("./service-worker.js")
+                .register("./service-worker.js?v=34")
                 .then(function (reg) {
                     console.log("[PWA] Service worker registered:", reg.scope);
                     reg.update();

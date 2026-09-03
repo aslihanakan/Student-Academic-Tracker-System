@@ -55,7 +55,14 @@ app.use(function (req, res, next) {
 
 app.use(
     express.static(
-        path.join(__dirname, "../frontend")
+        path.join(__dirname, "../frontend"),
+        {
+            setHeaders: function (res, filePath) {
+                if (filePath.endsWith("index.html") || filePath.endsWith("service-worker.js") || filePath.endsWith(".json")) {
+                    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+                }
+            }
+        }
     )
 );
 
