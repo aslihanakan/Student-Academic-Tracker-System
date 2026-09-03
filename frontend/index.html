@@ -233,19 +233,19 @@
                 <div style="width:52px; height:52px; border-radius:16px; background:#eff6ff; color:#2563eb; display:inline-flex; align-items:center; justify-content:center; margin-bottom:10px;">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </div>
-                <h3 id="forgotTitleStep1" style="margin:0 0 6px 0; font-size:20px; font-weight:800; color:#0f172a;">Şifremi Sıfırla</h3>
-                <p id="forgotDescStep1" style="margin:0; font-size:13px; color:#64748b; line-height:1.5;">Kayıtlı e-posta adresinizi girin, 6 haneli doğrulama kodunuzu hemen gönderelim.</p>
+                <h3 id="forgotTitleStep1" style="margin:0 0 6px 0; font-size:20px; font-weight:800; color:#0f172a;">Reset Password</h3>
+                <p id="forgotDescStep1" style="margin:0; font-size:13px; color:#64748b; line-height:1.5;">Enter your registered email address to receive a 6-digit verification code.</p>
             </div>
 
             <form id="forgotRequestForm" onsubmit="event.preventDefault(); handleSendResetCode();" style="display:flex; flex-direction:column; gap:14px;">
                 <div class="auth-field-group">
-                    <label for="forgotEmail" id="forgotEmailLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">Kayıtlı E-posta Adresi</label>
+                    <label for="forgotEmail" id="forgotEmailLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">Email Address</label>
                     <input type="email" id="forgotEmail" placeholder="you@example.com" required style="width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; box-sizing:border-box;">
                 </div>
                 
                 <div id="forgotError1" class="auth-error" style="display:none; font-size:13px; color:#ef4444; background:#fef2f2; padding:8px 12px; border-radius:8px; border:1px solid #fca5a5;"></div>
                 
-                <button type="submit" id="forgotSendBtn" style="background:#2563eb; color:#ffffff; font-weight:700; font-size:14.5px; padding:12px; border:none; border-radius:12px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(37,99,235,0.25);">Doğrulama Kodu Gönder 📧</button>
+                <button type="submit" id="forgotSendBtn" style="background:#2563eb; color:#ffffff; font-weight:700; font-size:14.5px; padding:12px; border:none; border-radius:12px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(37,99,235,0.25);">Send Verification Code 📧</button>
             </form>
         </div>
 
@@ -255,24 +255,24 @@
                 <div style="width:52px; height:52px; border-radius:16px; background:#f0fdf4; color:#16a34a; display:inline-flex; align-items:center; justify-content:center; margin-bottom:8px;">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                 </div>
-                <h3 id="forgotTitleStep2" style="margin:0 0 4px 0; font-size:20px; font-weight:800; color:#0f172a;">Yeni Şifre Belirleyin</h3>
-                <p id="forgotDescStep2" style="margin:0; font-size:13px; color:#64748b; line-height:1.4;">E-postanıza gönderilen 6 haneli kodu ve yeni şifrenizi girin.</p>
+                <h3 id="forgotTitleStep2" style="margin:0 0 4px 0; font-size:20px; font-weight:800; color:#0f172a;">Reset Password</h3>
+                <p id="forgotDescStep2" style="margin:0; font-size:13px; color:#64748b; line-height:1.4;">Enter the 6-digit code sent to your email and set your new password.</p>
                 <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-top:6px;">
                     <div id="forgotTargetEmailDisplay" style="font-size:12px; font-weight:700; color:#2563eb; background:#eff6ff; padding:3px 10px; border-radius:8px; display:inline-block; border:1px solid #dbeafe;"></div>
-                    <button type="button" onclick="goToStep1Email()" style="background:none; border:none; color:#64748b; font-size:11.5px; font-weight:700; cursor:pointer; text-decoration:underline;">Değiştir</button>
+                    <button type="button" id="forgotChangeEmailBtn" onclick="goToStep1Email()" style="background:none; border:none; color:#64748b; font-size:11.5px; font-weight:700; cursor:pointer; text-decoration:underline;">Change</button>
                 </div>
             </div>
 
             <form id="forgotResetForm" autocomplete="off" onsubmit="event.preventDefault(); handleResetPasswordSubmit();" style="display:flex; flex-direction:column; gap:12px;">
                 <div class="auth-field-group">
-                    <label for="resetCodeInput" id="resetCodeLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">6 Haneli Doğrulama Kodu</label>
+                    <label for="resetCodeInput" id="resetCodeLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">6-Digit Verification Code</label>
                     <input type="text" id="resetCodeInput" maxlength="6" pattern="[0-9]{6}" placeholder="------" autocomplete="one-time-code" required style="width:100%; padding:10px 14px; border:2px solid #3b82f6; border-radius:12px; font-size:20px; font-weight:800; letter-spacing:6px; text-align:center; box-sizing:border-box; background:#f8fafc;">
                 </div>
 
                 <div class="auth-field-group">
-                    <label for="resetNewPassword" id="resetNewPassLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">Yeni Şifre</label>
+                    <label for="resetNewPassword" id="resetNewPassLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">New Password</label>
                     <div class="password-input-wrapper" style="position:relative; width:100%;">
-                        <input type="password" id="resetNewPassword" placeholder="En az 6 karakter" autocomplete="new-password" required minlength="6" oninput="updatePasswordStrengthMeter('resetNewPassword', 'codeStrengthBar', 'codeStrengthLabel')" style="width:100%; padding:10px 40px 10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
+                        <input type="password" id="resetNewPassword" placeholder="At least 6 characters" autocomplete="new-password" required minlength="6" oninput="updatePasswordStrengthMeter('resetNewPassword', 'codeStrengthBar', 'codeStrengthLabel')" style="width:100%; padding:10px 40px 10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetNewPassword')" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#94a3b8;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"></path><circle cx="12" cy="7" r="3"></circle></svg>
                         </button>
@@ -282,14 +282,14 @@
                         <div style="flex:1; height:4px; background:#e2e8f0; border-radius:2px; overflow:hidden; margin-right:8px;">
                             <div id="codeStrengthBar" style="width:0%; height:100%; background:#ef4444; transition:all 0.3s;"></div>
                         </div>
-                        <span id="codeStrengthLabel" style="font-size:11.5px; font-weight:700; color:#94a3b8;">Zayıf</span>
+                        <span id="codeStrengthLabel" style="font-size:11.5px; font-weight:700; color:#94a3b8;">Weak</span>
                     </div>
                 </div>
 
                 <div class="auth-field-group">
-                    <label for="resetConfirmPassword" id="resetConfirmPassLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">Yeni Şifreyi Onayla</label>
+                    <label for="resetConfirmPassword" id="resetConfirmPassLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">Confirm New Password</label>
                     <div class="password-input-wrapper" style="position:relative; width:100%;">
-                        <input type="password" id="resetConfirmPassword" placeholder="Yeni şifreyi tekrar yazın" autocomplete="new-password" required minlength="6" oninput="checkPasswordMatch('resetNewPassword', 'resetConfirmPassword', 'codeMatchBadge')" style="width:100%; padding:10px 40px 10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
+                        <input type="password" id="resetConfirmPassword" placeholder="Re-enter new password" autocomplete="new-password" required minlength="6" oninput="checkPasswordMatch('resetNewPassword', 'resetConfirmPassword', 'codeMatchBadge')" style="width:100%; padding:10px 40px 10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetConfirmPassword')" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#94a3b8;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"></path><circle cx="12" cy="7" r="3"></circle></svg>
                         </button>
@@ -299,12 +299,12 @@
 
                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; margin:2px 0;">
                     <span id="resetTimerSpan" style="color:#64748b; font-weight:600;">⏳ 15:00</span>
-                    <button type="button" id="resendCodeBtn" onclick="handleResendResetCode()" style="background:none; border:none; color:#2563eb; font-size:12.5px; font-weight:700; cursor:pointer; text-decoration:underline; padding:0;">Tekrar Kod Gönder</button>
+                    <button type="button" id="resendCodeBtn" onclick="handleResendResetCode()" style="background:none; border:none; color:#2563eb; font-size:12.5px; font-weight:700; cursor:pointer; text-decoration:underline; padding:0;">Resend Code</button>
                 </div>
 
                 <div id="forgotError2" class="auth-error" style="display:none; font-size:13px; color:#ef4444; background:#fef2f2; padding:8px 12px; border-radius:8px; border:1px solid #fca5a5;"></div>
 
-                <button type="submit" id="forgotSubmitBtn" style="background:#16a34a; color:#ffffff; font-weight:700; font-size:14.5px; padding:12px; border:none; border-radius:12px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(22,163,74,0.25); margin-top:4px;">Şifreyi Güncelle & Giriş Yap 🚀</button>
+                <button type="submit" id="forgotSubmitBtn" style="background:#16a34a; color:#ffffff; font-weight:700; font-size:14.5px; padding:12px; border:none; border-radius:12px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(22,163,74,0.25); margin-top:4px;">Update Password & Login 🚀</button>
             </form>
         </div>
 
@@ -313,9 +313,9 @@
             <div style="width:68px; height:68px; border-radius:50%; background:#dcfce7; color:#16a34a; display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px; animation:modalPopIn 0.3s ease-out;">
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
-            <h3 id="forgotSuccessTitle" style="margin:0 0 8px 0; font-size:22px; font-weight:800; color:#0f172a;">🎉 Şifreniz Başarıyla Yenilendi!</h3>
-            <p id="forgotSuccessDesc" style="margin:0 0 20px 0; font-size:14px; color:#64748b; line-height:1.5;">Oturumunuz otomatik olarak açılıyor, lütfen bekleyiniz...</p>
-            <button type="button" id="forgotSuccessBtn" onclick="closeForgotPasswordModal()" style="background:#2563eb; color:#ffffff; font-weight:700; font-size:15px; padding:13px 24px; border:none; border-radius:12px; cursor:pointer; width:100%; box-shadow:0 4px 12px rgba(37,99,235,0.25);">Uygulamaya Devam Et ➔</button>
+            <h3 id="forgotSuccessTitle" style="margin:0 0 8px 0; font-size:22px; font-weight:800; color:#0f172a;">🎉 Password Reset Successfully!</h3>
+            <p id="forgotSuccessDesc" style="margin:0 0 20px 0; font-size:14px; color:#64748b; line-height:1.5;">You are being logged in automatically, please wait...</p>
+            <button type="button" id="forgotSuccessBtn" onclick="closeForgotPasswordModal()" style="background:#2563eb; color:#ffffff; font-weight:700; font-size:15px; padding:13px 24px; border:none; border-radius:12px; cursor:pointer; width:100%; box-shadow:0 4px 12px rgba(37,99,235,0.25);">Continue to App ➔</button>
         </div>
 
     </div>
@@ -554,8 +554,8 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <!-- JAVASCRIPT MODULES -->
-<script src="js/i18n.js?v=15"></script>
-<script src="js/auth.js?v=38"></script>
+<script src="js/i18n.js?v=16"></script>
+<script src="js/auth.js?v=39"></script>
 <script src="js/common.js?v=54"></script>
 <script src="js/courses.js?v=46"></script>
 <script src="js/exams.js?v=39"></script>

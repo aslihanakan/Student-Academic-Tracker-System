@@ -1280,7 +1280,10 @@ function clearResetPasswordInputs() {
     if (confirmPassInput) confirmPassInput.value = "";
     if (err2) { err2.style.display = "none"; err2.textContent = ""; }
     if (bar) { bar.style.width = "0%"; bar.style.background = "#e2e8f0"; }
-    if (label) { label.textContent = "Zayıf"; label.style.color = "#94a3b8"; }
+    if (label) { 
+        label.textContent = typeof t === "function" ? t("auth_strength_weak", "Weak") : "Weak"; 
+        label.style.color = "#94a3b8"; 
+    }
     if (badge) { badge.style.display = "none"; badge.textContent = ""; }
 }
 window.clearResetPasswordInputs = clearResetPasswordInputs;
@@ -1319,25 +1322,29 @@ function updatePasswordStrengthMeter(inputId, barId, labelId) {
     if (/[0-9]/.test(val)) score += 15;
     if (/[^A-Za-z0-9]/.test(val)) score += 20;
 
+    const weakText = typeof t === "function" ? t("auth_strength_weak", "Weak") : "Weak";
+    const medText = typeof t === "function" ? t("auth_strength_medium", "Medium") : "Medium";
+    const strongText = typeof t === "function" ? t("auth_strength_strong", "Strong 💪") : "Strong 💪";
+
     if (val.length === 0) {
         bar.style.width = "0%";
         bar.style.background = "#e2e8f0";
-        label.textContent = "Zayıf";
+        label.textContent = weakText;
         label.style.color = "#94a3b8";
     } else if (score < 50) {
         bar.style.width = "33%";
         bar.style.background = "#ef4444";
-        label.textContent = "Zayıf";
+        label.textContent = weakText;
         label.style.color = "#ef4444";
     } else if (score < 80) {
         bar.style.width = "66%";
         bar.style.background = "#f59e0b";
-        label.textContent = "Orta";
+        label.textContent = medText;
         label.style.color = "#f59e0b";
     } else {
         bar.style.width = "100%";
         bar.style.background = "#10b981";
-        label.textContent = "Güçlü 💪";
+        label.textContent = strongText;
         label.style.color = "#10b981";
     }
 }
@@ -1356,10 +1363,10 @@ function checkPasswordMatch(newPassId, confirmPassId, badgeId) {
 
     badge.style.display = "block";
     if (newPass.value === confirmPass.value) {
-        badge.textContent = "✓ Şifreler eşleşiyor";
+        badge.textContent = typeof t === "function" ? t("auth_passwords_match", "✓ Passwords match") : "✓ Passwords match";
         badge.style.color = "#16a34a";
     } else {
-        badge.textContent = "✗ Şifreler henüz eşleşmiyor";
+        badge.textContent = typeof t === "function" ? t("auth_passwords_dont_match", "✗ Passwords do not match yet") : "✗ Passwords do not match yet";
         badge.style.color = "#ef4444";
     }
 }
@@ -1427,14 +1434,23 @@ function updateForgotPasswordModalTranslations() {
     const d2 = document.getElementById("forgotDescStep2");
     if (d2) d2.textContent = typeof t === "function" ? t("auth_forgot_subtitle_step2", "Enter the 6-digit code sent to your email and set your new password.") : "Enter the 6-digit code sent to your email and set your new password.";
 
+    const changeEmailBtn = document.getElementById("forgotChangeEmailBtn");
+    if (changeEmailBtn) changeEmailBtn.textContent = typeof t === "function" ? t("auth_change_email", "Change") : "Change";
+
     const cl = document.getElementById("resetCodeLabel");
     if (cl) cl.textContent = typeof t === "function" ? t("auth_code_label", "6-Digit Verification Code") : "6-Digit Verification Code";
 
     const npl = document.getElementById("resetNewPassLabel");
     if (npl) npl.textContent = typeof t === "function" ? t("auth_new_password_label", "New Password") : "New Password";
 
+    const npInput = document.getElementById("resetNewPassword");
+    if (npInput) npInput.placeholder = typeof t === "function" ? t("auth_new_pass_ph", "At least 6 characters") : "At least 6 characters";
+
     const cpl = document.getElementById("resetConfirmPassLabel");
     if (cpl) cpl.textContent = typeof t === "function" ? t("auth_confirm_password_label", "Confirm New Password") : "Confirm New Password";
+
+    const cpInput = document.getElementById("resetConfirmPassword");
+    if (cpInput) cpInput.placeholder = typeof t === "function" ? t("auth_confirm_pass_ph", "Re-enter new password") : "Re-enter new password";
 
     const btn2 = document.getElementById("forgotSubmitBtn");
     if (btn2) btn2.textContent = typeof t === "function" ? t("auth_reset_btn", "Update Password") : "Update Password";
@@ -1444,6 +1460,12 @@ function updateForgotPasswordModalTranslations() {
 
     const st = document.getElementById("forgotSuccessTitle");
     if (st) st.textContent = typeof t === "function" ? t("auth_password_reset_success", "Password updated successfully!") : "Password updated successfully!";
+
+    const sd = document.getElementById("forgotSuccessDesc");
+    if (sd) sd.textContent = typeof t === "function" ? t("auth_success_auto_login", "You are being logged in automatically, please wait...") : "You are being logged in automatically, please wait...";
+
+    const sb = document.getElementById("forgotSuccessBtn");
+    if (sb) sb.textContent = typeof t === "function" ? t("auth_continue_app", "Continue to App ➔") : "Continue to App ➔";
 }
 window.updateForgotPasswordModalTranslations = updateForgotPasswordModalTranslations;
 
@@ -1470,7 +1492,7 @@ function startResetCountdown() {
             clearInterval(resetTimerInterval);
             resetTimerInterval = null;
             if (timerEl) {
-                timerEl.textContent = "⚠️ Kodun süresi doldu";
+                timerEl.textContent = typeof t === "function" ? t("auth_code_expired_note", "⚠️ Code has expired") : "⚠️ Code has expired";
             }
         } else {
             updateDisplay();
