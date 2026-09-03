@@ -116,17 +116,7 @@ function setSession(token, user) {
      */
     if (user) {
         const current = getStoredUser() || {};
-        const localTheme = localStorage.getItem("ats_theme");
-
-        let effectiveTheme = "default";
-        if (localTheme && localTheme !== "default") {
-            effectiveTheme = localTheme;
-            if (user.theme !== localTheme && typeof syncUserPreferenceToCloud === "function") {
-                syncUserPreferenceToCloud({ theme: localTheme });
-            }
-        } else if (user.theme && user.theme !== "default") {
-            effectiveTheme = user.theme;
-        }
+        const effectiveTheme = user.theme || localStorage.getItem("ats_theme") || "default";
 
         const merged = { ...current, ...user, theme: effectiveTheme };
         localStorage.setItem(
@@ -1256,6 +1246,39 @@ async function initAuth() {
     }
 
 }
+
+async function checkCloudPreferencesSync() {
+    const token = getToken();
+    if (!token || !navigator.onLine) return;
+    try {
+        const res = await originalFetch(apiUrl("/api/auth/me"), {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        if (!res.ok) return;
+        const user = await res.json();
+        if (!user) return;
+
+        if (user.theme && typeof applyTheme === "function" && user.theme !== (typeof getSavedTheme === "function" ? getSavedTheme() : localStorage.getItem("ats_theme"))) {
+            applyTheme(user.theme, false);
+        }
+
+        if (user.language && typeof setLanguage === "function" && user.language !== localStorage.getItem("ats_lang")) {
+            setLanguage(user.language);
+        }
+
+        const current = getStoredUser() || {};
+        const merged = { ...current, ...user };
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(merged));
+    } catch (e) {}
+}
+window.checkCloudPreferencesSync = checkCloudPreferencesSync;
+
+window.addEventListener("focus", checkCloudPreferencesSync);
+document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === "visible") {
+        checkCloudPreferencesSync();
+    }
+});
 
 
 /* ─── FORGOT / RESET PASSWORD UI ─────────────────────────────────────────── */
