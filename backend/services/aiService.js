@@ -693,6 +693,10 @@ async function callGeminiLLM({ student = {}, courses, exams, todos, totalHours, 
     };
     const targetLang = langNames[lang] || "English";
 
+    const recentHistoryText = Array.isArray(history) && history.length > 0
+        ? "\nRecent Conversation History:\n" + history.slice(-6).map(h => `${h.role === "user" ? "Student" : "AI Buddy"}: ${h.text}`).join("\n")
+        : "";
+
     const prompt = `You are a smart, friendly, motivating AI Academic Study Buddy (AI Buddy) for university students.
 Student Name: ${studentName}
 Department / Grade Level: ${student.department || "-"} / ${student.gradeLevel || "-"}
@@ -712,13 +716,18 @@ ${JSON.stringify(courses.map(c => ({
 
 Upcoming Exams: ${JSON.stringify(exams.map(e => ({ exam: e.examName, date: e.examDate, type: e.examType })))}
 Pending Assignments/Tasks: ${JSON.stringify(todos.map(t => ({ task: t.title, dueDate: t.dueDate })))}
-
-Student's Message: "${question}"
+${recentHistoryText}
+Student's Current Message: "${question}"
 
 LANGUAGE AND SCOPE RULES:
-1. OUTPUT LANGUAGE: You MUST write your response entirely in: ${targetLang}.
+1. OUTPUT LANGUAGE & ADAPTIVE MULTILINGUAL BEHAVIOR:
+   - DEFAULT LANGUAGE: Start conversations in the user's selected system interface language: ${targetLang}.
+   - USER'S EXPLICIT LANGUAGE PREFERENCE / INPUT LANGUAGE OVERRIDE:
+     * If the student asks you to speak or respond in another language (e.g. "benimle Türkçe konuş", "speak in Turkish", "sprechen Sie Deutsch", "habla español", etc.), you MUST IMMEDIATELY ADAPT and respond entirely in that requested language!
+     * If the student writes their question in a different language than the interface default, answer them fluently and naturally in the language they used or requested.
+     * The system interface language (${targetLang}) is the initial default, but the student's language choice or message language always takes precedence.
 2. CASUAL GREETING DISTINCTION:
-   - If the student ONLY said hello (e.g. "hi", "hello", "selam"):
+   - If the student ONLY said hello (e.g. "hi", "hello", "selam", "merhaba"):
      Respond with a warm, natural single greeting asking what they'd like to work on today.
    - If the student asked how you are doing:
      Answer politely and ask about their studies.
