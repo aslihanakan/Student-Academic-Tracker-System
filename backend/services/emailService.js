@@ -24,16 +24,17 @@ async function getTransporter() {
     const host = process.env.SMTP_HOST;
     const port = parseInt(process.env.SMTP_PORT || "587", 10);
     const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const rawPass = process.env.SMTP_PASS;
+    const pass = rawPass ? String(rawPass).replace(/\s+/g, '') : '';
     const secure = process.env.SMTP_SECURE === "true" || port === 465;
 
-    if (host && user && pass) {
+    if (host && user && pass && !pass.includes("BURAYA_")) {
         transporter = nodemailer.createTransport({
             host: host,
             port: port,
             secure: secure,
             auth: {
-                user: user,
+                user: String(user).trim(),
                 pass: pass
             },
             tls: {

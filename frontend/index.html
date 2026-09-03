@@ -263,16 +263,16 @@
                 </div>
             </div>
 
-            <form id="forgotResetForm" onsubmit="event.preventDefault(); handleResetPasswordSubmit();" style="display:flex; flex-direction:column; gap:12px;">
+            <form id="forgotResetForm" autocomplete="off" onsubmit="event.preventDefault(); handleResetPasswordSubmit();" style="display:flex; flex-direction:column; gap:12px;">
                 <div class="auth-field-group">
                     <label for="resetCodeInput" id="resetCodeLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">6 Haneli Doğrulama Kodu</label>
-                    <input type="text" id="resetCodeInput" maxlength="6" pattern="[0-9]{6}" placeholder="849201" required style="width:100%; padding:10px 14px; border:2px solid #3b82f6; border-radius:12px; font-size:20px; font-weight:800; letter-spacing:6px; text-align:center; box-sizing:border-box; background:#f8fafc;">
+                    <input type="text" id="resetCodeInput" maxlength="6" pattern="[0-9]{6}" placeholder="------" autocomplete="one-time-code" required style="width:100%; padding:10px 14px; border:2px solid #3b82f6; border-radius:12px; font-size:20px; font-weight:800; letter-spacing:6px; text-align:center; box-sizing:border-box; background:#f8fafc;">
                 </div>
 
                 <div class="auth-field-group">
                     <label for="resetNewPassword" id="resetNewPassLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">Yeni Şifre</label>
                     <div class="password-input-wrapper" style="position:relative; width:100%;">
-                        <input type="password" id="resetNewPassword" placeholder="En az 6 karakter" required minlength="6" oninput="updatePasswordStrengthMeter('resetNewPassword', 'codeStrengthBar', 'codeStrengthLabel')" style="width:100%; padding:10px 40px 10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
+                        <input type="password" id="resetNewPassword" placeholder="En az 6 karakter" autocomplete="new-password" required minlength="6" oninput="updatePasswordStrengthMeter('resetNewPassword', 'codeStrengthBar', 'codeStrengthLabel')" style="width:100%; padding:10px 40px 10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetNewPassword')" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#94a3b8;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"></path><circle cx="12" cy="7" r="3"></circle></svg>
                         </button>
@@ -289,7 +289,7 @@
                 <div class="auth-field-group">
                     <label for="resetConfirmPassword" id="resetConfirmPassLabel" style="font-size:13px; font-weight:700; color:#334155; margin-bottom:4px; display:block;">Yeni Şifreyi Onayla</label>
                     <div class="password-input-wrapper" style="position:relative; width:100%;">
-                        <input type="password" id="resetConfirmPassword" placeholder="Yeni şifreyi tekrar yazın" required minlength="6" oninput="checkPasswordMatch('resetNewPassword', 'resetConfirmPassword', 'codeMatchBadge')" style="width:100%; padding:10px 40px 10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
+                        <input type="password" id="resetConfirmPassword" placeholder="Yeni şifreyi tekrar yazın" autocomplete="new-password" required minlength="6" oninput="checkPasswordMatch('resetNewPassword', 'resetConfirmPassword', 'codeMatchBadge')" style="width:100%; padding:10px 40px 10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetConfirmPassword')" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#94a3b8;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"></path><circle cx="12" cy="7" r="3"></circle></svg>
                         </button>
@@ -554,8 +554,8 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <!-- JAVASCRIPT MODULES -->
-<script src="js/i18n.js?v=14"></script>
-<script src="js/auth.js?v=37"></script>
+<script src="js/i18n.js?v=15"></script>
+<script src="js/auth.js?v=38"></script>
 <script src="js/common.js?v=54"></script>
 <script src="js/courses.js?v=46"></script>
 <script src="js/exams.js?v=39"></script>

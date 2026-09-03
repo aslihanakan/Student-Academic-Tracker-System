@@ -564,41 +564,57 @@ function resetPasswordWithCode(email, code, newPassword) {
                     return reject(new Error("CODE_EXPIRED"));
                 }
 
-                try {
-                    const hashedPassword = await bcrypt.hash(newPassword, 10);
+                db.get(
+                    "SELECT id, name, email, passwordHash, gradeLevel, department, avatar FROM users WHERE id = ?",
+                    [row.userId],
+                    async function (userErr, existingUser) {
+                        if (userErr) return reject(userErr);
+                        if (!existingUser) return reject(new Error("USER_NOT_FOUND"));
 
-                    db.run(
-                        "UPDATE users SET passwordHash = ? WHERE id = ?",
-                        [hashedPassword, row.userId],
-                        function (err) {
-                            if (err) return reject(err);
+                        // Check if new password is identical to old password
+                        if (existingUser.passwordHash) {
+                            try {
+                                const isSame = await bcrypt.compare(newPassword, existingUser.passwordHash);
+                                if (isSame) {
+                                    return reject(new Error("NEW_PASSWORD_SAME_AS_OLD"));
+                                }
+                            } catch (e) {
+                                console.error("Error comparing password hashes:", e);
+                            }
+                        }
+
+                        try {
+                            const hashedPassword = await bcrypt.hash(newPassword, 10);
 
                             db.run(
-                                "UPDATE password_resets SET used = 1 WHERE id = ?",
-                                [row.id],
+                                "UPDATE users SET passwordHash = ? WHERE id = ?",
+                                [hashedPassword, row.userId],
                                 function (err) {
-                                    if (err) console.error("Error marking reset code as used:", err);
+                                    if (err) return reject(err);
 
-                                    db.get(
-                                        "SELECT id, name, email, gradeLevel, department, avatar FROM users WHERE id = ?",
-                                        [row.userId],
-                                        function (err, user) {
-                                            const token = user ? jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN }) : null;
+                                    db.run(
+                                        "UPDATE password_resets SET used = 1 WHERE id = ?",
+                                        [row.id],
+                                        function (err) {
+                                            if (err) console.error("Error marking reset code as used:", err);
+
+                                            const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+                                            const { passwordHash, ...safeUser } = existingUser;
                                             resolve({
                                                 success: true,
                                                 token: token,
-                                                user: user || null,
+                                                user: safeUser,
                                                 message: "Password reset successfully. Logging you in..."
                                             });
                                         }
                                     );
                                 }
                             );
+                        } catch (hashErr) {
+                            reject(hashErr);
                         }
-                    );
-                } catch (hashErr) {
-                    reject(hashErr);
-                }
+                    }
+                );
             }
         );
     });

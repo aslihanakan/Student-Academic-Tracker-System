@@ -145,6 +145,9 @@ function resetPassword(req, res) {
             if (err.message === "PASSWORD_TOO_SHORT") {
                 return res.status(400).json({ message: "New password must be at least 6 characters." });
             }
+            if (err.message === "NEW_PASSWORD_SAME_AS_OLD") {
+                return res.status(400).json({ message: "Yeni şifreniz eski şifrenizle aynı olamaz. Lütfen farklı bir şifre belirleyin." });
+            }
             res.status(400).json({ message: err.message });
         });
 }
