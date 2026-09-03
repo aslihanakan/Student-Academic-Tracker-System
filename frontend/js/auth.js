@@ -115,13 +115,27 @@ function setSession(token, user) {
      * User gerçekten geldiyse kaydet ve buluttaki tema/dil tercihlerini hemen uygula.
      */
     if (user) {
+        const current = getStoredUser() || {};
+        const localTheme = localStorage.getItem("ats_theme");
+
+        let effectiveTheme = "default";
+        if (localTheme && localTheme !== "default") {
+            effectiveTheme = localTheme;
+            if (user.theme !== localTheme && typeof syncUserPreferenceToCloud === "function") {
+                syncUserPreferenceToCloud({ theme: localTheme });
+            }
+        } else if (user.theme && user.theme !== "default") {
+            effectiveTheme = user.theme;
+        }
+
+        const merged = { ...current, ...user, theme: effectiveTheme };
         localStorage.setItem(
             AUTH_USER_KEY,
-            JSON.stringify(user)
+            JSON.stringify(merged)
         );
 
-        if (user.theme && typeof applyTheme === "function") {
-            applyTheme(user.theme, false);
+        if (typeof applyTheme === "function") {
+            applyTheme(effectiveTheme, false);
         }
 
         if (user.language && typeof setLanguage === "function") {
@@ -134,7 +148,7 @@ function setSession(token, user) {
             if (user.email) {
                 savedUsers[user.email.toLowerCase().trim()] = {
                     token: token || getToken(),
-                    user: user,
+                    user: merged,
                     savedAt: Date.now()
                 };
                 localStorage.setItem("ats_saved_users", JSON.stringify(savedUsers));

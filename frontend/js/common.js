@@ -41,6 +41,16 @@ function applyTheme(themeKey, notify = false) {
     localStorage.setItem("ats_theme", validTheme);
     document.documentElement.setAttribute("data-theme", validTheme);
 
+    // Update stored user object theme as well
+    try {
+        const authUserKey = typeof AUTH_USER_KEY !== "undefined" ? AUTH_USER_KEY : "atsUser";
+        const storedUser = JSON.parse(localStorage.getItem(authUserKey) || "null");
+        if (storedUser) {
+            storedUser.theme = validTheme;
+            localStorage.setItem(authUserKey, JSON.stringify(storedUser));
+        }
+    } catch (e) {}
+
     // Update active state on any theme cards or select dropdowns in settings
     const themeSelect = document.getElementById("settingsThemeSelect");
     if (themeSelect) {
@@ -94,10 +104,11 @@ function applyTheme(themeKey, notify = false) {
 window.applyTheme = applyTheme;
 
 async function syncUserPreferenceToCloud(pref) {
-    const token = localStorage.getItem("ats_token");
+    const token = typeof getToken === "function" ? getToken() : (localStorage.getItem("atsToken") || localStorage.getItem("ats_token"));
     if (!token) return;
     try {
-        await fetch(apiUrl("/api/auth/preferences"), {
+        const targetUrl = typeof apiUrl === "function" ? apiUrl("/api/auth/preferences") : `${API_URL}/auth/preferences`;
+        await fetch(targetUrl, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
