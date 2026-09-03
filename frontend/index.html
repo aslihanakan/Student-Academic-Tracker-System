@@ -304,7 +304,7 @@
 
                 <div id="forgotError2" class="auth-error" style="display:none; font-size:13px; color:#ef4444; background:#fef2f2; padding:8px 12px; border-radius:8px; border:1px solid #fca5a5;"></div>
 
-                <button type="submit" id="forgotSubmitBtn" style="background:#16a34a; color:#ffffff; font-weight:700; font-size:14.5px; padding:12px; border:none; border-radius:12px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(22,163,74,0.25); margin-top:4px;">Update Password & Login 🚀</button>
+                <button type="submit" id="forgotSubmitBtn" style="background:#16a34a; color:#ffffff; font-weight:700; font-size:14.5px; padding:12px; border:none; border-radius:12px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(22,163,74,0.25); margin-top:4px;">Update Password 🚀</button>
             </form>
         </div>
 
@@ -314,8 +314,8 @@
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
             <h3 id="forgotSuccessTitle" style="margin:0 0 8px 0; font-size:22px; font-weight:800; color:#0f172a;">🎉 Password Reset Successfully!</h3>
-            <p id="forgotSuccessDesc" style="margin:0 0 20px 0; font-size:14px; color:#64748b; line-height:1.5;">You are being logged in automatically, please wait...</p>
-            <button type="button" id="forgotSuccessBtn" onclick="closeForgotPasswordModal()" style="background:#2563eb; color:#ffffff; font-weight:700; font-size:15px; padding:13px 24px; border:none; border-radius:12px; cursor:pointer; width:100%; box-shadow:0 4px 12px rgba(37,99,235,0.25);">Continue to App ➔</button>
+            <p id="forgotSuccessDesc" style="margin:0 0 20px 0; font-size:14px; color:#64748b; line-height:1.5;">Your password has been updated. Please log in with your new password.</p>
+            <button type="button" id="forgotSuccessBtn" onclick="finishResetAndGoToLogin()" style="background:#2563eb; color:#ffffff; font-weight:700; font-size:15px; padding:13px 24px; border:none; border-radius:12px; cursor:pointer; width:100%; box-shadow:0 4px 12px rgba(37,99,235,0.25);">Go to Login ➔</button>
         </div>
 
     </div>
@@ -554,8 +554,8 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <!-- JAVASCRIPT MODULES -->
-<script src="js/i18n.js?v=16"></script>
-<script src="js/auth.js?v=39"></script>
+<script src="js/i18n.js?v=17"></script>
+<script src="js/auth.js?v=40"></script>
 <script src="js/common.js?v=54"></script>
 <script src="js/courses.js?v=46"></script>
 <script src="js/exams.js?v=39"></script>

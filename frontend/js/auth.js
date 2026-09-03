@@ -1462,12 +1462,29 @@ function updateForgotPasswordModalTranslations() {
     if (st) st.textContent = typeof t === "function" ? t("auth_password_reset_success", "Password updated successfully!") : "Password updated successfully!";
 
     const sd = document.getElementById("forgotSuccessDesc");
-    if (sd) sd.textContent = typeof t === "function" ? t("auth_success_auto_login", "You are being logged in automatically, please wait...") : "You are being logged in automatically, please wait...";
+    if (sd) sd.textContent = typeof t === "function" ? t("auth_success_desc_login", "Your password has been updated. Please log in with your new password.") : "Your password has been updated. Please log in with your new password.";
 
     const sb = document.getElementById("forgotSuccessBtn");
-    if (sb) sb.textContent = typeof t === "function" ? t("auth_continue_app", "Continue to App ➔") : "Continue to App ➔";
+    if (sb) sb.textContent = typeof t === "function" ? t("auth_go_to_login_btn", "Go to Login ➔") : "Go to Login ➔";
 }
 window.updateForgotPasswordModalTranslations = updateForgotPasswordModalTranslations;
+
+function finishResetAndGoToLogin() {
+    closeForgotPasswordModal();
+    const loginEmail = document.getElementById("loginEmail");
+    const loginPassword = document.getElementById("loginPassword");
+    if (loginEmail && currentResetEmail) {
+        loginEmail.value = currentResetEmail;
+    }
+    if (loginPassword) {
+        loginPassword.value = "";
+        loginPassword.focus();
+    }
+    if (typeof showToast === "function") {
+        showToast(typeof t === "function" ? t("auth_password_reset_success_toast", "Password updated successfully. Please log in with your new password.") : "Password updated successfully. Please log in with your new password.", "success");
+    }
+}
+window.finishResetAndGoToLogin = finishResetAndGoToLogin;
 
 function startResetCountdown() {
     if (resetTimerInterval) {
@@ -1674,18 +1691,10 @@ async function handleResetPasswordSubmit() {
         document.getElementById("forgotStep3").style.display = "block";
         setRecoveryStep(3);
 
-        if (typeof showToast === "function") {
-            showToast("🎉 Şifreniz başarıyla yenilendi!", "success");
-        }
-
-        // Auto login user if token and user info returned
-        if (data.token && data.user) {
-            setTimeout(() => {
-                closeForgotPasswordModal();
-                setSession(data.token, data.user);
-                showMainApp(data.user);
-            }, 1200);
-        }
+        // Redirect directly to login screen after 2 seconds
+        setTimeout(() => {
+            finishResetAndGoToLogin();
+        }, 2200);
 
     } catch (err) {
         if (errEl) {
@@ -1700,6 +1709,7 @@ async function handleResetPasswordSubmit() {
     }
 }
 window.handleResetPasswordSubmit = handleResetPasswordSubmit;
+
 
 
 

@@ -598,13 +598,9 @@ function resetPasswordWithCode(email, code, newPassword) {
                                         function (err) {
                                             if (err) console.error("Error marking reset code as used:", err);
 
-                                            const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-                                            const { passwordHash, ...safeUser } = existingUser;
                                             resolve({
                                                 success: true,
-                                                token: token,
-                                                user: safeUser,
-                                                message: "Password reset successfully. Logging you in..."
+                                                message: "Password reset successfully. Please log in with your new password."
                                             });
                                         }
                                     );
