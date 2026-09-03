@@ -205,6 +205,10 @@ window.fetch = function (input, init) {
     const isPublicAuthCall =
         url.includes("/api/auth/login") ||
         url.includes("/api/auth/register") ||
+        url.includes("/api/auth/forgot-password") ||
+        url.includes("/api/auth/verify-reset-code") ||
+        url.includes("/api/auth/reset-password") ||
+        url.includes("/api/auth/reset-password-by-account") ||
         url.includes("/api/auth/avatars");
 
     const token = getToken();
@@ -338,15 +342,9 @@ function renderSidebarUser(user) {
     const logoWrapper = document.getElementById("sidebarLogoWrapper");
 
     if (mainLogo) {
-        if (!user.avatar || user.avatar === "default" || user.avatar === "pp.png" || user.avatar === "icons/pp.png") {
-            mainLogo.src = "icons/pp.png";
-        } else if (user.avatar === "logo.png" || user.avatar === "photos/logo.png") {
-            mainLogo.src = "photos/logo.png";
-        } else {
-            mainLogo.src = user.avatar.startsWith("icons/") || user.avatar.startsWith("photos/")
-                ? user.avatar
-                : "icons/" + user.avatar;
-        }
+        mainLogo.src = typeof getAvatarSrc === "function"
+            ? getAvatarSrc(user.avatar)
+            : ((!user.avatar || user.avatar === "default" || user.avatar === "pp.png") ? "icons/pp.png" : (user.avatar.startsWith("icons/") || user.avatar.startsWith("photos/") || user.avatar.startsWith("data:") ? user.avatar : "icons/" + user.avatar));
     }
 
     if (logoWrapper) {
@@ -358,9 +356,13 @@ function renderSidebarUser(user) {
     }
 
     if (sidebarUser) {
-        const userName = user.name || user.email || "Student";
-        const gradeText = user.gradeLevel && user.gradeLevel !== "Other" ? escapeHtml(user.gradeLevel) : "";
-        const deptText = user.department ? escapeHtml(user.department) : "";
+        const userName = user.name || user.email || (typeof t === "function" ? t("grade_student", "Student") : "Student");
+        const localizedGrade = typeof formatLocalizedGradeLevel === "function" ? formatLocalizedGradeLevel(user.gradeLevel) : user.gradeLevel;
+        const localizedDept = typeof formatLocalizedDepartment === "function" ? formatLocalizedDepartment(user.department) : user.department;
+        const otherKeywords = ["other", "diğer", "sonstiges", "otro", "autre", "altro", "другое", "기타", "その他", "أخرى"];
+        const isOther = otherKeywords.includes(String(user.gradeLevel || "").toLowerCase());
+        const gradeText = user.gradeLevel && !isOther ? escapeHtml(localizedGrade) : "";
+        const deptText = user.department ? escapeHtml(localizedDept) : "";
 
         sidebarUser.innerHTML = `
             <div class="sidebar-user-name">${escapeHtml(userName)}</div>
@@ -1232,6 +1234,558 @@ async function initAuth() {
     }
 
 }
+
+
+/* ─── FORGOT / RESET PASSWORD UI ─────────────────────────────────────────── */
+
+let resetTimerInterval = null;
+let resetTimerSeconds = 900; // 15 minutes
+let currentResetEmail = "";
+
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    field.type = (field.type === "password") ? "text" : "password";
+}
+window.togglePasswordVisibility = togglePasswordVisibility;
+
+function setRecoveryStep(stepNum) {
+    const dot1 = document.getElementById("stepDot1");
+    const dot2 = document.getElementById("stepDot2");
+    const dot3 = document.getElementById("stepDot3");
+
+    if (dot1 && dot2 && dot3) {
+        dot1.style.width = stepNum === 1 ? "28px" : "12px";
+        dot1.style.background = stepNum >= 1 ? "#2563eb" : "#e2e8f0";
+
+        dot2.style.width = stepNum === 2 ? "28px" : "12px";
+        dot2.style.background = stepNum >= 2 ? "#2563eb" : "#e2e8f0";
+
+        dot3.style.width = stepNum === 3 ? "28px" : "12px";
+        dot3.style.background = stepNum === 3 ? "#16a34a" : "#e2e8f0";
+    }
+}
+
+function switchRecoveryMethod(method) {
+    const emailTab = document.getElementById("tabEmailMethod");
+    const accountTab = document.getElementById("tabAccountMethod");
+    const emailStep1 = document.getElementById("forgotStep1");
+    const accountView = document.getElementById("forgotAccountMethodView");
+    const step2 = document.getElementById("forgotStep2");
+    const step3 = document.getElementById("forgotStep3");
+
+    if (method === "email") {
+        if (emailTab) {
+            emailTab.style.background = "#ffffff";
+            emailTab.style.color = "#0f172a";
+            emailTab.style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
+        }
+        if (accountTab) {
+            accountTab.style.background = "transparent";
+            accountTab.style.color = "#64748b";
+            accountTab.style.boxShadow = "none";
+        }
+        if (emailStep1) emailStep1.style.display = "block";
+        if (accountView) accountView.style.display = "none";
+        if (step2) step2.style.display = "none";
+        if (step3) step3.style.display = "none";
+        setRecoveryStep(1);
+    } else {
+        if (accountTab) {
+            accountTab.style.background = "#ffffff";
+            accountTab.style.color = "#0f172a";
+            accountTab.style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
+        }
+        if (emailTab) {
+            emailTab.style.background = "transparent";
+            emailTab.style.color = "#64748b";
+            emailTab.style.boxShadow = "none";
+        }
+        if (emailStep1) emailStep1.style.display = "none";
+        if (accountView) accountView.style.display = "block";
+        if (step2) step2.style.display = "none";
+        if (step3) step3.style.display = "none";
+        setRecoveryStep(1);
+
+        const loginEmail = document.getElementById("loginEmail");
+        const accountEmail = document.getElementById("accountResetEmail");
+        if (loginEmail && accountEmail && loginEmail.value) {
+            accountEmail.value = loginEmail.value.trim();
+        }
+    }
+}
+window.switchRecoveryMethod = switchRecoveryMethod;
+
+function updatePasswordStrengthMeter(inputId, barId, labelId) {
+    const input = document.getElementById(inputId);
+    const bar = document.getElementById(barId);
+    const label = document.getElementById(labelId);
+    if (!input || !bar || !label) return;
+
+    const val = input.value;
+    let score = 0;
+
+    if (val.length >= 6) score += 30;
+    if (val.length >= 8) score += 20;
+    if (/[A-Z]/.test(val)) score += 15;
+    if (/[0-9]/.test(val)) score += 15;
+    if (/[^A-Za-z0-9]/.test(val)) score += 20;
+
+    if (val.length === 0) {
+        bar.style.width = "0%";
+        bar.style.background = "#e2e8f0";
+        label.textContent = "Zayıf";
+        label.style.color = "#94a3b8";
+    } else if (score < 50) {
+        bar.style.width = "33%";
+        bar.style.background = "#ef4444";
+        label.textContent = "Zayıf";
+        label.style.color = "#ef4444";
+    } else if (score < 80) {
+        bar.style.width = "66%";
+        bar.style.background = "#f59e0b";
+        label.textContent = "Orta";
+        label.style.color = "#f59e0b";
+    } else {
+        bar.style.width = "100%";
+        bar.style.background = "#10b981";
+        label.textContent = "Güçlü 💪";
+        label.style.color = "#10b981";
+    }
+}
+window.updatePasswordStrengthMeter = updatePasswordStrengthMeter;
+
+function checkPasswordMatch(newPassId, confirmPassId, badgeId) {
+    const newPass = document.getElementById(newPassId);
+    const confirmPass = document.getElementById(confirmPassId);
+    const badge = document.getElementById(badgeId);
+    if (!newPass || !confirmPass || !badge) return;
+
+    if (!confirmPass.value) {
+        badge.style.display = "none";
+        return;
+    }
+
+    badge.style.display = "block";
+    if (newPass.value === confirmPass.value) {
+        badge.textContent = "✓ Şifreler eşleşiyor";
+        badge.style.color = "#16a34a";
+    } else {
+        badge.textContent = "✗ Şifreler henüz eşleşmiyor";
+        badge.style.color = "#ef4444";
+    }
+}
+window.checkPasswordMatch = checkPasswordMatch;
+
+function openForgotPasswordModal() {
+    const modal = document.getElementById("forgotPasswordModal");
+    if (!modal) return;
+
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+
+    // Switch to default email method
+    switchRecoveryMethod("email");
+
+    const tabs = document.getElementById("recoveryMethodTabs");
+    if (tabs) tabs.style.display = "flex";
+
+    const err1 = document.getElementById("forgotError1");
+    if (err1) { err1.style.display = "none"; err1.textContent = ""; }
+    const err2 = document.getElementById("forgotError2");
+    if (err2) { err2.style.display = "none"; err2.textContent = ""; }
+    const errAcc = document.getElementById("forgotAccountError");
+    if (errAcc) { errAcc.style.display = "none"; errAcc.textContent = ""; }
+
+    // Pre-fill email from login form if present
+    const loginEmail = document.getElementById("loginEmail");
+    const forgotEmail = document.getElementById("forgotEmail");
+    if (loginEmail && forgotEmail && loginEmail.value) {
+        forgotEmail.value = loginEmail.value.trim();
+    }
+
+    updateForgotPasswordModalTranslations();
+}
+window.openForgotPasswordModal = openForgotPasswordModal;
+
+function closeForgotPasswordModal() {
+    const modal = document.getElementById("forgotPasswordModal");
+    if (!modal) return;
+
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+
+    if (resetTimerInterval) {
+        clearInterval(resetTimerInterval);
+        resetTimerInterval = null;
+    }
+}
+window.closeForgotPasswordModal = closeForgotPasswordModal;
+
+function updateForgotPasswordModalTranslations() {
+    const linkBtn = document.getElementById("forgotPasswordLinkBtn");
+    if (linkBtn) linkBtn.textContent = typeof t === "function" ? t("auth_forgot_password_link", "Forgot Password?") : "Forgot Password?";
+
+    const t1 = document.getElementById("forgotTitleStep1");
+    if (t1) t1.textContent = typeof t === "function" ? t("auth_forgot_title", "Reset Password") : "Reset Password";
+
+    const d1 = document.getElementById("forgotDescStep1");
+    if (d1) d1.textContent = typeof t === "function" ? t("auth_forgot_subtitle_step1", "Enter your registered email address to receive a 6-digit verification code.") : "Enter your registered email address to receive a 6-digit verification code.";
+
+    const el1 = document.getElementById("forgotEmailLabel");
+    if (el1) el1.textContent = typeof t === "function" ? t("email_label", "Email Address") : "Email Address";
+
+    const btn1 = document.getElementById("forgotSendBtn");
+    if (btn1) btn1.textContent = typeof t === "function" ? t("auth_send_code_btn", "Send Verification Code") : "Send Verification Code";
+
+    const t2 = document.getElementById("forgotTitleStep2");
+    if (t2) t2.textContent = typeof t === "function" ? t("auth_forgot_title", "Reset Password") : "Reset Password";
+
+    const d2 = document.getElementById("forgotDescStep2");
+    if (d2) d2.textContent = typeof t === "function" ? t("auth_forgot_subtitle_step2", "Enter the 6-digit code sent to your email and set your new password.") : "Enter the 6-digit code sent to your email and set your new password.";
+
+    const cl = document.getElementById("resetCodeLabel");
+    if (cl) cl.textContent = typeof t === "function" ? t("auth_code_label", "6-Digit Verification Code") : "6-Digit Verification Code";
+
+    const npl = document.getElementById("resetNewPassLabel");
+    if (npl) npl.textContent = typeof t === "function" ? t("auth_new_password_label", "New Password") : "New Password";
+
+    const cpl = document.getElementById("resetConfirmPassLabel");
+    if (cpl) cpl.textContent = typeof t === "function" ? t("auth_confirm_password_label", "Confirm New Password") : "Confirm New Password";
+
+    const btn2 = document.getElementById("forgotSubmitBtn");
+    if (btn2) btn2.textContent = typeof t === "function" ? t("auth_reset_btn", "Update Password") : "Update Password";
+
+    const resendBtn = document.getElementById("resendCodeBtn");
+    if (resendBtn) resendBtn.textContent = typeof t === "function" ? t("auth_resend_code", "Resend Code") : "Resend Code";
+
+    const st = document.getElementById("forgotSuccessTitle");
+    if (st) st.textContent = typeof t === "function" ? t("auth_password_reset_success", "Password updated successfully!") : "Password updated successfully!";
+}
+window.updateForgotPasswordModalTranslations = updateForgotPasswordModalTranslations;
+
+function startResetCountdown() {
+    if (resetTimerInterval) {
+        clearInterval(resetTimerInterval);
+    }
+    resetTimerSeconds = 900; // 15 mins
+
+    const timerEl = document.getElementById("resetTimerSpan");
+    function updateDisplay() {
+        const m = Math.floor(resetTimerSeconds / 60);
+        const s = resetTimerSeconds % 60;
+        const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        if (timerEl) {
+            timerEl.textContent = `⏳ ${timeStr}`;
+        }
+    }
+    updateDisplay();
+
+    resetTimerInterval = setInterval(() => {
+        resetTimerSeconds--;
+        if (resetTimerSeconds <= 0) {
+            clearInterval(resetTimerInterval);
+            resetTimerInterval = null;
+            if (timerEl) {
+                timerEl.textContent = "⚠️ Kodun süresi doldu";
+            }
+        } else {
+            updateDisplay();
+        }
+    }, 1000);
+}
+
+async function handleSendResetCode() {
+    const emailInput = document.getElementById("forgotEmail");
+    const errEl = document.getElementById("forgotError1");
+    const sendBtn = document.getElementById("forgotSendBtn");
+
+    if (!emailInput || !emailInput.value.trim()) return;
+    const email = emailInput.value.trim();
+    currentResetEmail = email;
+
+    if (errEl) errEl.style.display = "none";
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.textContent = typeof t === "function" ? t("common_loading", "Sending...") : "Sending...";
+    }
+
+    try {
+        const res = await fetch(apiUrl("/api/auth/forgot-password"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Failed to send reset code.");
+        }
+
+        if (data.devCode) {
+            if (typeof showToast === "function") {
+                showToast(`ℹ️ Doğrulama Kodunuz: ${data.devCode}`, "info");
+            }
+        } else {
+            if (typeof showToast === "function") {
+                showToast(typeof t === "function" ? t("auth_code_sent_toast", "Verification code sent to your email.") : "Verification code sent to your email.", "success");
+            }
+        }
+
+        // Switch to Step 2
+        document.getElementById("forgotStep1").style.display = "none";
+        document.getElementById("forgotStep2").style.display = "block";
+        const tabs = document.getElementById("recoveryMethodTabs");
+        if (tabs) tabs.style.display = "none";
+
+        setRecoveryStep(2);
+
+        const emailDisplay = document.getElementById("forgotTargetEmailDisplay");
+        if (emailDisplay) {
+            if (data.previewUrl) {
+                emailDisplay.innerHTML = `${escapeHtml(email)} &nbsp;·&nbsp; <a href="${data.previewUrl}" target="_blank" rel="noopener noreferrer" style="color:#2563eb; font-weight:800; text-decoration:underline;">📬 Gelen E-postayı Aç ↗</a>`;
+            } else {
+                emailDisplay.textContent = email;
+            }
+        }
+
+        startResetCountdown();
+
+        const codeInput = document.getElementById("resetCodeInput");
+        if (codeInput) {
+            codeInput.value = data.devCode || "";
+            codeInput.focus();
+        }
+
+    } catch (err) {
+        if (errEl) {
+            errEl.textContent = err.message || "Failed to send reset code.";
+            errEl.style.display = "block";
+        }
+    } finally {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.textContent = typeof t === "function" ? t("auth_send_code_btn", "Send Verification Code") : "Send Verification Code";
+        }
+    }
+}
+window.handleSendResetCode = handleSendResetCode;
+
+async function handleResendResetCode() {
+    if (!currentResetEmail) return;
+    const resendBtn = document.getElementById("resendCodeBtn");
+    if (resendBtn) {
+        resendBtn.disabled = true;
+        resendBtn.style.opacity = "0.5";
+    }
+
+    try {
+        const res = await fetch(apiUrl("/api/auth/forgot-password"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: currentResetEmail })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Failed to resend code.");
+        }
+
+        if (typeof showToast === "function") {
+            showToast(typeof t === "function" ? t("auth_code_sent_toast", "Verification code sent to your email.") : "Verification code sent to your email.", "success");
+        }
+        startResetCountdown();
+    } catch (err) {
+        if (typeof showToast === "function") {
+            showToast(err.message, "error");
+        }
+    } finally {
+        setTimeout(() => {
+            if (resendBtn) {
+                resendBtn.disabled = false;
+                resendBtn.style.opacity = "1";
+            }
+        }, 3000);
+    }
+}
+window.handleResendResetCode = handleResendResetCode;
+
+async function handleResetPasswordSubmit() {
+    const codeInput = document.getElementById("resetCodeInput");
+    const newPassInput = document.getElementById("resetNewPassword");
+    const confirmPassInput = document.getElementById("resetConfirmPassword");
+    const errEl = document.getElementById("forgotError2");
+    const submitBtn = document.getElementById("forgotSubmitBtn");
+
+    if (!codeInput || !newPassInput || !confirmPassInput) return;
+
+    const code = codeInput.value.trim();
+    const newPassword = newPassInput.value;
+    const confirmPassword = confirmPassInput.value;
+
+    if (errEl) errEl.style.display = "none";
+
+    if (newPassword !== confirmPassword) {
+        if (errEl) {
+            errEl.textContent = typeof t === "function" ? t("auth_passwords_mismatch", "Passwords do not match.") : "Passwords do not match.";
+            errEl.style.display = "block";
+        }
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        if (errEl) {
+            errEl.textContent = "Şifre en az 6 karakter olmalıdır.";
+            errEl.style.display = "block";
+        }
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = typeof t === "function" ? t("common_loading", "Updating...") : "Updating...";
+    }
+
+    try {
+        const res = await fetch(apiUrl("/api/auth/reset-password"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: currentResetEmail,
+                code: code,
+                newPassword: newPassword
+            })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Failed to reset password.");
+        }
+
+        if (resetTimerInterval) {
+            clearInterval(resetTimerInterval);
+            resetTimerInterval = null;
+        }
+
+        // Show step 3 (Success)
+        document.getElementById("forgotStep2").style.display = "none";
+        document.getElementById("forgotStep3").style.display = "block";
+        setRecoveryStep(3);
+
+        if (typeof showToast === "function") {
+            showToast("🎉 Şifreniz başarıyla yenilendi!", "success");
+        }
+
+        // Auto login user if token and user info returned
+        if (data.token && data.user) {
+            setTimeout(() => {
+                closeForgotPasswordModal();
+                setSession(data.token, data.user);
+                showMainApp(data.user);
+            }, 1200);
+        }
+
+    } catch (err) {
+        if (errEl) {
+            errEl.textContent = err.message || "Failed to reset password.";
+            errEl.style.display = "block";
+        }
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = typeof t === "function" ? t("auth_reset_btn", "Update Password") : "Update Password";
+        }
+    }
+}
+window.handleResetPasswordSubmit = handleResetPasswordSubmit;
+
+async function handleAccountResetSubmit() {
+    const emailInput = document.getElementById("accountResetEmail");
+    const nameInput = document.getElementById("accountResetName");
+    const passInput = document.getElementById("accountNewPass");
+    const confirmInput = document.getElementById("accountConfirmPass");
+    const errEl = document.getElementById("forgotAccountError");
+    const submitBtn = document.getElementById("accountResetSubmitBtn");
+
+    if (!emailInput || !nameInput || !passInput || !confirmInput) return;
+
+    const email = emailInput.value.trim();
+    const fullName = nameInput.value.trim();
+    const newPassword = passInput.value;
+    const confirmPassword = confirmInput.value;
+
+    if (errEl) errEl.style.display = "none";
+
+    if (newPassword !== confirmPassword) {
+        if (errEl) {
+            errEl.textContent = "Şifreler birbiriyle eşleşmiyor.";
+            errEl.style.display = "block";
+        }
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        if (errEl) {
+            errEl.textContent = "Şifre en az 6 karakter olmalıdır.";
+            errEl.style.display = "block";
+        }
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = typeof t === "function" ? t("common_loading", "Updating...") : "Updating...";
+    }
+
+    try {
+        const res = await fetch(apiUrl("/api/auth/reset-password-by-account"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: email,
+                fullName: fullName,
+                newPassword: newPassword
+            })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Hesap doğrulaması başarısız oldu.");
+        }
+
+        // Show step 3 (Success)
+        document.getElementById("forgotAccountMethodView").style.display = "none";
+        document.getElementById("forgotStep3").style.display = "block";
+        const tabs = document.getElementById("recoveryMethodTabs");
+        if (tabs) tabs.style.display = "none";
+        setRecoveryStep(3);
+
+        if (typeof showToast === "function") {
+            showToast("🎉 Kimliğiniz doğrulandı ve şifreniz yenilendi!", "success");
+        }
+
+        // Auto login user
+        if (data.token && data.user) {
+            setTimeout(() => {
+                closeForgotPasswordModal();
+                setSession(data.token, data.user);
+                showMainApp(data.user);
+            }, 1200);
+        }
+
+    } catch (err) {
+        if (errEl) {
+            errEl.textContent = err.message || "Hesap doğrulaması başarısız oldu.";
+            errEl.style.display = "block";
+        }
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Doğrula ve Şifremi Yenile 🚀";
+        }
+    }
+}
+window.handleAccountResetSubmit = handleAccountResetSubmit;
 
 
 /* ─── START AUTH ───────────────────────────────────────────────────────────── */

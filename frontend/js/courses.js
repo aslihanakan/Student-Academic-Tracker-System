@@ -54,7 +54,7 @@ function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passi
     if ((m !== null && mw === 0) || (p !== null && pw === 0)) {
         return {
             value: null,
-            label: "Enter weights",
+            label: typeof t === "function" ? t("courses_req_enter_weights", "Enter weights") : "Enter weights",
             color: "#f97316"
         };
     }
@@ -68,20 +68,20 @@ function calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passi
         const currentGrade = (m !== null ? m * mw : 0) + (p !== null ? p * pw : 0) + extraEarned;
 
         if (currentGrade >= pg) {
-            return { value: 0, label: "✓ Passing", color: "#22c55e" };
+            return { value: 0, label: typeof t === "function" ? t("courses_req_passing", "✓ Passing") : "✓ Passing", color: "#22c55e" };
         }
-        return { value: null, label: "✗ Impossible", color: "#ef4444" };
+        return { value: null, label: typeof t === "function" ? t("courses_req_impossible", "✗ Impossible") : "✗ Impossible", color: "#ef4444" };
     }
 
     const earnedSoFar = (m !== null ? m * mw : 0) + (p !== null ? p * pw : 0) + extraEarned;
     const needed = (pg - earnedSoFar) / fw;
 
     if (needed <= 0) {
-        return { value: 0, label: "✓ Passing", color: "#22c55e" };
+        return { value: 0, label: typeof t === "function" ? t("courses_req_passing", "✓ Passing") : "✓ Passing", color: "#22c55e" };
     }
 
     if (needed > 100) {
-        return { value: null, label: "✗ Impossible", color: "#ef4444" };
+        return { value: null, label: typeof t === "function" ? t("courses_req_impossible", "✗ Impossible") : "✗ Impossible", color: "#ef4444" };
     }
 
     let neededColor;
@@ -143,15 +143,48 @@ function calcCourseResult(course) {
 /* ─── COURSES ─────────────────────────────────────────────────────────────────*/
 
 function getTermLabel(c) {
-    const year = c.academicYear && c.academicYear !== "Unspecified" ? c.academicYear : null;
-    const sem = c.semester && c.semester !== "Unspecified" ? c.semester : null;
+    const year = c.academicYear && c.academicYear !== "Unspecified" ? String(c.academicYear).trim() : null;
+    const sem = c.semester && c.semester !== "Unspecified" ? String(c.semester).trim() : null;
 
     if (!year && !sem) {
         return "No Term Assigned";
     }
 
-    return [year, sem].filter(Boolean).join(" ");
+    if (year && sem) {
+        if (year === sem || year.includes(sem)) {
+            return normalizeTermInput(year);
+        }
+        if (sem.includes(year)) {
+            return normalizeTermInput(sem);
+        }
+        return normalizeTermInput(`${year} ${sem}`);
+    }
+
+    return normalizeTermInput(year || sem);
 }
+
+function formatTermForDisplay(termStr) {
+    if (!termStr || termStr === "No Term Assigned") {
+        return typeof t === "function" ? t("term_unassigned", "No Term Assigned") : "No Term Assigned";
+    }
+    const parts = (typeof getTermParts === "function") ? getTermParts(termStr) : null;
+    if (!parts || !parts.year) return termStr;
+
+    const gradeText = typeof formatLocalizedGradeLevel === "function" ? formatLocalizedGradeLevel(parts.grade) : parts.grade;
+    let seasonKey = "term_fall";
+    if (parts.season.toLowerCase().includes("spring") || parts.season.toLowerCase().includes("bahar")) {
+        seasonKey = "term_spring";
+    } else if (parts.season.toLowerCase().includes("summer") || parts.season.toLowerCase().includes("yaz")) {
+        seasonKey = "term_summer";
+    }
+    const seasonText = typeof t === "function" ? t(seasonKey, parts.season) : parts.season;
+
+    const otherKeywords = ["other", "diğer", "sonstiges", "otro", "autre", "altro", "другое", "기타", "その他", "أخرى"];
+    const isOther = otherKeywords.includes(String(parts.grade || "").toLowerCase());
+    const gradePart = (gradeText && !isOther) ? `${gradeText} ` : "";
+    return `${parts.year} ${gradePart}${seasonText}`.replace(/\s+/g, " ").trim();
+}
+window.formatTermForDisplay = formatTermForDisplay;
 
 const LAST_TERM_STORAGE_KEY = "sat_last_term_text";
 
@@ -289,7 +322,7 @@ function onTermControlsChange() {
     const term = assembleTerm(yearInput.value, gradeSelect.value, seasonSelect.value);
     hiddenInput.value = term;
     if (previewEl) {
-        previewEl.textContent = term;
+        previewEl.textContent = formatTermForDisplay(term);
     }
     rememberActiveTerm(term);
 }
@@ -331,13 +364,13 @@ function buildCourseRow(c, termLabel) {
         `
         : `<span style="color:#94a3b8">-</span>`;
 
-    const reqCell = `<span style="color:${req.color}; font-weight:700">${req.label}</span>`;
+    const reqCell = `<span style="color:${req.color}; font-weight:700">${escapeHtml(req.label)}</span>`;
     const result = calcCourseResult(c);
 
     const resultCell = result === "pass"
-        ? `<span style="color:#22c55e;font-weight:700">✅ Pass</span>`
+        ? `<span style="color:#22c55e;font-weight:700">✅ ${escapeHtml(typeof t === 'function' ? t('courses_result_pass', 'Pass') : 'Pass')}</span>`
         : result === "fail"
-            ? `<span style="color:#ef4444;font-weight:700">❌ Fail</span>`
+            ? `<span style="color:#ef4444;font-weight:700">❌ ${escapeHtml(typeof t === 'function' ? t('courses_result_fail', 'Fail') : 'Fail')}</span>`
             : `<span style="color:#94a3b8">-</span>`;
 
     const butValue = c.makeupGrade !== null && c.makeupGrade !== undefined && c.makeupGrade !== "" ? c.makeupGrade : "";
@@ -414,22 +447,34 @@ async function loadCourses() {
         const realTermKeys = termKeys.filter(label => label !== "No Term Assigned");
 
         const defaultTerm = realTermKeys.length > 0 ? realTermKeys[0] : (termKeys[0] || "");
-        const termOptions = termKeys.map(label => `<option value="${escapeHtml(label)}" ${label === defaultTerm ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
+        const termOptions = termKeys.map(label => `<option value="${escapeHtml(label)}" ${label === defaultTerm ? "selected" : ""}>${escapeHtml(formatTermForDisplay(label))}</option>`).join("");
         const activeTermText = getStoredLastTerm() || (courses[0]?.academicYear ? normalizeTermInput(courses[0].academicYear) : "2026-2027 4th Grade Fall Term");
         const currentParts = getTermParts(activeTermText);
         const activeTermValue = assembleTerm(currentParts.year, currentParts.grade, currentParts.season);
         
-        const gradeList = ["4th Grade", "1st Grade", "2nd Grade", "3rd Grade", "Prep Year", "Other"];
-        const gradeOptions = gradeList.map(g => `<option value="${escapeHtml(g)}" ${g === currentParts.grade ? "selected" : ""}>${escapeHtml(g)}</option>`).join("");
-        const seasonList = ["Fall Term", "Spring Term", "Summer Term"];
-        const seasonOptions = seasonList.map(s => `<option value="${escapeHtml(s)}" ${s === currentParts.season ? "selected" : ""}>${escapeHtml(s)}</option>`).join("");
+        const gradeList = [
+            { value: "4th Grade", key: "grade_4th", fallback: "4th Grade" },
+            { value: "1st Grade", key: "grade_1st", fallback: "1st Grade" },
+            { value: "2nd Grade", key: "grade_2nd", fallback: "2nd Grade" },
+            { value: "3rd Grade", key: "grade_3rd", fallback: "3rd Grade" },
+            { value: "Prep Year", key: "grade_prep", fallback: "Prep Year" },
+            { value: "Other", key: "grade_other", fallback: "Other" }
+        ];
+        const gradeOptions = gradeList.map(g => `<option value="${escapeHtml(g.value)}" ${g.value === currentParts.grade ? "selected" : ""}>${escapeHtml(typeof t === "function" ? t(g.key, g.fallback) : g.fallback)}</option>`).join("");
+        
+        const seasonList = [
+            { value: "Fall Term", key: "term_fall", fallback: "Fall Term" },
+            { value: "Spring Term", key: "term_spring", fallback: "Spring Term" },
+            { value: "Summer Term", key: "term_summer", fallback: "Summer Term" }
+        ];
+        const seasonOptions = seasonList.map(s => `<option value="${escapeHtml(s.value)}" ${s.value === currentParts.season ? "selected" : ""}>${escapeHtml(typeof t === "function" ? t(s.key, s.fallback) : s.fallback)}</option>`).join("");
 
         const rows = courses.length
             ? [...termGroups.entries()].map(([label, group]) => `
                 <tr class="term-group-header" data-term="${escapeHtml(label)}">
-                    <td colspan="11" style="background:#f1f5f9; font-weight:700; color:#334155; padding:10px 14px;">
-                        📅 ${escapeHtml(label)}
-                        <span style="font-weight:500; color:#94a3b8;">(${group.length} course${group.length === 1 ? "" : "s"})</span>
+                    <td colspan="11" style="background:var(--theme-active-nav-bg, #f1f5f9); font-weight:700; color:var(--theme-header-title, #1e293b); padding:10px 14px; border-left:4px solid var(--theme-primary, #3b82f6);">
+                        📅 ${escapeHtml(formatTermForDisplay(label))}
+                        <span style="font-weight:500; color:var(--theme-active-nav-color, #64748b);">(${group.length} ${group.length === 1 ? (typeof t === "function" ? t("courses_course_single", "course") : "course") : (typeof t === "function" ? t("courses_course_plural", "courses") : "courses")})</span>
                     </td>
                 </tr>
                 ${group.map(c => buildCourseRow(c, label)).join("")}
@@ -439,28 +484,28 @@ async function loadCourses() {
         document.getElementById("app").innerHTML = `
             <div class="form-box add-form-box">
                 <div class="form-box-header" onclick="toggleAddFormBox(this)">
-                    <h2>Add Course</h2>
+                    <h2>${escapeHtml(typeof t === 'function' ? t('courses_add_heading', 'Add Course') : 'Add Course')}</h2>
                     <span class="form-box-chevron">▾</span>
                 </div>
 
                 <div style="margin-bottom:12px; padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
                         <label style="font-size:12px; color:#64748b; font-weight:600;">
-                            Academic Term &amp; Class
+                            ${escapeHtml(typeof t === 'function' ? t('courses_term_class_label', 'Academic Term & Class') : 'Academic Term & Class')}
                         </label>
                         <span style="font-size:12px; color:#94a3b8; font-weight:500;">
-                            Preview: <strong id="termFormattedPreview" style="color:#64748b; font-weight:600;">${escapeHtml(activeTermValue)}</strong>
+                            ${escapeHtml(typeof t === 'function' ? t('courses_preview_label', 'Preview:') : 'Preview:')} <strong id="termFormattedPreview" style="color:#64748b; font-weight:600;">${escapeHtml(activeTermValue)}</strong>
                         </span>
                     </div>
 
                     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px;">
                         <div>
-                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Academic Year</label>
+                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">${escapeHtml(typeof t === 'function' ? t('courses_academic_year_label', 'Academic Year') : 'Academic Year')}</label>
                             <input
                                 type="text"
                                 id="termYearInput"
                                 list="termYearList"
-                                placeholder="e.g. 2026-2027"
+                                placeholder="${escapeHtml(typeof t === 'function' ? t('courses_year_placeholder', 'e.g. 2026-2027') : 'e.g. 2026-2027')}"
                                 value="${escapeHtml(currentParts.year)}"
                                 oninput="onTermControlsChange()"
                                 style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0; background:#ffffff; font-size:13px; font-weight:500; color:#475569;"
@@ -477,7 +522,7 @@ async function loadCourses() {
                             </datalist>
                         </div>
                         <div>
-                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Class / Year</label>
+                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">${escapeHtml(typeof t === 'function' ? t('courses_class_year_label', 'Class / Year') : 'Class / Year')}</label>
                             <select
                                 id="termGradeSelect"
                                 onchange="onTermControlsChange()"
@@ -487,7 +532,7 @@ async function loadCourses() {
                             </select>
                         </div>
                         <div>
-                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Semester / Term</label>
+                            <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">${escapeHtml(typeof t === 'function' ? t('courses_semester_term_label', 'Semester / Term') : 'Semester / Term')}</label>
                             <select
                                 id="termSeasonSelect"
                                 onchange="onTermControlsChange()"
@@ -502,73 +547,71 @@ async function loadCourses() {
                 </div>
 
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px;">
-                    <input type="text" id="courseName" placeholder="Course name">
-                    <input type="text" id="instructorName" placeholder="Instructor name">
-                    <input type="number" id="credit" placeholder="Credit">
-                    <input type="number" id="midtermGrade" placeholder="Midterm grade" min="0" max="100" oninput="updateRequiredFinalPreview()">
-                    <input type="number" id="projectGrade" placeholder="Project grade (optional)" min="0" max="100" oninput="updateRequiredFinalPreview()">
-                    <input type="number" id="finalGrade" placeholder="Final grade" min="0" max="100">
-                    <input type="number" id="makeupGrade" placeholder="Makeup grade (optional)" min="0" max="100">
+                    <input type="text" id="courseName" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_name_placeholder', 'Course Name') : 'Course name')}">
+                    <input type="text" id="instructorName" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_instructor_placeholder', 'Instructor Name') : 'Instructor name')}">
+                    <input type="number" id="credit" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_credits', 'Credit') : 'Credit')}">
+                    <input type="number" id="midtermGrade" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_midterm_placeholder', 'Midterm grade') : 'Midterm grade')}" min="0" max="100" oninput="updateRequiredFinalPreview()">
+                    <input type="number" id="projectGrade" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_project_placeholder', 'Project grade (optional)') : 'Project grade (optional)')}" min="0" max="100" oninput="updateRequiredFinalPreview()">
+                    <input type="number" id="finalGrade" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_final_placeholder', 'Final grade') : 'Final grade')}" min="0" max="100">
+                    <input type="number" id="makeupGrade" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_makeup_placeholder', 'Makeup grade (optional)') : 'Makeup grade (optional)')}" min="0" max="100">
                 </div>
 
                 <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-top:10px; padding:12px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
                     <div>
-                        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Midterm Weight (%)</label>
-                        <input type="number" id="midtermWeight" placeholder="e.g. 40" min="0" max="100" oninput="updateRequiredFinalPreview()">
+                        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">${escapeHtml(typeof t === 'function' ? t('courses_midterm_weight_label', 'Midterm Weight (%)') : 'Midterm Weight (%)')}</label>
+                        <input type="number" id="midtermWeight" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_midterm_weight_placeholder', 'e.g. 40') : 'e.g. 40')}" min="0" max="100" oninput="updateRequiredFinalPreview()">
                     </div>
                     <div>
-                        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Project Weight (%)</label>
-                        <input type="number" id="projectWeight" placeholder="0 if no project" min="0" max="100" oninput="updateRequiredFinalPreview()">
+                        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">${escapeHtml(typeof t === 'function' ? t('courses_project_weight_label', 'Project Weight (%)') : 'Project Weight (%)')}</label>
+                        <input type="number" id="projectWeight" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_project_weight_placeholder', '0 if no project') : '0 if no project')}" min="0" max="100" oninput="updateRequiredFinalPreview()">
                     </div>
                     <div>
-                        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">Passing Grade</label>
+                        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px; font-weight:600;">${escapeHtml(typeof t === 'function' ? t('courses_passing_grade_label', 'Passing Grade') : 'Passing Grade')}</label>
                         <input type="number" id="passingGrade" value="60" min="0" max="100" oninput="updateRequiredFinalPreview()">
                     </div>
                 </div>
 
                 <div style="margin-top:10px; padding:12px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                        <label style="font-size:12px; color:#64748b; font-weight:600;">Other Graded Items (optional)</label>
-                        <button type="button" onclick="addExtraGradeRow()" style="font-size:12px; padding:4px 12px; background:#eff6ff; border:1px solid #93c5fd; border-radius:20px; cursor:pointer; color:#1e40af; font-weight:700;">+ Add Grade Item</button>
+                        <label style="font-size:12px; color:#64748b; font-weight:600;">${escapeHtml(typeof t === 'function' ? t('courses_extra_grades_label', 'Other Graded Items (optional)') : 'Other Graded Items (optional)')}</label>
+                        <button type="button" onclick="addExtraGradeRow()" style="font-size:12px; padding:4px 12px; background:#eff6ff; border:1px solid #93c5fd; border-radius:20px; cursor:pointer; color:#1e40af; font-weight:700;">${escapeHtml(typeof t === 'function' ? t('courses_add_extra_btn', '+ Add Grade Item') : '+ Add Grade Item')}</button>
                     </div>
                     <div id="extraGradesList"></div>
                 </div>
 
                 <div id="required-final-preview" style="margin-top:8px; font-size:13px; color:#64748b; min-height:20px; padding:0 2px;"></div>
 
-                <button id="courseSaveButton" onclick="saveCourse()" style="margin-top:12px;">Save Course</button>
+                <button id="courseSaveButton" onclick="saveCourse()" style="margin-top:12px;">${escapeHtml(typeof t === "function" ? t("courses_save_btn", "Save Course") : "Save Course")}</button>
             </div>
 
             <div class="tools-grid">
                 <div class="form-box tool-box">
-                    <h2>🔍 Search Courses</h2>
-                    <input type="text" id="courseSearch" placeholder="Search by name, instructor, grade..." oninput="filterCourses(this.value)" style="margin-bottom:8px;">
+                    <h2>${escapeHtml(typeof t === 'function' ? t('courses_search_heading', '🔍 Search Courses') : '🔍 Search Courses')}</h2>
+                    <input type="text" id="courseSearch" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_search_placeholder', 'Search by name, instructor, grade...') : 'Search by name, instructor, grade...')}" oninput="filterCourses(this.value)" style="margin-bottom:8px;">
                     <div id="search-stats" style="font-size:12px; color:#94a3b8; margin-bottom:8px;"></div>
                     <select id="termFilter" onchange="filterCoursesByTerm(this.value)" style="width:100%; margin-bottom:8px; padding:6px 8px; border-radius:8px; border:1px solid #cbd5e1; font-size:13px;">
                         ${termOptions}
                     </select>
                     <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                        <button onclick="document.getElementById('courseSearch').value=''; filterCourses('');" style="font-size:12px; padding:4px 12px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:20px; cursor:pointer; color:#475569; font-weight:500;">Clear Search</button>
-                        <button onclick="applyQuickFilter('no-final')" style="font-size:12px; padding:4px 12px; background:#fef9c3; border:1px solid #fde047; border-radius:20px; cursor:pointer; color:#854d0e; font-weight:500;">Missing Final</button>
-                        <button onclick="applyQuickFilter('low-midterm')" style="font-size:12px; padding:4px 12px; background:#fee2e2; border:1px solid #fca5a5; border-radius:20px; cursor:pointer; color:#991b1b; font-weight:500;">Low Midterm (&lt;50)</button>
-                        <button onclick="applyQuickFilter('high-midterm')" style="font-size:12px; padding:4px 12px; background:#dcfce7; border:1px solid #86efac; border-radius:20px; cursor:pointer; color:#166534; font-weight:500;">High Midterm (≥80)</button>
+                        <button onclick="document.getElementById('courseSearch').value=''; filterCourses('');" style="font-size:12px; padding:4px 12px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:20px; cursor:pointer; color:#475569; font-weight:500;">${escapeHtml(typeof t === 'function' ? t('btn_clear_search', 'Clear Search') : 'Clear Search')}</button>
+                        <button onclick="applyQuickFilter('no-final')" style="font-size:12px; padding:4px 12px; background:#fef9c3; border:1px solid #fde047; border-radius:20px; cursor:pointer; color:#854d0e; font-weight:500;">${escapeHtml(typeof t === 'function' ? t('courses_missing_final', 'Missing Final') : 'Missing Final')}</button>
+                        <button onclick="applyQuickFilter('low-midterm')" style="font-size:12px; padding:4px 12px; background:#fee2e2; border:1px solid #fca5a5; border-radius:20px; cursor:pointer; color:#991b1b; font-weight:500;">${escapeHtml(typeof t === 'function' ? t('courses_low_midterm', 'Low Midterm (<50)') : 'Low Midterm (<50)')}</button>
+                        <button onclick="applyQuickFilter('high-midterm')" style="font-size:12px; padding:4px 12px; background:#dcfce7; border:1px solid #86efac; border-radius:20px; cursor:pointer; color:#166534; font-weight:500;">${escapeHtml(typeof t === 'function' ? t('courses_high_midterm', 'High Midterm (≥80)') : 'High Midterm (≥80)')}</button>
                     </div>
                 </div>
 
                 <div class="form-box tool-box">
-                    <h2>🎓 GPA Calculator</h2>
-                    <p style="font-size:13px; color:#94a3b8; margin-bottom:12px;">Uses each course's own grade weights.</p>
-                    <div id="gpa-result"><span style="color:#94a3b8; font-size:14px;">Click below to calculate your GPA.</span></div>
-                    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-                        <button onclick="calculateGPA()" style="flex:1;">Calculate GPA</button>
-                        <button type="button" onclick="openAiCoachModal()" style="flex:1; background:linear-gradient(135deg, #4f46e5, #4338ca); border:none; color:#fff; cursor:pointer; font-weight:700; border-radius:8px; font-size:13px; padding:10px 14px;">🤖 AI GPA Advisor</button>
-                        <button type="button" onclick="openOfficialTranscriptModal()" style="flex:100%; background:linear-gradient(135deg, #10b981, #059669); border:none; color:#fff; cursor:pointer; font-weight:700; border-radius:8px; font-size:13px; padding:10px 14px;">📄 Export Official Transcript (PDF)</button>
+                    <h2>${escapeHtml(typeof t === 'function' ? t('courses_gpa_heading', '🎓 GPA Calculator') : '🎓 GPA Calculator')}</h2>
+                    <p style="font-size:13px; color:#94a3b8; margin-bottom:12px;">${escapeHtml(typeof t === 'function' ? t('courses_gpa_desc', 'Uses each course\'s own grade weights.') : 'Uses each course\'s own grade weights.')}</p>
+                    <div id="gpa-result"><span style="color:#94a3b8; font-size:14px;">${escapeHtml(typeof t === 'function' ? t('courses_gpa_prompt', 'Click below to calculate your GPA.') : 'Click below to calculate your GPA.')}</span></div>
+                    <div style="margin-top:12px;">
+                        <button onclick="calculateGPA()" style="width:100%;">${escapeHtml(typeof t === 'function' ? t('btn_calculate_gpa', 'Calculate GPA') : 'Calculate GPA')}</button>
                     </div>
                 </div>
             </div>
 
             <div style="margin:0 0 10px 0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <label for="tableTermFilter" style="font-weight:700; font-size:13px; color:#334155;">📅 Filter by Term:</label>
+                <label for="tableTermFilter" style="font-weight:700; font-size:13px; color:var(--theme-header-title, #ffffff);">📅 ${escapeHtml(typeof t === "function" ? t("courses_filter_term", "Filter by Term:") : "Filter by Term:")}</label>
                 <select id="tableTermFilter" onchange="filterCoursesByTerm(this.value)" style="padding:6px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:13px; min-width:220px;">
                     ${termOptions}
                 </select>
@@ -577,17 +620,17 @@ async function loadCourses() {
             <table id="courses-table">
                 <thead>
                     <tr>
-                        <th>Course</th>
-                        <th>Instructor</th>
-                        <th>Credit</th>
-                        <th>Midterm</th>
-                        <th>Project</th>
-                        <th>Req. Final</th>
-                        <th>Final</th>
-                        <th>Result</th>
-                        <th>Makeup Grade</th>
-                        <th>Extra Grades</th>
-                        <th>Action</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_course", "Course") : "Course")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_instructor", "Instructor") : "Instructor")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_credits", "Credit") : "Credit")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_midterm", "Midterm") : "Midterm")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_project", "Project") : "Project")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_req_final", "Req. Final") : "Req. Final")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_final", "Final") : "Final")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_result", "Result") : "Result")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_makeup", "Makeup Grade") : "Makeup Grade")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_extra", "Extra Grades") : "Extra Grades")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_action", "Action") : "Action")}</th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>
@@ -632,9 +675,9 @@ function addExtraGradeRow(item) {
     row.style.cssText = "display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; margin-bottom:8px; align-items:center;";
 
     row.innerHTML = `
-        <input type="text" class="extra-grade-label" placeholder="e.g. Homework, Quiz" value="${escapeHtml(label)}" oninput="updateRequiredFinalPreview()">
-        <input type="number" class="extra-grade-weight" placeholder="Weight %" min="0" max="100" value="${escapeHtml(weight)}" oninput="updateRequiredFinalPreview()">
-        <input type="number" class="extra-grade-score" placeholder="Score" min="0" max="100" value="${escapeHtml(score)}" oninput="updateRequiredFinalPreview()">
+        <input type="text" class="extra-grade-label" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_extra_item_placeholder', 'e.g. Homework, Quiz') : 'e.g. Homework, Quiz')}" value="${escapeHtml(label)}" oninput="updateRequiredFinalPreview()">
+        <input type="number" class="extra-grade-weight" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_extra_weight_placeholder', 'Weight %') : 'Weight %')}" min="0" max="100" value="${escapeHtml(weight)}" oninput="updateRequiredFinalPreview()">
+        <input type="number" class="extra-grade-score" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_extra_score_placeholder', 'Score') : 'Score')}" min="0" max="100" value="${escapeHtml(score)}" oninput="updateRequiredFinalPreview()">
         <button type="button" onclick="removeExtraGradeRow('${rowId}')" style="font-size:12px; padding:6px 10px; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; cursor:pointer; color:#991b1b; font-weight:700;">✕</button>
     `;
 
@@ -708,8 +751,14 @@ function updateRequiredFinalPreview() {
         return;
     }
 
-    const extraWeightInfo = extraWeightSum > 0 ? ` · Extras: <strong>${extraWeightSum}%</strong>` : "";
-    const weightInfo = `Weights → Midterm: <strong>${midtermWeight}%</strong> · Project: <strong>${projectWeight}%</strong>${extraWeightInfo} · Final: <strong>${finalWeight}%</strong>`;
+    const isTr = typeof getCurrentLanguage === "function" && getCurrentLanguage() === "tr";
+    const weightLabel = isTr ? "Ağırlıklar → Vize" : "Weights → Midterm";
+    const projectLabel = isTr ? "Proje" : "Project";
+    const finalLabel = isTr ? "Final" : "Final";
+    const reqFinalLabel = isTr ? "Geçmek için gereken final" : "Required final to pass";
+
+    const extraWeightInfo = extraWeightSum > 0 ? ` · ${isTr ? "Ekstralar" : "Extras"}: <strong>${extraWeightSum}%</strong>` : "";
+    const weightInfo = `${weightLabel}: <strong>${midtermWeight}%</strong> · ${projectLabel}: <strong>${projectWeight}%</strong>${extraWeightInfo} · ${finalLabel}: <strong>${finalWeight}%</strong>`;
     const extraHasAnyValue = extraGrades.some(item => item.label || item.weight);
 
     if (!midterm && !project && !extraHasAnyValue) {
@@ -718,7 +767,7 @@ function updateRequiredFinalPreview() {
     }
 
     const req = calcRequiredFinal(midterm, project, midtermWeight, projectWeight, passingGrade, extraGrades);
-    preview.innerHTML = `${weightInfo} &nbsp;|&nbsp; Required final to pass: <strong style="color:${req.color}">${req.label}</strong>`;
+    preview.innerHTML = `${weightInfo} &nbsp;|&nbsp; ${reqFinalLabel}: <strong style="color:${req.color}">${req.label}</strong>`;
 }
 
 
@@ -921,16 +970,16 @@ function calculateNeededFinal() {
     const req = calcRequiredFinal(midterm, project, midtermW, projectW, passing);
     const el = document.getElementById("final-calc-result");
 
-    if (req.label === "✓ Passing") {
-        el.innerHTML = `<span style="color:#22c55e; font-weight:700">✅ You already passed!</span>`;
-    } else if (req.label === "✗ Impossible") {
-        el.innerHTML = `<span style="color:#ef4444; font-weight:700">❌ Passing is not possible even with 100 on the final.</span>`;
+    if (req.value === 0 || (req.label && req.label.includes("Passing"))) {
+        el.innerHTML = `<span style="color:#22c55e; font-weight:700">${escapeHtml(typeof t === "function" ? t("courses_calc_already_passed", "✅ You already passed!") : "✅ You already passed!")}</span>`;
+    } else if (req.label && (req.label.includes("Impossible") || req.label.includes("İmkansız") || req.label.includes("Unerreichbar") || req.label.includes("Imposible") || req.label.includes("Невозможно"))) {
+        el.innerHTML = `<span style="color:#ef4444; font-weight:700">${escapeHtml(typeof t === "function" ? t("courses_calc_impossible", "❌ Passing is not possible even with 100 on the final.") : "❌ Passing is not possible even with 100 on the final.")}</span>`;
     } else if (req.label === "Invalid weights") {
-        el.innerHTML = `<span style="color:#ef4444; font-weight:700">⚠️ Invalid weights. Total weights cannot exceed 100%.</span>`;
+        el.innerHTML = `<span style="color:#ef4444; font-weight:700">${escapeHtml(typeof t === "function" ? t("courses_calc_invalid_weights", "⚠️ Invalid weights. Total weights cannot exceed 100%.") : "⚠️ Invalid weights. Total weights cannot exceed 100%.")}</span>`;
     } else if (req.value === null) {
-        el.innerHTML = `Enter at least one grade to calculate.`;
+        el.innerHTML = escapeHtml(typeof t === "function" ? t("courses_calc_enter_prompt", "Enter at least one grade to calculate.") : "Enter at least one grade to calculate.");
     } else {
-        el.innerHTML = `📝 You need at least <strong style="color:${req.color}">${req.label}</strong> on the final.`;
+        el.innerHTML = typeof t === "function" ? t("courses_calc_need_score", { score: `<strong style="color:${req.color}">${req.label}</strong>` }) : `📝 You need at least <strong style="color:${req.color}">${req.label}</strong> on the final.`;
     }
 }
 
@@ -1071,7 +1120,7 @@ async function saveCourse() {
             window._coursesForGPA = window._allCourses;
         }
 
-        showToast("Course added successfully!", "success");
+        showToast(typeof t === "function" ? t("toast_course_saved_success", "Course added successfully!") : "Course added successfully!", "success");
         await loadCourses();
     } catch (err) {
         console.error("Course Save Error:", err);
@@ -1237,8 +1286,9 @@ function editCourse(
 
 async function deleteCourse(id, courseName) {
     const confirmed = await showConfirm(
-        "Delete Course",
-        `Are you sure you want to delete "${courseName}"? This action cannot be undone.`
+        typeof t === "function" ? t("confirm_delete_course_title", "Delete Course") : "Delete Course",
+        typeof t === "function" ? t("confirm_delete_course_msg", { name: courseName }) : `Are you sure you want to delete "${courseName}"? This action cannot be undone.`,
+        typeof t === "function" ? t("btn_confirm_delete", "Yes, delete") : "Yes, delete"
     );
 
     if (!confirmed) return;
@@ -1285,7 +1335,7 @@ async function deleteCourse(id, courseName) {
             window._coursesForGPA = window._coursesForGPA.filter(c => String(c.id) !== idStr);
         }
 
-        showToast(`"${courseName}" deleted.`, "success");
+        showToast(typeof t === "function" ? t("toast_course_deleted_success", { name: courseName }) : `"${courseName}" deleted.`, "success");
         await loadCourses();
     } catch (err) {
         console.error("Course Delete Error:", err);
@@ -1486,4 +1536,4 @@ function openOfficialTranscriptModal() {
 
     document.body.appendChild(modal);
 }
-window.openOfficialTranscriptModal = openOfficialTranscriptModal;
+window.openOfficialTranscriptModal = openOfficialTranscriptModal;

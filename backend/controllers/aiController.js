@@ -5,7 +5,8 @@ exports.getCoachAdvice = function (req, res) {
     const userId = req.user.id;
     const targetGpa = parseFloat(req.body.targetGpa) || 3.0;
 
-    db.all("SELECT * FROM courses WHERE userId = ?", [userId], function (err, courses) {
+    // Only include courses that are part of the actual Grades table (listedInGrades = 1)
+    db.all("SELECT * FROM courses WHERE userId = ? AND COALESCE(listedInGrades, 1) = 1", [userId], function (err, courses) {
         if (err) {
             console.error("AI Coach Courses Error:", err);
             return res.status(500).json({ message: "Could not retrieve courses for AI analysis." });
@@ -18,6 +19,83 @@ exports.getCoachAdvice = function (req, res) {
         });
     });
 };
+
+exports.askCoachChat = async function (req, res) {
+    const userId = req.user.id;
+    const question = req.body.question || "";
+    const targetGpa = parseFloat(req.body.targetGpa) || 3.0;
+
+    if (!question.trim()) {
+        return res.status(400).json({ message: "Lütfen bir soru giriniz." });
+    }
+
+    const history = req.body.history || [];
+
+    // Safe DB query wrappers: if Turso cloud is offline/unreachable, do NOT crash with 500
+    const safeGet = (sql, params) => new Promise((resolve) => {
+        db.get(sql, params, (err, row) => {
+            if (err) console.warn("DB safeGet offline/fail (fallback used):", err.message);
+            resolve(row || null);
+        });
+    });
+
+    const safeAll = (sql, params) => new Promise((resolve) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) console.warn("DB safeAll offline/fail (fallback used):", err.message);
+            resolve(rows || []);
+        });
+    });
+
+    try {
+        const userRow = await safeGet("SELECT name, gradeLevel, department FROM users WHERE id = ?", [userId]);
+        const courses = await safeAll("SELECT * FROM courses WHERE userId = ? AND COALESCE(listedInGrades, 1) = 1", [userId]);
+        const exams = await safeAll("SELECT * FROM exams WHERE userId = ? ORDER BY examDate ASC", [userId]);
+        const todos = await safeAll("SELECT * FROM todos WHERE userId = ? AND isDone = 0 ORDER BY dueDate ASC", [userId]);
+        const studyRow = await safeGet("SELECT COALESCE(SUM(hours), 0) as totalHours FROM study_sessions WHERE userId = ?", [userId]);
+
+        const studentInfo = userRow || { name: req.user.name || "Aslıhan", department: "Bilgisayar Mühendisliği", gradeLevel: "4" };
+        const totalHours = studyRow ? studyRow.totalHours : 0;
+
+        const lang = req.body.lang || "en";
+        const result = await aiService.answerAcademicQuestion({
+            student: studentInfo,
+            courses: courses || [],
+            exams: exams || [],
+            todos: todos || [],
+            totalHours,
+            targetGpa,
+            question,
+            history,
+            lang
+        });
+
+        const answerText = typeof result === "object" ? result.answer : result;
+        const mode = typeof result === "object" ? result.mode : "offline";
+        const provider = typeof result === "object" ? result.provider : "Offline Mood";
+
+        return res.json({ success: true, answer: answerText, mode, provider });
+    } catch (chatErr) {
+        console.error("AI Chat Controller Fallback:", chatErr.message);
+        try {
+            const fallbackLocal = aiService.generateRichChatResponse({
+                student: { name: req.user.name || "Aslıhan" },
+                courses: [],
+                exams: [],
+                todos: [],
+                totalHours: 0,
+                targetGpa: 3.0,
+                question,
+                qLower: question.toLowerCase(),
+                history
+            });
+            return res.json({ success: true, answer: fallbackLocal, mode: "offline", provider: "Offline Mood" });
+        } catch (innerErr) {
+            return res.status(500).json({ message: "AI Koç yanıt oluştururken bir hata oluştu." });
+        }
+    }
+};
+
+
 
 exports.parseSyllabus = function (req, res) {
     const text = req.body.text || "";

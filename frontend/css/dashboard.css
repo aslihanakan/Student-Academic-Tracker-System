@@ -195,6 +195,149 @@
     letter-spacing: 0.4px;
 }
 
+/* Horizontal Full-Width Buddies Streaks & Rank Card */
+.buddies-streak-rank-card {
+    grid-column: 1 / -1;
+    cursor: pointer;
+    background: var(--theme-hero-card-bg, linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%));
+    border: 1px solid var(--theme-header-border, rgba(167, 243, 208, 0.35));
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 0 15px var(--theme-accent-glow, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+    align-items: stretch;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.35s ease;
+}
+
+.buddies-streak-rank-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px -5px rgba(0, 0, 0, 0.5), 0 0 25px var(--theme-accent-glow, transparent);
+    border-color: var(--theme-primary, rgba(255, 255, 255, 0.5));
+}
+
+.buddies-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    padding-bottom: 8px;
+}
+
+.buddies-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.buddies-card-icon {
+    font-size: 20px;
+}
+
+.buddies-card-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--theme-header-title, #ffffff);
+    line-height: 1.2;
+}
+
+.buddies-card-subtitle {
+    font-size: 11px;
+    color: var(--theme-active-nav-color, #e2e8f0);
+    font-weight: 600;
+}
+
+.buddies-card-badge {
+    background: var(--theme-active-nav-bg, rgba(255, 255, 255, 0.15));
+    border: 1px solid var(--theme-active-nav-border, rgba(255, 255, 255, 0.2));
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.buddies-top-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.buddy-top-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 6px 10px;
+    transition: background 0.15s ease;
+}
+
+.buddy-top-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.buddy-top-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.buddy-top-rank {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--theme-active-nav-color, #38bdf8);
+    width: 18px;
+}
+
+.buddy-top-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+}
+
+.buddy-top-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+}
+
+.buddy-top-streak {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #fde68a;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(245, 158, 11, 0.2);
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    flex-shrink: 0;
+}
+
+.buddies-empty-inline {
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    padding: 6px 0;
+    font-style: italic;
+}
+
 /* =========================================================
    CALENDAR & EVENT CELLS
 ========================================================= */
@@ -570,18 +713,18 @@
     margin-top: 10px;
     border: none;
     border-radius: 9px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: var(--theme-accent-gradient, linear-gradient(135deg, #3b82f6, #2563eb));
     color: #ffffff;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 5px 12px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 5px 12px var(--theme-accent-glow, rgba(37, 99, 235, 0.25));
     transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .day-note-save-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 7px 16px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 7px 16px var(--theme-accent-glow, rgba(37, 99, 235, 0.35));
 }
 
 .day-note-save-btn:active {

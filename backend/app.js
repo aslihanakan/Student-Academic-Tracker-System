@@ -26,8 +26,8 @@ const app = express();
 // MIDDLEWARE
 // =====================================================
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 // Live Server (port 3000) gibi farklı bir origin'den (ör. bilgisayarın
 // yerel ağ IP'si üzerinden mobil erişim) gelen istekler için CORS izni.

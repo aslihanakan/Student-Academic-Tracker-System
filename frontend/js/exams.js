@@ -23,10 +23,10 @@ function filterItemsByStatus(items, filter, dateKey, doneFn) {
 
 function buildStatusFilterTabs(groupKey, onclickFnName) {
     const labels = [
-        { key: "all", label: "All" },
-        { key: "upcoming", label: "Upcoming" },
-        { key: "overdue", label: "Overdue" },
-        { key: "completed", label: "Completed" }
+        { key: "all", label: (typeof t === "function" ? t("deadlines_all", "All") : "All") },
+        { key: "upcoming", label: (typeof t === "function" ? t("deadlines_upcoming", "Upcoming") : "Upcoming") },
+        { key: "overdue", label: (typeof t === "function" ? t("deadlines_overdue", "Overdue") : "Overdue") },
+        { key: "completed", label: (typeof t === "function" ? t("deadlines_completed", "Completed") : "Completed") }
     ];
 
     return `
@@ -37,7 +37,7 @@ function buildStatusFilterTabs(groupKey, onclickFnName) {
                     class="status-filter-tab${examsPageFilters[groupKey] === l.key ? " active" : ""}"
                     onclick="${onclickFnName}('${l.key}')"
                 >
-                    ${l.label}
+                    ${escapeHtml(l.label)}
                 </button>
             `).join("")}
         </div>
@@ -51,19 +51,23 @@ function isOlderThanThreeMonths(dateText) {
     return days !== null && days < -OLD_COMPLETED_DAYS_THRESHOLD;
 }
 
-async function cleanupOldCompletedRecords(items, dateKey, doneFn, deleteUrlFn, kindLabel) {
+async function cleanupOldCompletedRecords(items, dateKey, doneFn, deleteUrlFn, kindKey) {
     const stale = (items || []).filter(item => doneFn(item) && isOlderThanThreeMonths(item[dateKey]));
 
+    const noItemsKey = kindKey === "exams" ? "toast_no_old_completed_exams" : (kindKey === "projects" ? "toast_no_old_completed_projects" : "toast_no_old_completed_activities");
+    const confirmTitleKey = kindKey === "exams" ? "confirm_clean_old_exams_title" : (kindKey === "projects" ? "confirm_clean_old_projects_title" : "confirm_clean_old_activities_title");
+    const confirmMsgKey = kindKey === "exams" ? "confirm_clean_old_exams_msg" : (kindKey === "projects" ? "confirm_clean_old_projects_msg" : "confirm_clean_old_activities_msg");
+
     if (!stale.length) {
-        showToast(`No completed ${kindLabel} older than 3 months found.`, "success");
+        showToast(typeof t === "function" ? t(noItemsKey) : "No completed records older than 3 months found.", "success");
         return;
     }
 
-    const confirmed = await showConfirm(
-        `Delete Old Completed ${kindLabel}`,
-        `${stale.length} completed ${kindLabel.toLowerCase()} older than 3 months will be permanently deleted. Continue?`,
-        "Yes, delete"
-    );
+    const confirmTitle = typeof t === "function" ? t(confirmTitleKey) : "Delete Old Records";
+    const confirmMsg = typeof t === "function" ? t(confirmMsgKey, { n: stale.length }) : `${stale.length} old completed records will be deleted. Continue?`;
+    const confirmBtn = typeof t === "function" ? t("btn_confirm_delete", "Yes, delete") : "Yes, delete";
+
+    const confirmed = await showConfirm(confirmTitle, confirmMsg, confirmBtn);
 
     if (!confirmed) return;
 
@@ -77,13 +81,13 @@ async function cleanupOldCompletedRecords(items, dateKey, doneFn, deleteUrlFn, k
         if (failed) {
             showToast(`${failed} record(s) could not be deleted.`, "error");
         } else {
-            showToast(`${stale.length} old completed ${kindLabel.toLowerCase()} deleted.`, "success");
+            showToast(typeof t === "function" ? t("toast_stale_records_deleted", { n: stale.length, kind: "" }) : `${stale.length} old completed records deleted.`, "success");
         }
 
         await loadExamsPage();
     } catch (err) {
         console.error("Cleanup Old Completed Records Error:", err);
-        showToast("Old completed records could not be deleted.", "error");
+        showToast(typeof t === "function" ? t("toast_old_records_delete_err", "Old completed records could not be deleted.") : "Old completed records could not be deleted.", "error");
     }
 }
 
@@ -96,7 +100,7 @@ function cleanupOldCompletedExams() {
         "examDate",
         e => Number(e.isDone) === 1,
         id => `${API_URL}/exams/${id}`,
-        "Exams"
+        "exams"
     );
 }
 
@@ -109,7 +113,7 @@ function cleanupOldCompletedProjects() {
         "dueDate",
         p => p.status === "completed",
         id => `${API_URL}/projects/${id}`,
-        "Projects"
+        "projects"
     );
 }
 
@@ -122,7 +126,7 @@ function cleanupOldCompletedActivities() {
         "dueDate",
         a => Number(a.isDone) === 1,
         id => `${API_URL}/todos/${id}`,
-        "Activities"
+        "activities"
     );
 }
 
@@ -136,7 +140,7 @@ function buildFilterBarWithCleanup(groupKey, onclickFnName, cleanupFnName) {
                 onclick="${cleanupFnName}()"
                 title="Delete completed records older than 3 months"
             >
-                🧹 Delete Old Completed (3mo+)
+                🧹 ${escapeHtml(typeof t === "function" ? t("deadlines_clean_old", "Delete Old Completed (3mo+)") : "Delete Old Completed (3mo+)")}
             </button>
         </div>
     `;
@@ -167,32 +171,32 @@ async function loadExamsPage() {
 
         document.getElementById("app").innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-                <div style="font-size:13px; color:#64748b; font-weight:600;">
-                    Track and manage your upcoming exams, projects, and assignments.
+                <div style="font-size:13px; color:var(--theme-active-nav-color, #e2e8f0); font-weight:600;">
+                    ${escapeHtml(typeof t === "function" ? t("deadlines_subtitle", "Track and manage your upcoming exams, projects, and assignments.") : "Track and manage your upcoming exams, projects, and assignments.")}
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button
                         type="button"
                         class="btn-primary"
                         onclick="openSyllabusImportModal()"
-                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:700; border-radius:9px; background:linear-gradient(135deg, #059669, #047857); color:#fff; border:none; cursor:pointer; box-shadow:0 2px 4px rgba(5,150,105,0.2);"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:700; border-radius:9px; background:var(--theme-active-nav-bg, rgba(255,255,255,0.12)); border:1px solid var(--theme-active-nav-border, rgba(255,255,255,0.25)); color:#fff; cursor:pointer; box-shadow:0 2px 8px var(--theme-accent-glow, transparent);"
                     >
-                        📑 Smart Syllabus Import
+                        📑 ${escapeHtml(typeof t === "function" ? t("deadlines_syllabus_import", "Smart Syllabus Import") : "Smart Syllabus Import")}
                     </button>
                     <button
                         type="button"
                         class="btn-primary"
                         onclick="openCalendarExportModal()"
-                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:700; border-radius:9px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; border:none; cursor:pointer; box-shadow:0 2px 4px rgba(37,99,235,0.2);"
+                        style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:700; border-radius:9px; background:var(--theme-accent-gradient, linear-gradient(135deg, #2563eb, #1d4ed8)); color:#fff; border:none; cursor:pointer; box-shadow:0 3px 12px var(--theme-accent-glow, rgba(37,99,235,0.25));"
                     >
-                        📅 Add to Calendar
+                        📅 ${escapeHtml(typeof t === "function" ? t("dash_add_to_cal", "Add to Calendar") : "Add to Calendar")}
                     </button>
                 </div>
             </div>
 
             <div class="form-box add-form-box">
                 <div class="form-box-header" onclick="toggleAddFormBox(this)">
-                    <h2>Add Exam</h2>
+                    <h2>${escapeHtml(typeof t === "function" ? t("deadlines_add_exam", "Add Exam") : "Add Exam")}</h2>
                     <span class="form-box-chevron">▾</span>
                 </div>
 
@@ -200,23 +204,23 @@ async function loadExamsPage() {
                     type="text"
                     id="examCourseName"
                     list="examCourseNameOptions"
-                    placeholder="Select or type a course name..."
+                    placeholder="${escapeHtml(typeof t === 'function' ? t('deadlines_course_select_placeholder', 'Select or type a course name...') : 'Select or type a course name...')}"
                     autocomplete="off"
                     oninput="fillCourseInfoByName('examCourseName', 'examTeacherName')"
                 >
                 <datalist id="examCourseNameOptions">${courseNameDatalistOptions}</datalist>
 
-                <input type="text" id="examTeacherName" placeholder="Instructor name">
+                <input type="text" id="examTeacherName" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_instructor_placeholder', 'Instructor Name') : 'Instructor name')}">
                 <input type="date" id="examDate">
 
                 <select id="examType">
-                    <option value="midterm">Midterm</option>
-                    <option value="final">Final</option>
-                    <option value="quiz">Quiz</option>
-                    <option value="other">Other</option>
+                    <option value="midterm">${escapeHtml(typeof t === "function" ? t("deadlines_type_midterm", "Midterm") : "Midterm")}</option>
+                    <option value="final">${escapeHtml(typeof t === "function" ? t("deadlines_type_final", "Final") : "Final")}</option>
+                    <option value="quiz">${escapeHtml(typeof t === "function" ? t("deadlines_type_quiz", "Quiz") : "Quiz")}</option>
+                    <option value="other">${escapeHtml(typeof t === "function" ? t("deadlines_type_other", "Other") : "Other")}</option>
                 </select>
 
-                <button id="examSaveButton" onclick="saveExam()">Save Exam</button>
+                <button id="examSaveButton" onclick="saveExam()">${escapeHtml(typeof t === "function" ? t("deadlines_save_exam", "Save Exam") : "Save Exam")}</button>
             </div>
 
             <div id="examsFilterTabsWrap">${buildFilterBarWithCleanup("exams", "setExamsFilter", "cleanupOldCompletedExams")}</div>
@@ -224,13 +228,13 @@ async function loadExamsPage() {
             <table>
                 <thead>
                     <tr>
-                        <th>Course</th>
-                        <th>Instructor</th>
-                        <th>Type</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Done</th>
-                        <th>Action</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_course", "Course") : "Course")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_instructor", "Instructor") : "Instructor")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("deadlines_table_type", "Type") : "Type")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("deadlines_table_date", "Date") : "Date")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_status", "Status") : "Status")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("btn_done", "Done") : "Done")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_action", "Action") : "Action")}</th>
                     </tr>
                 </thead>
                 <tbody id="examsTableBody"></tbody>
@@ -238,7 +242,7 @@ async function loadExamsPage() {
 
             <div class="form-box add-form-box">
                 <div class="form-box-header" onclick="toggleAddFormBox(this)">
-                    <h2>Add Project</h2>
+                    <h2>${escapeHtml(typeof t === "function" ? t("deadlines_add_project", "Add Project") : "Add Project")}</h2>
                     <span class="form-box-chevron">▾</span>
                 </div>
 
@@ -246,37 +250,37 @@ async function loadExamsPage() {
                     type="text"
                     id="projectCourseName"
                     list="projectCourseNameOptions"
-                    placeholder="Select or type a course name..."
+                    placeholder="${escapeHtml(typeof t === 'function' ? t('deadlines_course_select_placeholder', 'Select or type a course name...') : 'Select or type a course name...')}"
                     autocomplete="off"
                     oninput="fillCourseInfoByName('projectCourseName', 'projectTeacherName')"
                 >
                 <datalist id="projectCourseNameOptions">${courseNameDatalistOptions}</datalist>
 
-                <input type="text" id="projectTopic" placeholder="Project topic">
-                <input type="text" id="projectTeacherName" placeholder="Instructor name">
+                <input type="text" id="projectTopic" placeholder="${escapeHtml(typeof t === 'function' ? t('deadlines_project_topic_placeholder', 'Project topic') : 'Project topic')}">
+                <input type="text" id="projectTeacherName" placeholder="${escapeHtml(typeof t === 'function' ? t('courses_instructor_placeholder', 'Instructor Name') : 'Instructor name')}">
                 <input type="date" id="projectDueDate">
 
                 <select id="projectStatus">
-                    <option value="pending">Pending</option>
-                    <option value="in progress">In Progress</option>
-                    <option value="completed">Completed</option>
+                    <option value="pending">${escapeHtml(typeof t === "function" ? t("status_pending", "Pending") : "Pending")}</option>
+                    <option value="in progress">${escapeHtml(typeof t === "function" ? t("status_in_progress", "In Progress") : "In Progress")}</option>
+                    <option value="completed">${escapeHtml(typeof t === "function" ? t("status_completed", "Completed") : "Completed")}</option>
                 </select>
 
-                <button id="projectSaveButton" onclick="saveProject()">Save Project</button>
+                <button id="projectSaveButton" onclick="saveProject()">${escapeHtml(typeof t === "function" ? t("deadlines_save_project", "Save Project") : "Save Project")}</button>
             </div>
 
-            <div id="examsFilterTabsWrap">${buildFilterBarWithCleanup("exams", "setExamsFilter", "cleanupOldCompletedExams")}</div>
+            <div id="projectsFilterTabsWrap">${buildFilterBarWithCleanup("projects", "setProjectsFilter", "cleanupOldCompletedProjects")}</div>
 
             <table>
                 <thead>
                     <tr>
-                        <th>Course</th>
-                        <th>Project Topic</th>
-                        <th>Instructor</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                        <th>Done</th>
-                        <th>Action</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_course", "Course") : "Course")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("deadlines_table_project_topic", "Project Topic") : "Project Topic")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_instructor", "Instructor") : "Instructor")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("deadlines_due_date", "Due Date") : "Due Date")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_status", "Status") : "Status")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("btn_done", "Done") : "Done")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_action", "Action") : "Action")}</th>
                     </tr>
                 </thead>
                 <tbody id="projectsTableBody"></tbody>
@@ -284,23 +288,23 @@ async function loadExamsPage() {
 
             <div class="form-box add-form-box">
                 <div class="form-box-header" onclick="toggleAddFormBox(this)">
-                    <h2>Add Activity <span style="font-weight:400;color:#94a3b8;font-size:12px;">(homework, quiz, etc.)</span></h2>
+                    <h2>${escapeHtml(typeof t === "function" ? t("deadlines_add_activity", "Add Activity (homework, quiz, etc.)") : "Add Activity (homework, quiz, etc.)")}</h2>
                     <span class="form-box-chevron">▾</span>
                 </div>
 
-                <input type="text" id="activityCourseName" list="activityCourseNameOptions" placeholder="Select or type a course name..." autocomplete="off">
+                <input type="text" id="activityCourseName" list="activityCourseNameOptions" placeholder="${escapeHtml(typeof t === 'function' ? t('deadlines_course_select_placeholder', 'Select or type a course name...') : 'Select or type a course name...')}" autocomplete="off">
                 <datalist id="activityCourseNameOptions">${courseNameDatalistOptions}</datalist>
 
                 <select id="activityType">
-                    <option value="homework">Homework</option>
-                    <option value="quiz">Quiz</option>
-                    <option value="other">Other</option>
+                    <option value="homework">${escapeHtml(typeof t === "function" ? t("deadlines_type_homework", "Homework") : "Homework")}</option>
+                    <option value="quiz">${escapeHtml(typeof t === "function" ? t("deadlines_type_quiz", "Quiz") : "Quiz")}</option>
+                    <option value="other">${escapeHtml(typeof t === "function" ? t("deadlines_type_other", "Other") : "Other")}</option>
                 </select>
 
-                <input type="text" id="activityTitle" placeholder="What is it? (e.g. Chapter 3 exercises)">
+                <input type="text" id="activityTitle" placeholder="${escapeHtml(typeof t === 'function' ? t('deadlines_activity_title_placeholder', 'What is it? (e.g. Chapter 3 exercises)') : 'What is it? (e.g. Chapter 3 exercises)')}">
                 <input type="date" id="activityDueDate">
 
-                <button id="activitySaveButton" onclick="saveActivity()">Save Activity</button>
+                <button id="activitySaveButton" onclick="saveActivity()">${escapeHtml(typeof t === "function" ? t("deadlines_save_activity", "Save Activity") : "Save Activity")}</button>
             </div>
 
             <div id="activitiesFilterTabsWrap">${buildFilterBarWithCleanup("activities", "setActivitiesFilter", "cleanupOldCompletedActivities")}</div>
@@ -308,13 +312,13 @@ async function loadExamsPage() {
             <table>
                 <thead>
                     <tr>
-                        <th>Course</th>
-                        <th>Type</th>
-                        <th>Title</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                        <th>Done</th>
-                        <th>Action</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_course", "Course") : "Course")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("deadlines_table_type", "Type") : "Type")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("deadlines_table_title", "Title") : "Title")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("deadlines_due_date", "Due Date") : "Due Date")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_status", "Status") : "Status")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("btn_done", "Done") : "Done")}</th>
+                        <th>${escapeHtml(typeof t === "function" ? t("courses_table_action", "Action") : "Action")}</th>
                     </tr>
                 </thead>
                 <tbody id="activitiesTableBody"></tbody>
@@ -367,14 +371,6 @@ function renderExamsTableBody() {
                     <input type="checkbox" class="done-checkbox" ${Number(e.isDone) === 1 ? "checked" : ""} onchange="toggleExamDone('${escapeForOnclick(String(e.id))}', this.checked)">
                 </td>
                 <td class="action-buttons">
-                    <a
-                        href="${getGoogleCalendarUrl('[Exam] ' + (e.courseName || '') + ' - ' + (e.examName || 'Exam'), e.examDate, 'Type: ' + (e.examType || '') + ' | Instructor: ' + (e.instructorName || '-'))}"
-                        target="_blank"
-                        rel="noopener"
-                        class="icon-btn"
-                        title="Add to Google Calendar"
-                        style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:5px 7px; font-size:12px; border-radius:6px; background:#f1f5f9; border:1px solid #cbd5e1;"
-                    >📅+</a>
                     <button
                         class="btn-edit"
                         onclick="editExam(
@@ -385,10 +381,11 @@ function renderExamsTableBody() {
                             '${escapeForOnclick(e.examType)}',
                             '${escapeForOnclick(e.score ?? "")}'
                         )"
+                        title="Edit Exam"
                     >
                         ✏️
                     </button>
-                    <button class="btn-delete" onclick="deleteExam('${escapeForOnclick(String(e.id))}')">🗑️</button>
+                    <button class="btn-delete" onclick="deleteExam('${escapeForOnclick(String(e.id))}')" title="Delete Exam">🗑️</button>
                 </td>
             </tr>
         `).join("")
@@ -454,14 +451,6 @@ function renderProjectsTableBody() {
                     <input type="checkbox" class="done-checkbox" ${p.status === "completed" ? "checked" : ""} onchange="toggleProjectDone('${escapeForOnclick(String(p.id))}', this.checked)">
                 </td>
                 <td class="action-buttons">
-                    <a
-                        href="${getGoogleCalendarUrl('[Project] ' + (p.courseName || '') + ' - ' + (p.projectName || 'Project'), p.dueDate, 'Description: ' + (p.description || '') + ' | Status: ' + (p.status || ''))}"
-                        target="_blank"
-                        rel="noopener"
-                        class="icon-btn"
-                        title="Add to Google Calendar"
-                        style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:5px 7px; font-size:12px; border-radius:6px; background:#f1f5f9; border:1px solid #cbd5e1;"
-                    >📅+</a>
                     <button
                         class="btn-edit"
                         onclick="editProject(
@@ -473,10 +462,11 @@ function renderProjectsTableBody() {
                             '${escapeForOnclick(p.status)}',
                             '${escapeForOnclick(p.score ?? "")}'
                         )"
+                        title="Edit Project"
                     >
                         ✏️
                     </button>
-                    <button class="btn-delete" onclick="deleteProject('${escapeForOnclick(String(p.id))}')">🗑️</button>
+                    <button class="btn-delete" onclick="deleteProject('${escapeForOnclick(String(p.id))}')" title="Delete Project">🗑️</button>
                 </td>
             </tr>
         `).join("")
@@ -525,7 +515,7 @@ async function saveActivity() {
     const dueDate = document.getElementById("activityDueDate").value;
 
     if (!courseNameInput || !title || !dueDate) {
-        showToast("Course, title and due date are required.", "warning");
+        showToast(typeof t === "function" ? t("toast_activity_required", "Course, title and due date are required.") : "Course, title and due date are required.", "warning");
         return;
     }
 
@@ -533,7 +523,7 @@ async function saveActivity() {
         const courseId = await getOrCreateCourseIdByName(courseNameInput, "-", "exams");
 
         if (!courseId) {
-            showToast("Course could not be found or created.", "error");
+            showToast(typeof t === "function" ? t("toast_course_save_err", "Course could not be found or created.") : "Course could not be found or created.", "error");
             return;
         }
 
@@ -546,7 +536,7 @@ async function saveActivity() {
         });
 
         if (!response.ok) {
-            showToast("Activity could not be saved.", "error");
+            showToast(typeof t === "function" ? t("toast_activity_save_err", "Activity could not be saved.") : "Activity could not be saved.", "error");
             return;
         }
 
@@ -569,18 +559,19 @@ async function saveActivity() {
         document.getElementById("activityTitle").value = "";
         document.getElementById("activityDueDate").value = "";
 
-        showToast("Activity saved successfully!", "success");
+        showToast(typeof t === "function" ? t("toast_activity_saved_success", "Activity saved successfully!") : "Activity saved successfully!", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Activity Save Error:", err);
-        showToast("Activity could not be saved.", "error");
+        showToast(typeof t === "function" ? t("toast_activity_save_err", "Activity could not be saved.") : "Activity could not be saved.", "error");
     }
 }
 
 async function deleteActivity(id) {
     const confirmed = await showConfirm(
-        "Delete Activity",
-        "Are you sure you want to delete this activity? This action cannot be undone."
+        typeof t === "function" ? t("confirm_delete_activity_title", "Delete Activity") : "Delete Activity",
+        typeof t === "function" ? t("confirm_delete_activity_msg", "Are you sure you want to delete this activity? This action cannot be undone.") : "Are you sure you want to delete this activity? This action cannot be undone.",
+        typeof t === "function" ? t("btn_confirm_delete", "Yes, delete") : "Yes, delete"
     );
 
     if (!confirmed) return;
@@ -600,7 +591,7 @@ async function deleteActivity(id) {
             });
 
             if (!response.ok && response.status !== 404) {
-                showToast("Activity could not be deleted.", "error");
+                showToast(typeof t === "function" ? t("toast_activity_delete_err", "Activity could not be deleted.") : "Activity could not be deleted.", "error");
                 return;
             }
         }
@@ -618,11 +609,11 @@ async function deleteActivity(id) {
             }
         }
 
-        showToast("Activity deleted.", "success");
+        showToast(typeof t === "function" ? t("toast_activity_deleted_success", "Activity deleted.") : "Activity deleted.", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Activity Delete Error:", err);
-        showToast("Activity could not be deleted.", "error");
+        showToast(typeof t === "function" ? t("toast_activity_delete_err", "Activity could not be deleted.") : "Activity could not be deleted.", "error");
     }
 }
 
@@ -696,7 +687,7 @@ async function saveExam() {
     const examType = document.getElementById("examType").value;
 
     if (!courseNameInput || !examName || !examDate || !examType) {
-        showToast("Course, instructor name, date and exam type are required.", "warning");
+        showToast(typeof t === "function" ? t("toast_exam_required", "Course, instructor name, date and exam type are required.") : "Course, instructor name, date and exam type are required.", "warning");
         return;
     }
 
@@ -704,7 +695,7 @@ async function saveExam() {
         const courseId = await getOrCreateCourseIdByName(courseNameInput, examName, "exams");
 
         if (!courseId) {
-            showToast("Course could not be found or created.", "error");
+            showToast(typeof t === "function" ? t("toast_course_save_err", "Course could not be found or created.") : "Course could not be found or created.", "error");
             return;
         }
 
@@ -717,7 +708,7 @@ async function saveExam() {
         });
 
         if (!response.ok) {
-            showToast("Exam could not be saved.", "error");
+            showToast(typeof t === "function" ? t("toast_exam_save_err", "Exam could not be saved.") : "Exam could not be saved.", "error");
             return;
         }
 
@@ -736,18 +727,19 @@ async function saveExam() {
             window._allExams = [savedExam, ...window._allExams.filter(e => String(e.id) !== String(newId))];
         }
 
-        showToast("Exam saved successfully!", "success");
+        showToast(typeof t === "function" ? t("toast_exam_saved_success", "Exam saved successfully!") : "Exam saved successfully!", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Exam Save Error:", err);
-        showToast("Exam could not be saved.", "error");
+        showToast(typeof t === "function" ? t("toast_exam_save_err", "Exam could not be saved.") : "Exam could not be saved.", "error");
     }
 }
 
 async function deleteExam(id) {
     const confirmed = await showConfirm(
-        "Delete Exam",
-        "Are you sure you want to delete this exam? This action cannot be undone."
+        typeof t === "function" ? t("confirm_delete_exam_title", "Delete Exam") : "Delete Exam",
+        typeof t === "function" ? t("confirm_delete_exam_msg", "Are you sure you want to delete this exam? This action cannot be undone.") : "Are you sure you want to delete this exam? This action cannot be undone.",
+        typeof t === "function" ? t("btn_confirm_delete", "Yes, delete") : "Yes, delete"
     );
 
     if (!confirmed) return;
@@ -767,7 +759,7 @@ async function deleteExam(id) {
             });
 
             if (!response.ok && response.status !== 404) {
-                showToast("Exam could not be deleted.", "error");
+                showToast(typeof t === "function" ? t("toast_exam_delete_err", "Exam could not be deleted.") : "Exam could not be deleted.", "error");
                 return;
             }
         }
@@ -785,11 +777,11 @@ async function deleteExam(id) {
             }
         }
 
-        showToast("Exam deleted.", "success");
+        showToast(typeof t === "function" ? t("toast_exam_deleted_success", "Exam deleted.") : "Exam deleted.", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Exam Delete Error:", err);
-        showToast("Exam could not be deleted.", "error");
+        showToast(typeof t === "function" ? t("toast_exam_delete_err", "Exam could not be deleted.") : "Exam could not be deleted.", "error");
     }
 }
 
@@ -858,7 +850,7 @@ async function saveProject() {
     const status = document.getElementById("projectStatus").value;
 
     if (!courseNameInput || !projectName || !dueDate) {
-        showToast("Course, project topic and due date are required.", "warning");
+        showToast(typeof t === "function" ? t("toast_project_required", "Course, project topic and due date are required.") : "Course, project topic and due date are required.", "warning");
         return;
     }
 
@@ -866,7 +858,7 @@ async function saveProject() {
         const courseId = await getOrCreateCourseIdByName(courseNameInput, description, "exams");
 
         if (!courseId) {
-            showToast("Course could not be found or created.", "error");
+            showToast(typeof t === "function" ? t("toast_course_save_err", "Course could not be found or created.") : "Course could not be found or created.", "error");
             return;
         }
 
@@ -879,7 +871,7 @@ async function saveProject() {
         });
 
         if (!response.ok) {
-            showToast("Project could not be saved.", "error");
+            showToast(typeof t === "function" ? t("toast_project_save_err", "Project could not be saved.") : "Project could not be saved.", "error");
             return;
         }
 
@@ -898,18 +890,19 @@ async function saveProject() {
             window._allProjects = [savedProject, ...window._allProjects.filter(p => String(p.id) !== String(newId))];
         }
 
-        showToast("Project saved successfully!", "success");
+        showToast(typeof t === "function" ? t("toast_project_saved_success", "Project saved successfully!") : "Project saved successfully!", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Project Save Error:", err);
-        showToast("Project could not be saved.", "error");
+        showToast(typeof t === "function" ? t("toast_project_save_err", "Project could not be saved.") : "Project could not be saved.", "error");
     }
 }
 
 async function deleteProject(id) {
     const confirmed = await showConfirm(
-        "Delete Project",
-        "Are you sure you want to delete this project? This action cannot be undone."
+        typeof t === "function" ? t("confirm_delete_project_title", "Delete Project") : "Delete Project",
+        typeof t === "function" ? t("confirm_delete_project_msg", "Are you sure you want to delete this project? This action cannot be undone.") : "Are you sure you want to delete this project? This action cannot be undone.",
+        typeof t === "function" ? t("btn_confirm_delete", "Yes, delete") : "Yes, delete"
     );
 
     if (!confirmed) return;
@@ -929,7 +922,7 @@ async function deleteProject(id) {
             });
 
             if (!response.ok && response.status !== 404) {
-                showToast("Project could not be deleted.", "error");
+                showToast(typeof t === "function" ? t("toast_project_delete_err", "Project could not be deleted.") : "Project could not be deleted.", "error");
                 return;
             }
         }
@@ -947,11 +940,11 @@ async function deleteProject(id) {
             }
         }
 
-        showToast("Project deleted.", "success");
+        showToast(typeof t === "function" ? t("toast_project_deleted_success", "Project deleted.") : "Project deleted.", "success");
         await loadExamsPage();
     } catch (err) {
         console.error("Project Delete Error:", err);
-        showToast("Project could not be deleted.", "error");
+        showToast(typeof t === "function" ? t("toast_project_delete_err", "Project could not be deleted.") : "Project could not be deleted.", "error");
     }
 }
 

@@ -136,17 +136,21 @@
 }
 
 .status-filter-tab.active {
-    background: #2563eb !important;
-    border-color: #2563eb;
+    background: var(--theme-primary, #2563eb) !important;
+    border-color: var(--theme-primary, #2563eb);
     color: #ffffff !important;
 }
 
 .done-checkbox {
-    width: 18px;
-    height: 18px;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
     margin: 0 !important;
+    padding: 0 !important;
     cursor: pointer;
     accent-color: #22c55e;
+    flex-shrink: 0 !important;
 }
 
 td.done-cell {

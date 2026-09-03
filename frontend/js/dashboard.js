@@ -15,7 +15,8 @@ async function loadDashboard() {
             exams,
             projects,
             todos,
-            dayNotesResult
+            dayNotesResult,
+            buddiesResult
         ] = await Promise.all([
             fetchJson(`${API_URL}/dashboard`),
             fetchJson(`${API_URL}/courses?includeUnlisted=1`),
@@ -23,7 +24,8 @@ async function loadDashboard() {
             fetchJson(`${API_URL}/exams`),
             fetchJson(`${API_URL}/projects`),
             fetchJson(`${API_URL}/todos`),
-            fetchJson(`${API_URL}/day-notes`).catch(() => [])
+            fetchJson(`${API_URL}/day-notes`).catch(() => []),
+            fetchJson(`${API_URL}/buddies`).catch(() => null)
         ]);
 
         window._dashboardActivities = todos;
@@ -77,6 +79,11 @@ async function loadDashboard() {
             ? (weeklySessions.reduce((s, i) => s + Number(i.hours || 0), 0) / 7).toFixed(1)
             : 0;
 
+        const buddiesList = (buddiesResult && Array.isArray(buddiesResult.buddies)) ? buddiesResult.buddies : [];
+        const top2Buddies = [...buddiesList]
+            .sort((a, b) => (Number(b.streak) || 0) - (Number(a.streak) || 0))
+            .slice(0, 2);
+
         const chartColors = ["#3b82f6", "#22c55e", "#f97316", "#8b5cf6", "#ec4899", "#14b8a6", "#f59e0b"];
 
         function buildDonutChart(items) {
@@ -96,7 +103,7 @@ async function loadDashboard() {
 
         function buildLegend(items) {
             const total = items.reduce((sum, i) => sum + i.value, 0);
-            if (!items.length || total === 0) return `<p class="empty-text">No study data found.</p>`;
+            if (!items.length || total === 0) return `<p class="empty-text">${escapeHtml(typeof t === "function" ? t("dash_no_study_data", "No study data found.") : "No study data found.")}</p>`;
 
             return items.map((item, idx) => {
                 const pct = Math.round((item.value / total) * 100);
@@ -122,10 +129,12 @@ async function loadDashboard() {
         }
 
         function groupByDay(list) {
-            const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayKeys = ["day_sun", "day_mon", "day_tue", "day_wed", "day_thu", "day_fri", "day_sat"];
+            const dayFallbacks = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const g = {};
             list.forEach(s => {
-                const n = names[new Date(String(s.studyDate).split("T")[0] + "T00:00:00").getDay()];
+                const dayIdx = new Date(String(s.studyDate).split("T")[0] + "T00:00:00").getDay();
+                const n = (typeof t === "function") ? t(dayKeys[dayIdx], dayFallbacks[dayIdx]) : dayFallbacks[dayIdx];
                 g[n] = (g[n] || 0) + Number(s.hours || 0);
             });
             return Object.keys(g).map(n => ({ label: n, value: Number(g[n].toFixed(1)) }));
@@ -149,24 +158,66 @@ async function loadDashboard() {
                 isDone: p.status === "completed"
             }))
         ]
-        .filter(i => i.date)
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+        .filter(i => i.date);
 
-        const nearest = calendarDeadlines.length ? calendarDeadlines[0] : null;
-        const nearestDays = nearest ? calculateDaysLeft(nearest.date) : null;
-        const counterWidth = nearestDays !== null
-            ? Math.max(8, Math.min(100, nearestDays <= 0 ? 100 : Math.max(8, 100 - nearestDays * 5)))
-            : 0;
+        // Attach daysLeft to all deadlines
+        const allDeadlinesWithDays = calendarDeadlines.map(item => ({
+            ...item,
+            daysLeft: calculateDaysLeft(item.date)
+        }));
 
-        const barColor = nearest ? "#ef4444" : "#3b82f6";
+        // 1. Prefer uncompleted upcoming deadlines (today or future)
+        const upcomingActive = allDeadlinesWithDays
+            .filter(i => !i.isDone && i.daysLeft !== null && i.daysLeft >= 0)
+            .sort((a, b) => a.daysLeft - b.daysLeft);
 
-        const upcomingDeadlines = calendarDeadlines
+        // 2. Uncompleted overdue deadlines (past date)
+        const overdueUncompleted = allDeadlinesWithDays
+            .filter(i => !i.isDone && i.daysLeft !== null && i.daysLeft < 0)
+            .sort((a, b) => b.daysLeft - a.daysLeft); // most recent overdue first
+
+        // Nearest deadline selection: prefer upcoming active; if none, show most recent overdue
+        const nearest = upcomingActive.length
+            ? upcomingActive[0]
+            : (overdueUncompleted.length ? overdueUncompleted[0] : null);
+
+        const nearestDays = nearest ? nearest.daysLeft : null;
+
+        let nearestDaysText = "";
+        let barColor = "#3b82f6";
+        let counterWidth = 0;
+
+        if (nearestDays !== null) {
+            if (nearestDays < 0) {
+                nearestDaysText = `⚠️ ${(typeof t === "function" ? t("dash_overdue_days", { n: Math.abs(nearestDays) }) : `Overdue (${Math.abs(nearestDays)}d ago)`)}`;
+                barColor = "#ef4444";
+                counterWidth = 100;
+            } else if (nearestDays === 0) {
+                nearestDaysText = `⚠️ ${(typeof t === "function" ? t("dash_today_exclamation", "Today!") : "Today!")}`;
+                barColor = "#ef4444";
+                counterWidth = 100;
+            } else if (nearestDays === 1) {
+                nearestDaysText = `⏰ ${(typeof t === "function" ? t("dash_tomorrow", "Tomorrow (1 day left)") : "Tomorrow (1 day left)")}`;
+                barColor = "#f97316";
+                counterWidth = 90;
+            } else if (nearestDays <= 3) {
+                nearestDaysText = (typeof t === "function") ? t("dash_days_left", { n: nearestDays }) : `${nearestDays} days left`;
+                barColor = "#f97316";
+                counterWidth = Math.max(10, 100 - nearestDays * 12);
+            } else if (nearestDays <= 7) {
+                nearestDaysText = (typeof t === "function") ? t("dash_days_left", { n: nearestDays }) : `${nearestDays} days left`;
+                barColor = "#eab308";
+                counterWidth = Math.max(10, 100 - nearestDays * 8);
+            } else {
+                nearestDaysText = (typeof t === "function") ? t("dash_days_left", { n: nearestDays }) : `${nearestDays} days left`;
+                barColor = "#3b82f6";
+                counterWidth = Math.max(10, 100 - nearestDays * 5);
+            }
+        }
+
+        const upcomingDeadlines = upcomingActive
             .slice(1)
-            .map(item => ({
-                ...item,
-                daysLeft: calculateDaysLeft(item.date)
-            }))
-            .filter(item => item.daysLeft !== null && item.daysLeft >= 0 && item.daysLeft <= 10);
+            .filter(item => item.daysLeft !== null && item.daysLeft <= 10);
 
         calendarYear = today.getFullYear();
         calendarMonth = today.getMonth();
@@ -180,16 +231,16 @@ async function loadDashboard() {
                 <div class="analytics-card">
                     <div class="analytics-top">
                         <div>
-                            <h3>Daily Average</h3>
+                            <h3>${escapeHtml(typeof t === "function" ? t("dash_daily_avg", "Daily Average") : "Daily Average")}</h3>
                             <div class="big-number">${dailyAverage}h</div>
-                            <span class="green-label">Today</span>
+                            <span class="green-label">${escapeHtml(typeof t === "function" ? t("dash_today", "Today") : "Today")}</span>
                         </div>
                         ${buildDonutChart(groupByCourse(todaySessions))}
                     </div>
-                    <h4>Study Time by Course</h4>
+                    <h4>${escapeHtml(typeof t === "function" ? t("dash_study_by_course", "Study Time by Course") : "Study Time by Course")}</h4>
                     ${buildLegend(groupByCourse(todaySessions))}
                     <div class="chart-total">
-                        <span>Total</span>
+                        <span>${escapeHtml(typeof t === "function" ? t("dash_total", "Total") : "Total")}</span>
                         <strong>${dailyTotal}h</strong>
                     </div>
                 </div>
@@ -197,16 +248,16 @@ async function loadDashboard() {
                 <div class="analytics-card">
                     <div class="analytics-top">
                         <div>
-                            <h3>Weekly Average</h3>
+                            <h3>${escapeHtml(typeof t === "function" ? t("dash_weekly_avg", "Weekly Average") : "Weekly Average")}</h3>
                             <div class="big-number">${weeklyAverage}h</div>
-                            <span class="green-label">Last 7 days</span>
+                            <span class="green-label">${escapeHtml(typeof t === "function" ? t("dash_last_7_days", "Last 7 days") : "Last 7 days")}</span>
                         </div>
                         ${buildDonutChart(groupByDay(weeklySessions))}
                     </div>
-                    <h4>Study Time by Day</h4>
+                    <h4>${escapeHtml(typeof t === "function" ? t("dash_study_by_day", "Study Time by Day") : "Study Time by Day")}</h4>
                     ${buildLegend(groupByDay(weeklySessions))}
                     <div class="chart-total">
-                        <span>Total</span>
+                        <span>${escapeHtml(typeof t === "function" ? t("dash_total", "Total") : "Total")}</span>
                         <strong>${weeklyTotal}h</strong>
                     </div>
                 </div>
@@ -217,12 +268,12 @@ async function loadDashboard() {
             <div class="dashboard-main-layout">
 
                 <div class="panel nearest-panel" style="display: flex; flex-direction: column; gap: 14px;">
-                    <div style="display: grid; grid-template-columns: 1fr 215px; gap: 18px; align-items: stretch;">
+                    <div style="display: grid; grid-template-columns: 1fr minmax(260px, 300px); gap: 18px; align-items: stretch;">
                         
                         <!-- SOL BÖLÜM: Nearest Deadline & Upcoming -->
                         <div style="display: flex; flex-direction: column; justify-content: space-between; min-width: 0;">
                             <div>
-                                <h2 style="margin-top: 0; margin-bottom: 12px;">Nearest Deadline</h2>
+                                <h2 style="margin-top: 0; margin-bottom: 12px;">${escapeHtml(typeof t === "function" ? t("dash_nearest_deadline", "Nearest Deadline") : "Nearest Deadline")}</h2>
                                 ${
                                     nearest
                                         ? `
@@ -232,8 +283,8 @@ async function loadDashboard() {
                                         <div class="deadline-instructor">👨‍🏫 ${escapeHtml(nearest.detail)}</div>
                                         <div class="deadline-date-row">
                                             <span class="deadline-date">📅 ${escapeHtml(nearest.date)}</span>
-                                            <span class="deadline-days" style="color:${barColor}; font-weight:800; font-size:20px;">
-                                                ${nearestDays <= 0 ? "⚠️ Today!" : `${nearestDays} day(s) left`}
+                                            <span class="deadline-days" style="color:${barColor}; font-weight:800; font-size:18px;">
+                                                ${nearestDaysText}
                                             </span>
                                         </div>
                                         <div class="progress-bar full">
@@ -241,7 +292,7 @@ async function loadDashboard() {
                                         </div>
                                     </div>
                                     `
-                                        : `<p class="empty-text">No deadline found.</p>`
+                                        : `<p class="empty-text">${escapeHtml(typeof t === "function" ? t("dash_no_deadlines", "No upcoming deadlines found.") : "No upcoming deadlines found.")}</p>`
                                 }
                             </div>
 
@@ -250,10 +301,13 @@ async function loadDashboard() {
                                     ? `
                                 <div style="margin-top: 12px; display: flex; flex-direction: column;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-                                        Upcoming (next 10 days)
+                                        ${escapeHtml(typeof t === "function" ? t("dash_upcoming_10_days", "Upcoming (next 10 days)") : "Upcoming (next 10 days)")}
                                     </div>
                                     ${upcomingDeadlines.map(item => {
                                         const itemColor = getDeadlineProximityColor(item.daysLeft);
+                                        const daysLabelText = (typeof t === "function")
+                                            ? (item.daysLeft === 0 ? t("dash_today_exclamation", "Today!") : (item.daysLeft === 1 ? t("dash_tomorrow", "Tomorrow") : t("dash_days_left", { n: item.daysLeft })))
+                                            : (item.daysLeft === 0 ? "Today!" : item.daysLeft === 1 ? "Tomorrow" : `${item.daysLeft} day(s) left`);
                                         return `
                                             <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #f1f5f9;">
                                                 <div style="min-width: 0; display: flex; align-items: center; gap: 6px;">
@@ -263,7 +317,7 @@ async function loadDashboard() {
                                                     </span>
                                                 </div>
                                                 <span style="flex-shrink: 0; font-size: 12px; font-weight: 700; color: ${itemColor};">
-                                                    ${item.daysLeft <= 0 ? "Today!" : `${item.daysLeft} day(s) left`}
+                                                    ${daysLabelText}
                                                 </span>
                                             </div>
                                         `;
@@ -275,10 +329,10 @@ async function loadDashboard() {
                         </div>
 
                         <!-- SAĞ BÖLÜM: Dikey Quick Reminders Paneli -->
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-width: 0;">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0;">
                                 <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
-                                    📝 Quick Reminders
+                                    📝 ${escapeHtml(typeof t === "function" ? t("dash_quick_reminders", "Quick Reminders") : "Quick Reminders")}
                                 </h3>
                                 <span style="font-size: 11px; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 2px 6px; border-radius: 10px;">
                                     ${reminderActivities.length}
@@ -291,44 +345,44 @@ async function loadDashboard() {
                                         ? reminderActivities.map(item => {
                                             const overdue = item.daysLeft !== null && item.daysLeft < 0;
                                             const itemColor = overdue ? "#ef4444" : getDeadlineProximityColor(item.daysLeft);
-                                            const daysLabel = item.daysLeft === null ? "-" : overdue ? "Overdue" : item.daysLeft === 0 ? "Today!" : `${item.daysLeft}d left`;
+                                            const daysLabel = item.daysLeft === null ? "-" : (typeof t === "function" ? (overdue ? t("status_overdue", "Overdue") : (item.daysLeft === 0 ? t("dash_today_exclamation", "Today!") : t("dash_days_left", { n: item.daysLeft }))) : (overdue ? "Overdue" : item.daysLeft === 0 ? "Today!" : `${item.daysLeft}d left`));
                                             const formattedDueDate = toDateText(item.dueDate);
 
                                             return `
-                                                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 8px; background: #ffffff; border: 1px solid #edf2f7; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                                                    <div style="display: flex; align-items: flex-start; gap: 8px; min-width: 0;">
-                                                        <input
-                                                            type="checkbox"
-                                                            class="done-checkbox"
-                                                            style="margin-top: 2px; cursor: pointer;"
-                                                            onchange="toggleDashboardReminderDone('${item.id}', this.checked)"
-                                                        >
-                                                        <div style="display: flex; flex-direction: column; min-width: 0;">
-                                                            <div style="display: flex; align-items: center; gap: 5px;">
-                                                                <span class="reminder-type-tag" style="font-size: 10px; padding: 1px 5px;">
-                                                                    ${escapeHtml(toTitleCase(item.type))}
-                                                                </span>
-                                                                <span style="font-size: 12px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                                    ${escapeHtml(item.courseName)}
-                                                                </span>
-                                                            </div>
-                                                            <span style="font-size: 11px; color: #475569; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                                ${escapeHtml(item.title)}
+                                                <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: #ffffff; border: 1px solid #edf2f7; border-radius: 9px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="done-checkbox"
+                                                        style="margin-top: 3px; cursor: pointer; flex-shrink: 0;"
+                                                        onchange="toggleDashboardReminderDone('${item.id}', this.checked)"
+                                                    >
+                                                    <div style="display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 3px;">
+                                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                                            <span class="reminder-type-tag" style="font-size: 10px; padding: 1px 6px; flex-shrink: 0;">
+                                                                ${escapeHtml(toTitleCase(item.type))}
                                                             </span>
-                                                            ${
-                                                                formattedDueDate
-                                                                    ? `<span style="font-size: 10px; color: #94a3b8; margin-top: 2px;">📅 ${escapeHtml(formattedDueDate)}</span>`
-                                                                    : ""
-                                                            }
+                                                            <span style="flex-shrink: 0; font-size: 11px; font-weight: 700; color: ${itemColor}; white-space: nowrap;">
+                                                                ${daysLabel}
+                                                            </span>
                                                         </div>
+                                                        <div style="font-size: 12.5px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;">
+                                                            ${escapeHtml(item.courseName || item.title)}
+                                                        </div>
+                                                        ${
+                                                            item.courseName && item.title && item.courseName !== item.title
+                                                                ? `<div style="font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.title)}</div>`
+                                                                : ""
+                                                        }
+                                                        ${
+                                                            formattedDueDate
+                                                                ? `<div style="font-size: 10.5px; color: #94a3b8; white-space: nowrap; margin-top: 1px;">📅 ${escapeHtml(formattedDueDate)}</div>`
+                                                                : ""
+                                                        }
                                                     </div>
-                                                    <span style="flex-shrink: 0; font-size: 11px; font-weight: 700; color: ${itemColor}; margin-top: 2px;">
-                                                        ${daysLabel}
-                                                    </span>
                                                 </div>
                                             `;
                                         }).join("")
-                                        : `<p class="empty-text" style="font-size: 12px; margin: 10px 0;">No pending activities.</p>`
+                                        : `<p class="empty-text" style="font-size: 12px; margin: 10px 0;">${escapeHtml(typeof t === "function" ? t("dash_no_reminders", "No pending activities.") : "No pending activities.")}</p>`
                                 }
                             </div>
                         </div>
@@ -340,39 +394,76 @@ async function loadDashboard() {
                     <div class="mini-stat-card">
                         <div class="mini-stat-icon">📚</div>
                         <div class="mini-stat-number">${totalCourses}</div>
-                        <div class="mini-stat-label">Active Courses</div>
+                        <div class="mini-stat-label">${escapeHtml(typeof t === "function" ? t("dash_active_courses_label", "Active Courses") : "Active Courses")}</div>
                     </div>
 
                     <div class="mini-stat-card">
                         <div class="mini-stat-icon">⏰</div>
                         <div class="mini-stat-number">${totalHours}h</div>
-                        <div class="mini-stat-label">Total Study</div>
+                        <div class="mini-stat-label">${escapeHtml(typeof t === "function" ? t("dash_total_study_label", "Total Study") : "Total Study")}</div>
                     </div>
 
-                    <div class="mini-stat-card" onclick="openAiCoachModal()" style="cursor:pointer; background:linear-gradient(135deg, #1e1b4b, #312e81); border:1px solid rgba(199,210,254,0.3); color:#fff;" title="Click to open AI Coach">
-                        <div class="mini-stat-icon">🤖</div>
-                        <div class="mini-stat-number" style="font-size:15px; margin:4px 0; color:#c7d2fe;">AI Coach</div>
-                        <div class="mini-stat-label" style="color:#a5b4fc;">GPA Strategy</div>
-                    </div>
+                    <!-- Horizontal Full-Width Buddies Streaks & Top 2 Buddies Card -->
+                    <div class="buddies-streak-rank-card" onclick="openBuddiesModal()" title="Click to view Academi Buddies and Streaks Leaderboard">
+                        <div class="buddies-card-header">
+                            <div class="buddies-card-title-group">
+                                <span class="buddies-card-icon">🔥</span>
+                                <div>
+                                    <div class="buddies-card-title">${escapeHtml(typeof t === "function" ? t("dash_buddies_label", "Buddies") : "Buddies")}</div>
+                                    <div class="buddies-card-subtitle">${escapeHtml(typeof t === "function" ? t("dash_streaks_rank", "Streaks & Rank") : "Streaks & Rank")}</div>
+                                </div>
+                            </div>
+                            <div class="buddies-card-badge">
+                                ${buddiesList.length} ${typeof t === 'function' ? (buddiesList.length === 1 ? t('dash_buddy_single', 'Buddy') : t('dash_buddy_plural', 'Buddies')) : (buddiesList.length === 1 ? 'Buddy' : 'Buddies')}
+                            </div>
+                        </div>
 
-                    <div class="mini-stat-card" onclick="openBuddiesModal()" style="cursor:pointer; background:linear-gradient(135deg, #064e3b, #065f46); border:1px solid rgba(167,243,208,0.3); color:#fff;" title="Click to view Academi Buddies">
-                        <div class="mini-stat-icon">🔥</div>
-                        <div class="mini-stat-number" style="font-size:15px; margin:4px 0; color:#a7f3d0;">Buddies</div>
-                        <div class="mini-stat-label" style="color:#6ee7b7;">Streaks &amp; Rank</div>
+                        <div class="buddies-top-list">
+                            ${
+                                top2Buddies.length > 0
+                                    ? top2Buddies.map((b, idx) => `
+                                        <div class="buddy-top-item">
+                                            <div class="buddy-top-info">
+                                                <div class="buddy-top-rank">#${idx + 1}</div>
+                                                <img src="${escapeHtml(typeof getAvatarSrc === 'function' ? getAvatarSrc(b.avatar) : 'icons/' + (b.avatar || 'pp.png'))}" alt="Avatar" class="buddy-top-avatar" onerror="this.src='icons/pp.png'">
+                                                <span class="buddy-top-name">${escapeHtml(b.name || (typeof t === 'function' ? t('dash_buddy_single', 'Buddy') : 'Buddy'))}</span>
+                                            </div>
+                                            <div class="buddy-top-streak">
+                                                <span>🔥</span> <strong>${b.streak || 0}</strong> ${escapeHtml(typeof t === 'function' ? t('dash_streak_word', 'streak') : 'streak')}
+                                            </div>
+                                        </div>
+                                    `).join('')
+                                    : `
+                                        <div class="buddies-empty-inline">
+                                            <span>${escapeHtml(typeof t === 'function' ? t('dash_no_buddies_inline', '👋 No buddies yet. Click to invite classmates & share streaks!') : '👋 No buddies yet. Click to invite classmates & share streaks!')}</span>
+                                        </div>
+                                    `
+                            }
+                        </div>
                     </div>
                 </div>
 
                 <div class="vertical-motivation-card">
-                    <video class="motivation-video" autoplay muted loop playsinline>
-                        <source src="videos/motivation.mp4" type="video/mp4">
-                    </video>
+                    ${(function() {
+                        const curTheme = typeof getSavedTheme === "function" ? getSavedTheme() : (localStorage.getItem("ats_theme") || "default");
+                        const vSrc = typeof getThemeVideoSrc === "function" ? getThemeVideoSrc(curTheme) : "videos/default.mp4";
+                        const cacheBuster = "?v=" + (curTheme === "spring" ? "4" : (curTheme === "autumn" ? "2" : "1"));
+                        if (vSrc.endsWith(".gif")) {
+                            return `<img class="motivation-video" src="${vSrc}" alt="Motivation" style="width:100%; height:100%; object-fit:cover; border-radius:14px; display:block;">`;
+                        }
+                        return `
+                            <video class="motivation-video" autoplay muted loop playsinline preload="auto" style="width:100%; height:100%; object-fit:cover; border-radius:14px; display:block;">
+                                <source src="${vSrc}${cacheBuster}" type="video/mp4">
+                            </video>
+                        `;
+                    })()}
                 </div>
 
             </div>
 
             <div class="panel calendar-panel">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-                    <h2 style="margin:0;">Monthly Calendar</h2>
+                    <h2 style="margin:0;">${escapeHtml(typeof t === "function" ? t("dash_monthly_cal", "Monthly Calendar") : "Monthly Calendar")}</h2>
                     <button
                         type="button"
                         class="calendar-nav-btn"
@@ -380,13 +471,13 @@ async function loadDashboard() {
                         style="padding:6px 12px; font-size:12px; font-weight:600; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#334155;"
                         title="Add Deadlines to Google/Apple Calendar"
                     >
-                        📅 Add to Calendar
+                        📅 ${escapeHtml(typeof t === "function" ? t("dash_add_to_cal", "Add to Calendar") : "Add to Calendar")}
                     </button>
                 </div>
                 <div class="calendar-nav">
-                    <button class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">&#8592; Previous</button>
+                    <button class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">&#8592; ${escapeHtml(typeof t === "function" ? t("btn_prev", "Previous") : "Previous")}</button>
                     <span id="calendar-month-label" class="calendar-month-label"></span>
-                    <button class="calendar-nav-btn" onclick="changeCalendarMonth(1)">Next &#8594;</button>
+                    <button class="calendar-nav-btn" onclick="changeCalendarMonth(1)">${escapeHtml(typeof t === "function" ? t("btn_next", "Next") : "Next")} &#8594;</button>
                 </div>
                 <div id="calendar-content"></div>
             </div>
@@ -446,7 +537,20 @@ function changeCalendarMonth(direction) {
 
 function renderCalendar() {
     const todayText = new Date().toLocaleDateString("sv-SE");
-    const monthName = new Date(calendarYear, calendarMonth, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const localeMap = {
+        en: "en-US",
+        tr: "tr-TR",
+        de: "de-DE",
+        es: "es-ES",
+        fr: "fr-FR",
+        it: "it-IT",
+        ru: "ru-RU",
+        ko: "ko-KR",
+        ja: "ja-JP",
+        ar: "ar-SA"
+    };
+    const activeLocale = localeMap[typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en"] || "en-US";
+    const monthName = new Date(calendarYear, calendarMonth, 1).toLocaleDateString(activeLocale, { month: "long", year: "numeric" });
 
     document.getElementById("calendar-month-label").textContent = monthName;
 
@@ -488,13 +592,13 @@ function renderCalendar() {
 
     document.getElementById("calendar-content").innerHTML = `
         <div class="calendar-grid">
-            <div class="calendar-weekday">Mon</div>
-            <div class="calendar-weekday">Tue</div>
-            <div class="calendar-weekday">Wed</div>
-            <div class="calendar-weekday">Thu</div>
-            <div class="calendar-weekday">Fri</div>
-            <div class="calendar-weekday">Sat</div>
-            <div class="calendar-weekday">Sun</div>
+            <div class="calendar-weekday">${escapeHtml(typeof t === "function" ? t("cal_mon", "Mon") : "Mon")}</div>
+            <div class="calendar-weekday">${escapeHtml(typeof t === "function" ? t("cal_tue", "Tue") : "Tue")}</div>
+            <div class="calendar-weekday">${escapeHtml(typeof t === "function" ? t("cal_wed", "Wed") : "Wed")}</div>
+            <div class="calendar-weekday">${escapeHtml(typeof t === "function" ? t("cal_thu", "Thu") : "Thu")}</div>
+            <div class="calendar-weekday">${escapeHtml(typeof t === "function" ? t("cal_fri", "Fri") : "Fri")}</div>
+            <div class="calendar-weekday">${escapeHtml(typeof t === "function" ? t("cal_sat", "Sat") : "Sat")}</div>
+            <div class="calendar-weekday">${escapeHtml(typeof t === "function" ? t("cal_sun", "Sun") : "Sun")}</div>
             ${cells}
         </div>
     `;
@@ -605,8 +709,21 @@ async function migrateLocalDayNotesIfNeeded() {
 
 function buildDayModalHtml(dateText) {
     const dateObj = new Date(dateText + "T00:00:00");
-    const weekday = dateObj.toLocaleDateString("en-US", { weekday: "long" });
-    const niceDate = dateObj.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+    const localeMap = {
+        en: "en-US",
+        tr: "tr-TR",
+        de: "de-DE",
+        es: "es-ES",
+        fr: "fr-FR",
+        it: "it-IT",
+        ru: "ru-RU",
+        ko: "ko-KR",
+        ja: "ja-JP",
+        ar: "ar-SA"
+    };
+    const activeLocale = localeMap[typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en"] || "en-US";
+    const weekday = dateObj.toLocaleDateString(activeLocale, { weekday: "long" });
+    const niceDate = dateObj.toLocaleDateString(activeLocale, { day: "numeric", month: "long", year: "numeric" });
 
     const events = (calendarDeadlines || []).filter(e => e.date === dateText);
     const activities = (window._dashboardActivities || [])
@@ -653,7 +770,7 @@ function buildDayModalHtml(dateText) {
     const hasRecords = events.length || activities.length;
     const recordsHtml = hasRecords
         ? `<div class="day-modal-list">${eventsHtml}${activitiesHtml}</div>`
-        : `<p class="empty-text day-modal-empty-records">No deadlines or activities for this day.</p>`;
+        : `<p class="empty-text day-modal-empty-records">${escapeHtml(typeof t === "function" ? t("dash_no_records_day", "No deadlines or activities for this day.") : "No deadlines or activities for this day.")}</p>`;
 
     const notesSectionHtml = dayNotes.length
         ? `<div class="day-modal-notes-section">${notesHtml}</div>`
@@ -673,15 +790,15 @@ function buildDayModalHtml(dateText) {
             ${notesSectionHtml}
 
             <div class="day-modal-add">
-                <div class="day-modal-add-title">Add a note</div>
+                <div class="day-modal-add-title">${escapeHtml(typeof t === "function" ? t("dash_add_note", "Add a note") : "Add a note")}</div>
                 <div class="sticky-note-compose">
                     <textarea
                         id="dayModalNoteText"
-                        placeholder="Write a note for this day..."
+                        placeholder="${escapeHtml(typeof t === 'function' ? t('dash_write_note_placeholder', 'Write a note for this day...') : 'Write a note for this day...')}"
                         rows="4"
                     ></textarea>
                 </div>
-                <button type="button" class="day-note-save-btn" onclick="submitDayModalNote('${dateText}')">Save Note</button>
+                <button type="button" class="day-note-save-btn" onclick="submitDayModalNote('${dateText}')">${escapeHtml(typeof t === "function" ? t("dash_save_note", "Save Note") : "Save Note")}</button>
             </div>
         </div>
     `;
@@ -692,7 +809,7 @@ async function submitDayModalNote(dateText) {
     const text = textarea.value.trim();
 
     if (!text) {
-        showToast("Please write a note first.", "warning");
+        showToast(typeof t === "function" ? t("toast_note_empty_warning", "Please write a note first.") : "Please write a note first.", "warning");
         return;
     }
 
@@ -704,7 +821,7 @@ async function submitDayModalNote(dateText) {
         });
 
         if (!response.ok) {
-            showToast("Note could not be saved.", "error");
+            showToast(typeof t === "function" ? t("toast_note_save_err", "Note could not be saved.") : "Note could not be saved.", "error");
             return;
         }
 
@@ -715,7 +832,7 @@ async function submitDayModalNote(dateText) {
             saveOfflineCache(`${API_URL}/day-notes`, window._dayNotes);
         }
 
-        showToast("Note added.", "success");
+        showToast(typeof t === "function" ? t("toast_note_added_success", "Note added.") : "Note added.", "success");
         renderCalendar();
         openCalendarDayModal(dateText);
     } catch (err) {
@@ -725,6 +842,13 @@ async function submitDayModalNote(dateText) {
 }
 
 async function deleteDayNote(dateText, noteId) {
+    const confirmed = await showConfirm(
+        typeof t === "function" ? t("confirm_delete_note_title", "Delete Note") : "Delete Note",
+        typeof t === "function" ? t("confirm_delete_note_msg", "Are you sure you want to delete this note?") : "Are you sure you want to delete this note?",
+        typeof t === "function" ? t("btn_confirm_delete", "Yes, delete") : "Yes, delete"
+    );
+    if (!confirmed) return;
+
     try {
         const idStr = String(noteId);
         if (!idStr.startsWith("temp_")) {
@@ -733,7 +857,7 @@ async function deleteDayNote(dateText, noteId) {
             });
 
             if (!response.ok && response.status !== 404) {
-                showToast("Note could not be deleted.", "error");
+                showToast(typeof t === "function" ? t("toast_note_delete_err", "Note could not be deleted.") : "Note could not be deleted.", "error");
                 return;
             }
         }

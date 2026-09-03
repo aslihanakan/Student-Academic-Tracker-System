@@ -48,45 +48,45 @@ async function loadStudyPage(resetToToday = true) {
         document.getElementById("app").innerHTML = `
             <div class="form-box add-form-box">
                 <div class="form-box-header" onclick="toggleAddFormBox(this)">
-                    <h2 id="studyFormTitle">Add Study Session</h2>
+                    <h2 id="studyFormTitle">${escapeHtml(typeof t === 'function' ? t('study_add_heading', 'Add Study Session') : 'Add Study Session')}</h2>
                     <span class="form-box-chevron">▾</span>
                 </div>
 
-                <input type="text" id="studyCourseName" list="studyCourseOptions" placeholder="Type course name..." autocomplete="off">
+                <input type="text" id="studyCourseName" list="studyCourseOptions" placeholder="${escapeHtml(typeof t === 'function' ? t('study_course_placeholder', 'Type course name...') : 'Type course name...')}" autocomplete="off">
                 <datalist id="studyCourseOptions">${studyCourseDatalistOptions}</datalist>
 
-                <input type="number" id="studyHours" placeholder="Study hours" step="0.5" min="0.5">
-                <input type="text" id="studyTopic" placeholder="Studied topics">
+                <input type="number" id="studyHours" placeholder="${escapeHtml(typeof t === 'function' ? t('study_hours_placeholder', 'Study hours') : 'Study hours')}" step="0.5" min="0.5">
+                <input type="text" id="studyTopic" placeholder="${escapeHtml(typeof t === 'function' ? t('study_topic_placeholder', 'Studied topics') : 'Studied topics')}">
 
-                <button id="studySaveButton" onclick="saveStudySession()">Save Session</button>
-                <button id="studyCancelButton" onclick="cancelStudyEdit()" style="display:none;">Cancel Edit</button>
+                <button id="studySaveButton" onclick="saveStudySession()">${escapeHtml(typeof t === 'function' ? t('study_save_btn', 'Save Session') : 'Save Session')}</button>
+                <button id="studyCancelButton" onclick="cancelStudyEdit()" style="display:none;">${escapeHtml(typeof t === 'function' ? t('btn_cancel', 'Cancel') : 'Cancel Edit')}</button>
             </div>
 
             <div class="form-box filter-box">
-                <h2>🔍 Filter Sessions</h2>
+                <h2>🔍 ${escapeHtml(typeof t === 'function' ? t('study_filter_heading', 'Filter Sessions') : 'Filter Sessions')}</h2>
                 <div class="filter-row">
                     <select id="filterDate" onchange="changeStudyDateFromFilter()">
-                        <option value="">All Dates</option>
+                        <option value="">${escapeHtml(typeof t === 'function' ? t('study_all_dates', 'All Dates') : 'All Dates')}</option>
                         ${dateFilterOptions}
                     </select>
 
                     <select id="filterCourse" onchange="renderSessionsBySelectedDate()">
-                        <option value="">All Courses</option>
+                        <option value="">${escapeHtml(typeof t === 'function' ? t('study_all_courses', 'All Courses') : 'All Courses')}</option>
                         ${courseFilterOptions}
                     </select>
 
-                    <button onclick="clearStudyFilters()">Clear Filter</button>
+                    <button onclick="clearStudyFilters()">${escapeHtml(typeof t === 'function' ? t('btn_clear_filter', 'Clear Filter') : 'Clear Filter')}</button>
                 </div>
             </div>
 
             <div class="study-day-panel">
                 <div class="study-day-nav">
-                    <button onclick="changeStudyDay(-1)">← Previous Day</button>
+                    <button onclick="changeStudyDay(-1)">← ${escapeHtml(typeof t === 'function' ? t('btn_prev_day', 'Previous Day') : 'Previous Day')}</button>
                     <div class="study-day-title">
                         <h2 id="selected-study-date-title"></h2>
                         <p id="selected-study-date-subtitle"></p>
                     </div>
-                    <button id="studyGoToTodayBtn" class="study-today-btn" onclick="goToStudyToday()" style="display:none;">📍 Go to Today</button>
+                    <button id="studyGoToTodayBtn" class="study-today-btn" onclick="goToStudyToday()" style="display:none;">📍 ${escapeHtml(typeof t === 'function' ? t('btn_goto_today', 'Go to Today') : 'Go to Today')}</button>
                 </div>
                 <div id="single-day-session-table"></div>
             </div>
@@ -102,7 +102,7 @@ async function loadStudyPage(resetToToday = true) {
         }
     } catch (err) {
         console.error("Study Page Load Error:", err);
-        document.getElementById("app").innerHTML = `<div class="empty-day-box"><h3>Study Sessions</h3><p>Could not load sessions. You can still add new sessions or reconnect to sync.</p></div>`;
+        document.getElementById("app").innerHTML = `<div class="empty-day-box"><h3>${escapeHtml(typeof t === 'function' ? t('study_title', 'Study Sessions') : 'Study Sessions')}</h3><p>${escapeHtml(typeof t === 'function' ? t('study_no_sessions', 'No study sessions found.') : 'No study sessions found.')}</p></div>`;
     }
 }
 
@@ -139,7 +139,14 @@ function renderSessionsBySelectedDate() {
 
     if (filterDate) selectedStudyDate = filterDate;
 
-    const dayName = new Date(selectedStudyDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long" });
+    const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en";
+    const localeMap = {
+        en: "en-US", tr: "tr-TR", de: "de-DE", es: "es-ES",
+        fr: "fr-FR", it: "it-IT", ru: "ru-RU", ko: "ko-KR",
+        ja: "ja-JP", ar: "ar-SA"
+    };
+    const activeLocale = localeMap[lang] || "en-US";
+    const dayName = new Date(selectedStudyDate + "T00:00:00").toLocaleDateString(activeLocale, { weekday: "long" });
 
     document.getElementById("selected-study-date-title").textContent = selectedStudyDate;
     document.getElementById("selected-study-date-subtitle").textContent = dayName;
@@ -162,8 +169,8 @@ function renderSessionsBySelectedDate() {
     if (!filtered.length) {
         container.innerHTML = `
             <div class="empty-day-box">
-                <h3>No study sessions found.</h3>
-                <p>There is no saved study session for ${selectedStudyDate} (${dayName}).</p>
+                <h3>${escapeHtml(typeof t === 'function' ? t('study_no_sessions', 'No study sessions found.') : 'No study sessions found.')}</h3>
+                <p>${escapeHtml(typeof t === 'function' ? t('study_no_for_day', { date: selectedStudyDate, day: dayName }) : `There is no saved study session for ${selectedStudyDate} (${dayName}).`)}</p>
             </div>
         `;
         return;
@@ -195,16 +202,16 @@ function renderSessionsBySelectedDate() {
 
     container.innerHTML = `
         <div class="single-session-table-header">
-            <span>Sessions for ${selectedStudyDate} (${dayName})</span>
-            <strong>Total: ${dayTotal}h</strong>
+            <span>${escapeHtml(typeof t === 'function' ? t('study_sessions_for', { date: selectedStudyDate, day: dayName }) : `Sessions for ${selectedStudyDate} (${dayName})`)}</span>
+            <strong>${escapeHtml(typeof t === 'function' ? t('dash_total', 'Total') : 'Total')}: ${dayTotal}h</strong>
         </div>
         <table>
             <thead>
                 <tr>
-                    <th>Course</th>
-                    <th>Duration</th>
-                    <th>Topic</th>
-                    <th>Action</th>
+                    <th>${escapeHtml(typeof t === 'function' ? t('courses_table_course', 'Course') : 'Course')}</th>
+                    <th>${escapeHtml(typeof t === 'function' ? t('study_table_duration', 'Duration') : 'Duration')}</th>
+                    <th>${escapeHtml(typeof t === 'function' ? t('study_table_topic', 'Topic') : 'Topic')}</th>
+                    <th>${escapeHtml(typeof t === 'function' ? t('courses_table_action', 'Action') : 'Action')}</th>
                 </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -228,7 +235,7 @@ async function saveStudySession() {
     const hoursValue = document.getElementById("studyHours").value;
 
     if (!enteredCourseName || !hoursValue) {
-        showToast("Course name and study hours are required.", "warning");
+        showToast(typeof t === "function" ? t("toast_course_required", "Course name and study hours are required.") : "Course name and study hours are required.", "warning");
         return;
     }
 
@@ -236,7 +243,7 @@ async function saveStudySession() {
         const todayText = new Date().toLocaleDateString("sv-SE");
 
         if (selectedStudyDate !== todayText) {
-            const friendlyDate = new Date(selectedStudyDate + "T00:00:00").toLocaleDateString("en-US", {
+            const friendlyDate = new Date(selectedStudyDate + "T00:00:00").toLocaleDateString(typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en-US", {
                 weekday: "long",
                 year: "numeric",
                 month: "long",
@@ -244,9 +251,9 @@ async function saveStudySession() {
             });
 
             const confirmedPastDate = await showConfirm(
-                "Add Entry For a Different Day?",
-                `You are about to add a study session for ${friendlyDate}, not today. Do you want to continue?`,
-                "Yes, add it"
+                typeof t === "function" ? t("study_form_add_title", "Add Entry For a Different Day?") : "Add Entry For a Different Day?",
+                typeof t === "function" ? t("study_confirm_different_day", `You are about to add a study session for ${friendlyDate}, not today. Do you want to continue?`) : `You are about to add a study session for ${friendlyDate}, not today. Do you want to continue?`,
+                typeof t === "function" ? t("btn_save", "Yes, add it") : "Yes, add it"
             );
 
             if (!confirmedPastDate) return;
@@ -256,7 +263,7 @@ async function saveStudySession() {
     const courseId = await getOrCreateCourseIdByName(enteredCourseName, null, "study");
 
     if (!courseId) {
-        showToast("Course could not be found or created.", "error");
+        showToast(typeof t === "function" ? t("toast_course_save_err", "Course could not be found or created.") : "Course could not be found or created.", "error");
         return;
     }
 
@@ -301,7 +308,7 @@ async function saveStudySession() {
         }
 
         editingStudySessionId = null;
-        showToast("Study session saved successfully!", "success");
+        showToast(typeof t === "function" ? t("toast_study_saved_success", "Study session saved successfully!") : "Study session saved successfully!", "success");
         await loadStudyPage(false);
     } catch (err) {
         if (!navigator.onLine || err.name === "TypeError") {
@@ -327,12 +334,12 @@ async function saveStudySession() {
             }
             cancelStudyEdit();
             renderSessionsBySelectedDate();
-            showToast("Saved offline. It will sync automatically when back online.", "warning");
+            showToast(typeof t === "function" ? t("toast_offline_queued", "Saved offline. It will sync automatically when back online.") : "Saved offline. It will sync automatically when back online.", "warning");
             return;
         }
 
         console.error("Study Session Save Error:", err);
-        showToast("Study session could not be saved.", "error");
+        showToast(typeof t === "function" ? t("toast_study_save_err", "Study session could not be saved.") : "Study session could not be saved.", "error");
     }
 }
 
@@ -343,8 +350,8 @@ function editStudySession(id, courseName, hours, note) {
     document.getElementById("studyHours").value = hours;
     document.getElementById("studyTopic").value = note;
 
-    document.getElementById("studyFormTitle").textContent = "Edit Study Session";
-    document.getElementById("studySaveButton").textContent = "Update Session";
+    document.getElementById("studyFormTitle").textContent = typeof t === "function" ? t("study_form_edit_title", "Edit Study Session") : "Edit Study Session";
+    document.getElementById("studySaveButton").textContent = typeof t === "function" ? t("study_form_btn_update", "Update Session") : "Update Session";
     document.getElementById("studyCancelButton").style.display = "inline-block";
 
     scrollAppFormIntoView();
@@ -358,15 +365,16 @@ function cancelStudyEdit() {
     document.getElementById("studyHours").value = "";
     document.getElementById("studyTopic").value = "";
 
-    document.getElementById("studyFormTitle").textContent = "Add Study Session";
-    document.getElementById("studySaveButton").textContent = "Save Session";
+    document.getElementById("studyFormTitle").textContent = typeof t === "function" ? t("study_form_add_title", "Add Study Session") : "Add Study Session";
+    document.getElementById("studySaveButton").textContent = typeof t === "function" ? t("study_form_btn_save", "Save Session") : "Save Session";
     document.getElementById("studyCancelButton").style.display = "none";
 }
 
 async function deleteStudySession(id) {
     const confirmed = await showConfirm(
-        "Delete Study Session",
-        "Are you sure you want to delete this study session? This action cannot be undone."
+        typeof t === "function" ? t("confirm_delete_session_title", "Delete Study Session") : "Delete Study Session",
+        typeof t === "function" ? t("confirm_delete_session_msg", "Are you sure you want to delete this study session? This action cannot be undone.") : "Are you sure you want to delete this study session? This action cannot be undone.",
+        typeof t === "function" ? t("btn_confirm_delete", "Yes, delete") : "Yes, delete"
     );
 
     if (!confirmed) return;
@@ -386,7 +394,7 @@ async function deleteStudySession(id) {
             });
 
             if (!response.ok && response.status !== 404) {
-                showToast("Study session could not be deleted.", "error");
+                showToast(typeof t === "function" ? t("toast_study_delete_err", "Study session could not be deleted.") : "Study session could not be deleted.", "error");
                 return;
             }
         }
@@ -401,10 +409,10 @@ async function deleteStudySession(id) {
             }
         }
 
-        showToast("Study session deleted.", "success");
+        showToast(typeof t === "function" ? t("toast_study_deleted_success", "Study session deleted.") : "Study session deleted.", "success");
         await loadStudyPage(false);
     } catch (err) {
         console.error("Study Session Delete Error:", err);
-        showToast("Study session could not be deleted.", "error");
+        showToast(typeof t === "function" ? t("toast_study_delete_err", "Study session could not be deleted.") : "Study session could not be deleted.", "error");
     }
 }

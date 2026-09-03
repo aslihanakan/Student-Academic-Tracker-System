@@ -6,6 +6,94 @@ console.log("APP JS LOADED");
 // Live Server (3000) kullanıldığında da doğru backend'e gider.
 const API_URL = API_BASE_URL + "/api";
 
+/* ─── THEME & SEASONAL ATMOSPHERE ENGINE ───────────────────────────────────────*/
+
+const AVAILABLE_THEMES = [
+    { key: "default", nameKey: "theme_default", defaultName: "Default", icon: "🌟", color: "#2563eb", video: "videos/default.mp4", aiImage: "photos/ai.jpg" },
+    { key: "spring", nameKey: "theme_spring", defaultName: "Spring", icon: "🌸", color: "#10b981", video: "videos/spring.mp4", aiImage: "photos/spring.jpg" },
+    { key: "summer", nameKey: "theme_summer", defaultName: "Summer", icon: "☀️", color: "#0284c7", video: "videos/summer_cat.mp4", aiImage: "photos/summer.jpg" },
+    { key: "autumn", nameKey: "theme_autumn", defaultName: "Autumn", icon: "🍂", color: "#ea580c", video: "videos/autumn_cat.mp4", aiImage: "photos/autumn.jpg" },
+    { key: "winter", nameKey: "theme_winter", defaultName: "Winter", icon: "❄️", color: "#06b6d4", video: "videos/winter_cat.mp4", aiImage: "photos/winter.jpg" }
+];
+window.AVAILABLE_THEMES = AVAILABLE_THEMES;
+
+function getSavedTheme() {
+    return localStorage.getItem("ats_theme") || "default";
+}
+window.getSavedTheme = getSavedTheme;
+
+function getThemeVideoSrc(themeKey) {
+    const targetKey = themeKey || getSavedTheme();
+    const found = AVAILABLE_THEMES.find(t => t.key === targetKey);
+    return found ? found.video : "videos/default.mp4";
+}
+window.getThemeVideoSrc = getThemeVideoSrc;
+
+function getThemeAiImageSrc(themeKey) {
+    const targetKey = themeKey || getSavedTheme();
+    const found = AVAILABLE_THEMES.find(t => t.key === targetKey);
+    return found && found.aiImage ? found.aiImage : "photos/ai.jpg";
+}
+window.getThemeAiImageSrc = getThemeAiImageSrc;
+
+function applyTheme(themeKey, notify = false) {
+    const validTheme = AVAILABLE_THEMES.some(t => t.key === themeKey) ? themeKey : "default";
+    localStorage.setItem("ats_theme", validTheme);
+    document.documentElement.setAttribute("data-theme", validTheme);
+
+    // Update active state on any theme cards or select dropdowns in settings
+    const themeSelect = document.getElementById("settingsThemeSelect");
+    if (themeSelect) {
+        themeSelect.value = validTheme;
+    }
+    document.querySelectorAll(".theme-select-card").forEach(el => {
+        if (el.getAttribute("data-theme-key") === validTheme) {
+            el.classList.add("is-active");
+        } else {
+            el.classList.remove("is-active");
+        }
+    });
+
+    // Update floating AI bubble icon & chat modal header avatar
+    const aiImgSrc = getThemeAiImageSrc(validTheme);
+    document.querySelectorAll(".ai-bubble-img, .ai-header-thumb-img, #aiFloatingBubbleBtn img, .ai-window-title-wrap img").forEach(img => {
+        img.src = aiImgSrc;
+    });
+
+    // If on Dashboard, refresh the motivation media
+    const motivationContainer = document.querySelector(".vertical-motivation-card");
+    if (motivationContainer) {
+        const videoSrc = getThemeVideoSrc(validTheme);
+        const cacheBuster = "?v=" + (validTheme === "spring" ? "4" : (validTheme === "autumn" ? "2" : "1"));
+        if (videoSrc.endsWith(".gif")) {
+            motivationContainer.innerHTML = `<img class="motivation-video" src="${videoSrc}?t=${Date.now()}" alt="Motivation" loading="eager" style="width:100%; height:100%; object-fit:cover; border-radius:14px; display:block;">`;
+        } else {
+            motivationContainer.innerHTML = `
+                <video class="motivation-video" autoplay muted loop playsinline preload="auto" style="width:100%; height:100%; object-fit:cover; border-radius:14px; display:block;">
+                    <source src="${videoSrc}${cacheBuster}" type="video/mp4">
+                </video>
+            `;
+            const vidEl = motivationContainer.querySelector("video");
+            if (vidEl) {
+                vidEl.muted = true;
+                vidEl.setAttribute("playsinline", "");
+                vidEl.load();
+                vidEl.play().catch(e => console.log("Theme video autoplay notice:", e));
+            }
+        }
+    }
+
+    if (notify && typeof showToast === "function") {
+        showToast(typeof t === "function" ? t("toast_theme_changed", "Theme updated successfully!") : "Theme updated successfully!", "success");
+    }
+}
+window.applyTheme = applyTheme;
+
+// Auto-initialize theme on load
+if (typeof document !== "undefined") {
+    applyTheme(getSavedTheme(), false);
+}
+
 /* ─── HELPERS ─────────────────────────────────────────────────────────────────*/
 
 function formatEmpty(value) {
@@ -88,6 +176,17 @@ function escapeForOnclick(value) {
         .replace(/\r/g, "");
 }
 
+function getAvatarSrc(avatarVal) {
+    if (!avatarVal || avatarVal === "default" || avatarVal === "pp.png" || avatarVal === "icons/pp.png" || avatarVal === "logo.png" || avatarVal === "photos/logo.png") {
+        return "icons/pp.png";
+    }
+    if (avatarVal.startsWith("data:image/") || avatarVal.startsWith("blob:") || avatarVal.startsWith("http://") || avatarVal.startsWith("https://")) {
+        return avatarVal;
+    }
+    return avatarVal.startsWith("icons/") || avatarVal.startsWith("photos/") ? avatarVal : "icons/" + avatarVal;
+}
+window.getAvatarSrc = getAvatarSrc;
+
 function toDateText(dateValue) {
     if (!dateValue) return "";
 
@@ -115,11 +214,11 @@ function formatDaysLeft(dateText) {
     const days = calculateDaysLeft(dateText);
 
     if (days === null) return "-";
-    if (days < 0) return "Overdue";
-    if (days === 0) return "Today";
-    if (days === 1) return "1 day left";
+    if (days < 0) return typeof t === "function" ? t("status_overdue", "Overdue") : "Overdue";
+    if (days === 0) return typeof t === "function" ? t("status_today", "Today") : "Today";
+    if (days === 1) return typeof t === "function" ? t("dash_day_left", "1 day left") : "1 day left";
 
-    return `${days} days left`;
+    return typeof t === "function" ? t("status_days_left", { n: days }) : `${days} days left`;
 }
 
 function formatDaysLeftColored(dateText) {
@@ -128,22 +227,27 @@ function formatDaysLeftColored(dateText) {
     if (days === null) return "-";
 
     if (days < 0) {
-        return `<span style="color:#ef4444;font-weight:700">Overdue ⚠️</span>`;
+        const txt = typeof t === "function" ? t("status_overdue", "Overdue") : "Overdue";
+        return `<span style="color:#ef4444;font-weight:700">${escapeHtml(txt)} ⚠️</span>`;
     }
 
     if (days === 0) {
-        return `<span style="color:#ef4444;font-weight:700">Today! ⚠️</span>`;
+        const txt = typeof t === "function" ? t("status_today", "Today") : "Today";
+        return `<span style="color:#ef4444;font-weight:700">${escapeHtml(txt)}! ⚠️</span>`;
     }
 
     if (days <= 2) {
-        return `<span style="color:#ef4444;font-weight:700">${days} days left ⚠️</span>`;
+        const txt = typeof t === "function" ? t("status_days_left", { n: days }) : `${days} days left`;
+        return `<span style="color:#ef4444;font-weight:700">${escapeHtml(txt)} ⚠️</span>`;
     }
 
     if (days <= 7) {
-        return `<span style="color:#f97316;font-weight:700">${days} days left</span>`;
+        const txt = typeof t === "function" ? t("status_days_left", { n: days }) : `${days} days left`;
+        return `<span style="color:#f97316;font-weight:700">${escapeHtml(txt)}</span>`;
     }
 
-    return `<span style="color:#22c55e;font-weight:600">${days} days left</span>`;
+    const txt = typeof t === "function" ? t("status_days_left", { n: days }) : `${days} days left`;
+    return `<span style="color:#22c55e;font-weight:600">${escapeHtml(txt)}</span>`;
 }
 
 function getDeadlineProximityColor(days) {
@@ -157,7 +261,8 @@ function getDeadlineProximityColor(days) {
 
 function formatStatusCell(dateText, isDone) {
     if (isDone) {
-        return `<span style="color:#16a34a;font-weight:700">✅ Completed</span>`;
+        const txt = typeof t === "function" ? t("status_completed", "Completed") : "Completed";
+        return `<span style="color:#16a34a;font-weight:700">✅ ${escapeHtml(txt)}</span>`;
     }
 
     return formatDaysLeftColored(dateText);
@@ -830,6 +935,7 @@ function initOnlineOfflineListeners() {
     window.addEventListener("online", () => {
         console.log("[Network] Application is online.");
         showOfflineIndicator(false);
+        if (typeof updateAiMoodBadge === "function") updateAiMoodBadge("online");
         refreshCurrentView();
         processOfflineSyncQueue();
     });
@@ -837,6 +943,7 @@ function initOnlineOfflineListeners() {
     window.addEventListener("offline", () => {
         console.log("[Network] Application went offline.");
         showOfflineIndicator(true);
+        if (typeof updateAiMoodBadge === "function") updateAiMoodBadge("offline");
         if (typeof showToast === "function") {
             showToast("Internet connection lost. Switched to offline mode.", "warning");
         }
@@ -844,8 +951,10 @@ function initOnlineOfflineListeners() {
 
     if (navigator.onLine) {
         showOfflineIndicator(false);
+        if (typeof updateAiMoodBadge === "function") updateAiMoodBadge("online");
     } else {
         showOfflineIndicator(true);
+        if (typeof updateAiMoodBadge === "function") updateAiMoodBadge("offline");
     }
 }
 
@@ -1032,7 +1141,7 @@ const PAGE_META = {
     settings: {
         title: "Settings",
         subtitle: "Update your profile, grade, department, and avatar icon.",
-        iconHtml: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#60a5fa;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`
+        icon: "⚙️"
     }
 };
 
@@ -1051,15 +1160,18 @@ function updateStickyHeader(pageKey) {
     const syncStatusClass = isOnline ? "online" : "offline";
     const syncStatusText = isOnline ? "Cloud Synced" : "Offline Mode";
 
+    const titleText = (typeof t === "function") ? t(`nav_${pageKey === "courses" ? "grades" : (pageKey === "exams" ? "deadlines" : (pageKey === "study" ? "study_sessions" : pageKey))}`, meta.title) : meta.title;
+    const subtitleText = (typeof t === "function") ? t(`${pageKey === "courses" ? "courses" : (pageKey === "exams" ? "deadlines" : (pageKey === "study" ? "study" : (pageKey === "dashboard" ? "dash" : pageKey)))}_subtitle`, meta.subtitle) : meta.subtitle;
+
     header.innerHTML = `
         <div class="sticky-header-left">
             ${iconContent}
             <div>
                 <div class="sticky-header-title">
-                    ${escapeHtml(meta.title)}
+                    ${escapeHtml(titleText)}
                 </div>
                 <div class="sticky-header-subtitle">
-                    ${escapeHtml(meta.subtitle)}
+                    ${escapeHtml(subtitleText)}
                 </div>
             </div>
         </div>
@@ -1079,30 +1191,12 @@ function updateStickyHeader(pageKey) {
                     : ""
             }
 
-            <div class="header-notification-wrapper">
-                <button type="button" class="header-icon-btn" onclick="toggleNotificationDropdown()" title="Upcoming Deadlines & Notifications" aria-label="Notifications">
-                    🔔
-                    <span id="headerNotificationCount" class="notification-badge-count" style="display:none;">0</span>
-                </button>
-                <div id="headerNotificationDropdown" class="notification-dropdown">
-                    <div class="notification-dropdown-header">
-                        <span>🔔 Upcoming Deadlines</span>
-                        <span id="notifSubtext" style="font-size:11px; font-weight:500; color:#94a3b8;">Next 7 days</span>
-                    </div>
-                    <div id="headerNotificationList" class="notification-dropdown-list">
-                        <div style="padding:14px; text-align:center; color:#94a3b8; font-size:12px;">No upcoming deadlines soon.</div>
-                    </div>
-                </div>
-            </div>
-
             <div id="cloudSyncBadge" class="cloud-sync-badge ${syncStatusClass}">
                 <span class="sync-dot"></span>
                 <span id="cloudSyncBadgeText">${syncStatusText}</span>
             </div>
         </div>
     `;
-
-    setTimeout(checkDeadlineNotifications, 120);
 }
 
 function updateCloudSyncStatus(status) {
@@ -1258,7 +1352,9 @@ function generateIcsCalendar(events) {
         lines.push(`DTSTART;VALUE=DATE:${cleanDate}`);
         lines.push(`DTEND;VALUE=DATE:${cleanEnd}`);
         lines.push(`SUMMARY:${summary}`);
-        if (description) lines.push(`DESCRIPTION:${description}`);
+        if (evt.description) {
+            lines.push(`DESCRIPTION:${String(evt.description).replace(/[,;\n\r]/g, " ")}`);
+        }
         lines.push("STATUS:CONFIRMED");
         lines.push("TRANSP:TRANSPARENT");
         lines.push("END:VEVENT");
@@ -1275,9 +1371,25 @@ function downloadAllDeadlinesIcs() {
         showToast("No deadlines found to export.", "warning");
         return;
     }
-    downloadIcsCalendar(events, "Academi_Buddy_Deadlines.ics");
+    downloadIcsCalendar(events, "Academi_Buddy_All_Deadlines.ics");
 }
 window.downloadAllDeadlinesIcs = downloadAllDeadlinesIcs;
+
+function downloadSelectedCalendarIcs() {
+    const events = window._lastCalendarEvents || [];
+    const checkedBoxes = Array.from(document.querySelectorAll(".calendar-event-chk:checked"));
+    const selectedIds = new Set(checkedBoxes.map(chk => chk.dataset.id));
+
+    const selectedEvents = events.filter(evt => selectedIds.has(String(evt.id)));
+
+    if (!selectedEvents.length) {
+        showToast("Please select at least one deadline to export.", "warning");
+        return;
+    }
+
+    downloadIcsCalendar(selectedEvents, "Academi_Buddy_Selected_Deadlines.ics");
+}
+window.downloadSelectedCalendarIcs = downloadSelectedCalendarIcs;
 
 function downloadIcsCalendar(events, filename = "Academi_Buddy_Deadlines.ics") {
     if (!events || !events.length) {
@@ -1295,10 +1407,78 @@ function downloadIcsCalendar(events, filename = "Academi_Buddy_Deadlines.ics") {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     if (typeof showToast === "function") {
-        showToast("Calendar file (.ics) downloaded! Open it to import to Apple/Google/Outlook.", "success");
+        showToast(`Successfully exported ${events.length} deadline${events.length > 1 ? 's' : ''} to calendar (.ics)!`, "success");
     }
 }
 window.downloadIcsCalendar = downloadIcsCalendar;
+
+let currentCalendarModalFilter = "all";
+
+function updateCalendarSelectionCount() {
+    const all = document.querySelectorAll(".calendar-event-chk");
+    const checked = document.querySelectorAll(".calendar-event-chk:checked");
+    const countLabel = document.getElementById("calendarSelectedCountLabel");
+    const exportBtn = document.getElementById("calendarExportSelectedBtn");
+
+    if (countLabel) {
+        countLabel.textContent = typeof t === "function"
+            ? t("deadlines_cal_selected_count", { n: checked.length, total: all.length })
+            : `Selected: ${checked.length} of ${all.length} deadlines`;
+    }
+    if (exportBtn) {
+        exportBtn.innerHTML = typeof t === "function"
+            ? t("deadlines_cal_export_selected", { n: checked.length })
+            : `📥 Export Selected (${checked.length}) as .ics`;
+        exportBtn.disabled = checked.length === 0;
+    }
+}
+window.updateCalendarSelectionCount = updateCalendarSelectionCount;
+
+function toggleAllCalendarCheckboxes(checked) {
+    const visibleBoxes = document.querySelectorAll(".calendar-item-row:not([style*='display: none']) .calendar-event-chk");
+    visibleBoxes.forEach(chk => chk.checked = checked);
+    updateCalendarSelectionCount();
+}
+window.toggleAllCalendarCheckboxes = toggleAllCalendarCheckboxes;
+
+function filterCalendarModalEvents(filter) {
+    currentCalendarModalFilter = filter;
+    const rows = document.querySelectorAll(".calendar-item-row");
+
+    rows.forEach(row => {
+        const type = row.dataset.type;
+        const isUpcoming = row.dataset.upcoming === "true";
+
+        if (filter === "all") {
+            row.style.display = "flex";
+        } else if (filter === "exams") {
+            row.style.display = type === "Exam" ? "flex" : "none";
+        } else if (filter === "projects") {
+            row.style.display = type === "Project" ? "flex" : "none";
+        } else if (filter === "upcoming") {
+            row.style.display = isUpcoming ? "flex" : "none";
+        }
+    });
+
+    // Update filter tab active styles
+    ["all", "exams", "projects", "upcoming"].forEach(f => {
+        const btn = document.getElementById(`calFilter_${f}`);
+        if (btn) {
+            if (f === filter) {
+                btn.style.background = "var(--theme-primary, #2563eb)";
+                btn.style.color = "#ffffff";
+                btn.style.borderColor = "var(--theme-primary, #2563eb)";
+            } else {
+                btn.style.background = "rgba(255, 255, 255, 0.08)";
+                btn.style.color = "#cbd5e1";
+                btn.style.borderColor = "rgba(255, 255, 255, 0.15)";
+            }
+        }
+    });
+
+    updateCalendarSelectionCount();
+}
+window.filterCalendarModalEvents = filterCalendarModalEvents;
 
 function openCalendarExportModal() {
     const exams = window._allExams || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/exams`) : []) || [];
@@ -1306,44 +1486,57 @@ function openCalendarExportModal() {
     const activities = window._dashboardActivities || (typeof getOfflineCache === "function" ? getOfflineCache(`${API_URL}/todos`) : []) || [];
 
     const upcomingEvents = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     exams.forEach(e => {
         if (!e.examDate) return;
+        const isUpcoming = new Date(e.examDate) >= today;
         upcomingEvents.push({
             id: `exam-${e.id}`,
             title: `[Exam] ${e.courseName || ''} - ${e.examName || 'Exam'}`,
             displayTitle: `${e.examName || 'Exam'} (${e.courseName || 'Course'})`,
             date: e.examDate,
             type: "Exam",
+            isUpcoming,
             description: `Type: ${toTitleCase(e.examType || '')} | Instructor: ${e.instructorName || '-'}`
         });
     });
 
     projects.forEach(p => {
         if (!p.dueDate) return;
+        const isUpcoming = new Date(p.dueDate) >= today;
         upcomingEvents.push({
             id: `proj-${p.id}`,
             title: `[Project] ${p.courseName || ''} - ${p.projectName || 'Project'}`,
             displayTitle: `${p.projectName || 'Project'} (${p.courseName || 'Course'})`,
             date: p.dueDate,
             type: "Project",
-            description: `Description: ${p.description || ''}`
+            isUpcoming,
+            description: `Project: ${p.projectName || ''} | Description: ${p.description || ''}`
         });
     });
 
     activities.forEach(a => {
         if (!a.dueDate) return;
+        const isUpcoming = new Date(a.dueDate) >= today;
         upcomingEvents.push({
             id: `todo-${a.id}`,
             title: `[${toTitleCase(a.type || 'Task')}] ${a.courseName || ''} - ${a.title || 'Task'}`,
             displayTitle: `${a.title || 'Task'} (${a.courseName || 'Course'})`,
             date: a.dueDate,
             type: toTitleCase(a.type || "Task"),
+            isUpcoming,
             description: `Task for ${a.courseName || ''}`
         });
     });
 
     upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    window._lastCalendarEvents = upcomingEvents;
+
+    const examCount = upcomingEvents.filter(e => e.type === "Exam").length;
+    const projectCount = upcomingEvents.filter(e => e.type === "Project").length;
+    const upcomingCount = upcomingEvents.filter(e => e.isUpcoming).length;
 
     const existing = document.getElementById("calendarExportModal");
     if (existing) existing.remove();
@@ -1356,141 +1549,141 @@ function openCalendarExportModal() {
     modal.style.left = "0";
     modal.style.width = "100%";
     modal.style.height = "100%";
-    modal.style.backgroundColor = "rgba(0, 0, 0, 0.65)";
+    modal.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
     modal.style.display = "flex";
     modal.style.alignItems = "center";
     modal.style.justifyContent = "center";
     modal.style.zIndex = "9999";
     modal.style.padding = "20px";
 
-    const itemsHtml = upcomingEvents.slice(0, 8).map(evt => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:8px; gap:8px;">
-            <div style="min-width:0; flex:1;">
-                <div style="font-weight:700; font-size:12.5px; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                    ${evt.type === "Exam" ? "📝" : evt.type === "Project" ? "🚀" : "📌"} ${escapeHtml(evt.displayTitle)}
+    modal.addEventListener("click", function (e) {
+        if (e.target === modal) modal.remove();
+    });
+
+    const itemsHtml = upcomingEvents.map((evt, idx) => {
+        const daysLeft = Math.ceil((new Date(evt.date) - today) / (1000 * 60 * 60 * 24));
+        const statusBadge = daysLeft < 0
+            ? `<span style="font-size:10.5px; font-weight:700; color:#dc2626; background:#fee2e2; padding:2px 6px; border-radius:10px;">${escapeHtml(typeof t === "function" ? t("status_overdue", "Overdue") : "Overdue")} ⚠️</span>`
+            : daysLeft === 0
+            ? `<span style="font-size:10.5px; font-weight:700; color:#2563eb; background:#dbeafe; padding:2px 6px; border-radius:10px;">${escapeHtml(typeof t === "function" ? t("status_today", "Today") : "Today")}!</span>`
+            : `<span style="font-size:10.5px; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 6px; border-radius:10px;">${escapeHtml(typeof t === "function" ? t("status_days_left", { n: daysLeft }) : `${daysLeft} days left`)}</span>`;
+
+        return `
+            <div class="calendar-item-row" data-type="${evt.type}" data-upcoming="${evt.isUpcoming}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin-bottom:8px; gap:10px; transition:background 0.15s ease;">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                    <input type="checkbox" class="calendar-event-chk done-checkbox" data-id="${evt.id}" checked onchange="updateCalendarSelectionCount()" style="width:16px !important; height:16px !important; cursor:pointer; flex-shrink:0;">
+                    <div style="min-width:0; flex:1;">
+                        <div style="font-weight:700; font-size:13px; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${evt.type === "Exam" ? "📝" : evt.type === "Project" ? "🚀" : "📌"} ${escapeHtml(evt.displayTitle)}
+                        </div>
+                        <div style="font-size:11.5px; color:#94a3b8; display:flex; align-items:center; gap:8px; margin-top:2px;">
+                            <span>📅 ${escapeHtml(toDateText(evt.date))}</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
                 </div>
-                <div style="font-size:11px; color:#64748b;">📅 ${escapeHtml(toDateText(evt.date))}</div>
+                <a
+                    href="${getGoogleCalendarUrl(evt.title, evt.date, evt.description)}"
+                    target="_blank"
+                    rel="noopener"
+                    style="padding:5px 10px; font-size:11px; font-weight:700; background:var(--theme-active-nav-bg, rgba(255,255,255,0.08)); color:var(--theme-active-nav-color, #ffffff); border:1px solid var(--theme-active-nav-border, rgba(255,255,255,0.2)); border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;"
+                    title="Open directly in Google Calendar"
+                >
+                    + Google Cal ↗
+                </a>
             </div>
-            <a
-                href="${getGoogleCalendarUrl(evt.title, evt.date, evt.description)}"
-                target="_blank"
-                rel="noopener"
-                style="padding:6px 12px; font-size:11px; font-weight:700; background:#2563eb; color:#ffffff; border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;"
-            >
-                + Google Calendar ↗
-            </a>
-        </div>
-    `).join("");
+        `;
+    }).join("");
 
     modal.innerHTML = `
-        <div class="modal-box" style="max-width:680px; width:100%; max-height:90vh; overflow-y:auto; padding:0; background:#ffffff; border-radius:14px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); color:#0f172a;">
+        <div class="modal-box" style="max-width:740px; width:100%; max-height:90vh; overflow-y:auto; padding:0; background:var(--theme-sidebar-bg, #0f172a); border:1px solid var(--theme-sidebar-border, rgba(255,255,255,0.15)); border-radius:14px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.6), 0 0 25px var(--theme-accent-glow, transparent); color:#f8fafc;">
             <!-- Header -->
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; background:#0f172a; color:#ffffff; border-radius:14px 14px 0 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; background:var(--theme-header-bg, #0f172a); color:#ffffff; border-bottom:1px solid var(--theme-header-border, rgba(255,255,255,0.1)); border-radius:14px 14px 0 0;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:24px;">📅</span>
                     <div>
-                        <div style="font-size:16px; font-weight:800;">Add Deadlines to Calendar</div>
-                        <div style="font-size:12px; color:#94a3b8;">Choose the easiest way to sync your academic deadlines</div>
+                        <div style="font-size:16px; font-weight:800; color:var(--theme-header-title, #ffffff);">${escapeHtml(typeof t === "function" ? t("deadlines_cal_modal_title", "Add Deadlines to Calendar") : "Add Deadlines to Calendar")}</div>
+                        <div style="font-size:12px; color:var(--theme-active-nav-color, #e2e8f0);">${escapeHtml(typeof t === "function" ? t("deadlines_cal_modal_subtitle", "Select deadlines to sync with Google Calendar, Apple Calendar or Outlook") : "Select deadlines to sync with Google Calendar, Apple Calendar or Outlook")}</div>
                     </div>
                 </div>
                 <button type="button" onclick="document.getElementById('calendarExportModal').remove()" style="background:rgba(255,255,255,0.1); border:none; color:#ffffff; font-size:14px; font-weight:700; width:28px; height:28px; border-radius:50%; cursor:pointer;">✕</button>
             </div>
 
             <!-- Content Area -->
-            <div style="padding:24px;">
-                <!-- Method 1: Instant Google Calendar Links -->
-                <div style="margin-bottom:24px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                        <span style="background:#eff6ff; color:#2563eb; font-weight:800; font-size:11px; padding:2px 8px; border-radius:12px; border:1px solid #bfdbfe;">RECOMMENDED</span>
-                        <span style="font-size:13px; font-weight:800; color:#1e293b;">Option 1: Add Directly to Google Calendar (No file download / No Outlook)</span>
+            <div style="padding:22px 24px;">
+                <!-- Filter Tabs & Selection Bar -->
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                    <!-- Filter Pills -->
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button type="button" id="calFilter_all" onclick="filterCalendarModalEvents('all')" style="padding:5px 12px; font-size:12px; font-weight:700; border-radius:16px; background:var(--theme-primary, #2563eb); color:#ffffff; border:1px solid var(--theme-primary, #2563eb); cursor:pointer;">${escapeHtml(typeof t === "function" ? t("deadlines_all", "All") : "All")} (${upcomingEvents.length})</button>
+                        <button type="button" id="calFilter_exams" onclick="filterCalendarModalEvents('exams')" style="padding:5px 12px; font-size:12px; font-weight:600; border-radius:16px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.15); cursor:pointer;">${escapeHtml(typeof t === "function" ? t("deadlines_cal_tab_exams", "📝 Exams") : "📝 Exams")} (${examCount})</button>
+                        <button type="button" id="calFilter_projects" onclick="filterCalendarModalEvents('projects')" style="padding:5px 12px; font-size:12px; font-weight:600; border-radius:16px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.15); cursor:pointer;">${escapeHtml(typeof t === "function" ? t("deadlines_cal_tab_projects", "🚀 Projects") : "🚀 Projects")} (${projectCount})</button>
+                        <button type="button" id="calFilter_upcoming" onclick="filterCalendarModalEvents('upcoming')" style="padding:5px 12px; font-size:12px; font-weight:600; border-radius:16px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.15); cursor:pointer;">${escapeHtml(typeof t === "function" ? t("deadlines_cal_tab_upcoming", "⏳ Upcoming") : "⏳ Upcoming")} (${upcomingCount})</button>
                     </div>
-                    <div style="font-size:12px; color:#64748b; margin-bottom:12px;">
-                        Click on any deadline below to open it instantly in Google Calendar in your web browser. Zero setup required!
-                    </div>
-                    <div style="max-height:220px; overflow-y:auto; padding-right:4px;">
-                        ${itemsHtml || '<div style="padding:12px; text-align:center; color:#94a3b8; font-size:12px;">No upcoming deadlines found.</div>'}
+
+                    <!-- Select/Deselect Actions -->
+                    <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                        <button type="button" onclick="toggleAllCalendarCheckboxes(true)" style="background:none; border:none; color:var(--theme-active-nav-color, #38bdf8); font-weight:700; cursor:pointer; text-decoration:underline; padding:0;">${escapeHtml(typeof t === "function" ? t("deadlines_cal_select_all", "Select All") : "Select All")}</button>
+                        <span style="color:rgba(255,255,255,0.3);">|</span>
+                        <button type="button" onclick="toggleAllCalendarCheckboxes(false)" style="background:none; border:none; color:#94a3b8; font-weight:600; cursor:pointer; text-decoration:underline; padding:0;">${escapeHtml(typeof t === "function" ? t("deadlines_cal_deselect_all", "Deselect All") : "Deselect All")}</button>
                     </div>
                 </div>
 
-                <hr style="border:none; border-top:1px solid #e2e8f0; margin:20px 0;">
+                <!-- Scrollable Checklist -->
+                <div style="max-height:280px; overflow-y:auto; border:1px solid var(--theme-sidebar-border, rgba(255,255,255,0.12)); border-radius:10px; padding:10px; background:rgba(0,0,0,0.25); margin-bottom:18px;">
+                    ${itemsHtml || '<div style="padding:24px; text-align:center; color:#94a3b8; font-size:13px;">No deadlines found to export.</div>'}
+                </div>
 
-                <!-- Method 2: Bulk .ics Export with Step-by-Step Guide -->
-                <div>
-                    <div style="font-size:14px; font-weight:800; color:#1e293b; margin-bottom:6px;">
-                        Option 2: Import All Deadlines at Once (${upcomingEvents.length} Events)
+                <!-- Action Footer -->
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px; background:rgba(0,0,0,0.25); border:1px solid var(--theme-sidebar-border, rgba(255,255,255,0.12)); border-radius:10px; padding:12px 16px;">
+                    <div id="calendarSelectedCountLabel" style="font-size:13px; font-weight:700; color:var(--theme-header-title, #ffffff);">
+                        Selected: ${upcomingEvents.length} of ${upcomingEvents.length} deadlines
                     </div>
-                    <div style="font-size:12px; color:#475569; margin-bottom:12px; line-height:1.5;">
-                        To add all your exams and projects to Google Calendar at the same time, follow these <strong>3 simple steps</strong>:
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button
+                            type="button"
+                            onclick="downloadAllDeadlinesIcs()"
+                            style="padding:9px 16px; background:rgba(255,255,255,0.08); color:#ffffff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
+                            title="Download all deadlines at once"
+                        >
+                            ${escapeHtml(typeof t === "function" ? t("deadlines_cal_export_all", "⚡ Export All (.ics)") : "⚡ Export All (.ics)")}
+                        </button>
+                        <button
+                            type="button"
+                            id="calendarExportSelectedBtn"
+                            onclick="downloadSelectedCalendarIcs()"
+                            style="padding:9px 18px; background:var(--theme-accent-gradient, linear-gradient(135deg, #2563eb, #1d4ed8)); color:#ffffff; border:none; border-radius:8px; font-weight:800; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 3px 12px var(--theme-accent-glow, rgba(37,99,235,0.25));"
+                        >
+                            ${escapeHtml(typeof t === "function" ? t("deadlines_cal_export_selected", { n: upcomingEvents.length }) : `📥 Export Selected (${upcomingEvents.length}) as .ics`)}
+                        </button>
                     </div>
+                </div>
 
-                    <!-- Step Cards Container -->
-                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:12px;">
-                        <!-- Step 1 -->
-                        <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:14px;">
-                            <div style="background:#2563eb; color:#ffffff; font-weight:800; font-size:12px; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</div>
-                            <div style="flex:1;">
-                                <div style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:2px;">
-                                    Step 1: Download your schedule file
-                                </div>
-                                <div style="font-size:11.5px; color:#64748b; margin-bottom:8px;">
-                                    Click the button below to download the calendar file (<strong style="color:#0f172a;">Academi_Buddy_Deadlines.ics</strong>) to your computer.
-                                </div>
-                                <button
-                                    type="button"
-                                    onclick="downloadAllDeadlinesIcs()"
-                                    style="padding:8px 16px; background:#ffffff; border:1.5px solid #2563eb; color:#2563eb; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
-                                >
-                                    📥 Download .ics File
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Step 2 -->
-                        <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:14px;">
-                            <div style="background:#2563eb; color:#ffffff; font-weight:800; font-size:12px; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</div>
-                            <div style="flex:1;">
-                                <div style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:2px;">
-                                    Step 2: Open Google Calendar Import page
-                                </div>
-                                <div style="font-size:11.5px; color:#64748b; margin-bottom:8px;">
-                                    Click below to open the official Google Calendar Import tab directly in your browser.
-                                </div>
-                                <a
-                                    href="https://calendar.google.com/calendar/u/0/r/settings/export"
-                                    target="_blank"
-                                    rel="noopener"
-                                    style="padding:8px 16px; background:#2563eb; color:#ffffff; border-radius:6px; font-weight:700; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;"
-                                >
-                                    🔗 Open Google Calendar Import Page ↗
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Step 3 -->
-                        <div style="display:flex; align-items:flex-start; gap:12px;">
-                            <div style="background:#2563eb; color:#ffffff; font-weight:800; font-size:12px; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</div>
-                            <div style="flex:1;">
-                                <div style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:2px;">
-                                    Step 3: Select &amp; Import the downloaded file
-                                </div>
-                                <div style="font-size:11.5px; color:#64748b; line-height:1.45;">
-                                    On the opened Google Calendar page, click <em>"Select file from your computer"</em>, choose <strong style="color:#0f172a;">Academi_Buddy_Deadlines.ics</strong> from your Downloads folder, and click <strong>"Import"</strong>.
-                                </div>
-                            </div>
-                        </div>
+                <!-- Google Calendar Import Helper Guide -->
+                <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 16px; color:#cbd5e1;">
+                    <div style="font-size:12.5px; font-weight:800; color:var(--theme-header-title, #ffffff); margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+                        <span>${escapeHtml(typeof t === "function" ? t("deadlines_cal_how_to", "💡 How to Import .ics File into Google Calendar:") : "💡 How to Import .ics File into Google Calendar:")}</span>
+                        <a
+                            href="https://calendar.google.com/calendar/u/0/r/settings/export"
+                            target="_blank"
+                            rel="noopener"
+                            style="font-size:11.5px; color:var(--theme-active-nav-color, #38bdf8); text-decoration:none; font-weight:700;"
+                        >
+                            ${escapeHtml(typeof t === "function" ? t("deadlines_cal_open_settings", "Open Google Calendar Settings ↗") : "Open Google Calendar Settings ↗")}
+                        </a>
                     </div>
-
-                    <!-- Helpful Notice -->
-                    <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#92400e; line-height:1.45;">
-                        <strong>💡 Note:</strong> If Microsoft Outlook tries to open automatically on your computer, you can safely close it. Simply upload the downloaded file directly to the Google Calendar webpage in Step 2!
-                    </div>
+                    <ol style="margin-left:18px; font-size:11.5px; color:var(--theme-active-nav-color, #cbd5e1); line-height:1.5;">
+                        <li>${escapeHtml(typeof t === "function" ? t("deadlines_cal_step1", "Click 'Export Selected' above to download the .ics file.") : "Click 'Export Selected' above to download the .ics file.")}</li>
+                        <li>${escapeHtml(typeof t === "function" ? t("deadlines_cal_step2", "Open Google Calendar Import Settings in your browser.") : "Open Google Calendar Import Settings in your browser.")}</li>
+                        <li>${escapeHtml(typeof t === "function" ? t("deadlines_cal_step3", "Click 'Select file from your computer', choose the downloaded .ics file, and click 'Import'.") : "Click 'Select file from your computer', choose the downloaded .ics file, and click 'Import'.")}</li>
+                    </ol>
                 </div>
             </div>
         </div>
     `;
 
-    window._lastCalendarEvents = upcomingEvents;
     document.body.appendChild(modal);
+    updateCalendarSelectionCount();
 }
 window.openCalendarExportModal = openCalendarExportModal;
 

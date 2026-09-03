@@ -1,4 +1,4 @@
-const CACHE_NAME = "academi-buddy-static-v17";
+const CACHE_NAME = "academi-buddy-static-v29";
 
 const STATIC_ASSETS = [
     "./",
@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
     "./css/grades.css",
     "./css/deadlines.css",
     "./css/study-sessions.css",
+    "./js/i18n.js",
     "./js/auth.js",
     "./js/common.js",
     "./js/courses.js",
@@ -22,7 +23,22 @@ const STATIC_ASSETS = [
     "./js/settings.js",
     "./js/main.js",
     "./videos/login-background.mp4",
+    "./videos/default.mp4",
+    "./videos/spring.mp4",
+    "./videos/spring.gif",
+    "./videos/spring_cat.mp4",
+    "./videos/summer_cat.mp4",
+    "./videos/summer_cat.gif",
+    "./videos/autumn_cat.mp4",
+    "./videos/winter_cat.mp4",
     "./videos/motivation.mp4",
+    "./photos/ai.jpg",
+    "./photos/spring.jpg",
+    "./photos/summer.jpg",
+    "./photos/autumn.jpg",
+    "./photos/winter.jpg",
+    "./photos/summer_tree_sidebar.svg",
+    "./photos/summer_tree_topbar.svg",
     "./photos/logo.png",
     "./photos/favicon-180.png",
     "./photos/favicon-32.png",

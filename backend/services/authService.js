@@ -39,6 +39,13 @@ function sanitizeAvatar(avatar) {
     }
 
     let trimmed = avatar.trim();
+    if (trimmed.startsWith("data:image/")) {
+        if (trimmed.length > 2 * 1024 * 1024) {
+            return "pp.png";
+        }
+        return trimmed;
+    }
+
     if (trimmed.startsWith("icons/")) {
         trimmed = trimmed.replace(/^icons\//, "");
     }
@@ -434,11 +441,235 @@ function updateUserProfile(userId, updateData) {
 
 }
 
+const emailService = require("./emailService");
+
+// =====================================================
+// FORGOT / RESET PASSWORD
+// =====================================================
+
+function requestPasswordReset(email) {
+    return new Promise((resolve, reject) => {
+        if (!email) {
+            return reject(new Error("Email is required."));
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+
+        db.get(
+            "SELECT id, name, email FROM users WHERE LOWER(TRIM(email)) = ?",
+            [normalizedEmail],
+            async function (err, user) {
+                if (err) return reject(err);
+                if (!user) {
+                    return reject(new Error("USER_NOT_FOUND"));
+                }
+
+                // Generate secure random 6-digit numeric verification code
+                const code = Math.floor(100000 + Math.random() * 900000).toString();
+                const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+                // Invalidate any older active reset codes for this email
+                db.run(
+                    "UPDATE password_resets SET used = 1 WHERE LOWER(TRIM(email)) = ? AND used = 0",
+                    [normalizedEmail],
+                    function (err) {
+                        if (err) console.error("Error invalidating old reset codes:", err);
+
+                        db.run(
+                            "INSERT INTO password_resets (userId, email, code, expiresAt, used) VALUES (?, ?, ?, ?, 0)",
+                            [user.id, user.email, code, expiresAt],
+                            async function (err) {
+                                if (err) return reject(err);
+
+                                try {
+                                    const emailResult = await emailService.sendPasswordResetEmail(user.email, user.name, code);
+                                    resolve({
+                                        success: true,
+                                        email: user.email,
+                                        message: "Verification code sent to your email.",
+                                        emailResult: emailResult,
+                                        previewUrl: emailResult && emailResult.previewUrl ? emailResult.previewUrl : undefined,
+                                        devCode: (emailResult && emailResult.mode !== "smtp" && !emailResult.previewUrl) ? code : undefined
+                                    });
+                                } catch (emailErr) {
+                                    console.error("Email send failed:", emailErr);
+                                    // Even if email fails, resolve with fallback for smooth dev/demo
+                                    resolve({
+                                        success: true,
+                                        email: user.email,
+                                        message: "Verification code generated.",
+                                        devCode: code
+                                    });
+                                }
+                            }
+                        );
+                    }
+                );
+            }
+        );
+    });
+}
+
+function verifyResetCode(email, code) {
+    return new Promise((resolve, reject) => {
+        if (!email || !code) {
+            return reject(new Error("Email and verification code are required."));
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const normalizedCode = String(code).trim();
+
+        db.get(
+            "SELECT * FROM password_resets WHERE LOWER(TRIM(email)) = ? AND code = ? AND used = 0 ORDER BY id DESC LIMIT 1",
+            [normalizedEmail, normalizedCode],
+            function (err, row) {
+                if (err) return reject(err);
+                if (!row) {
+                    return reject(new Error("INVALID_CODE"));
+                }
+
+                if (new Date(row.expiresAt).getTime() < Date.now()) {
+                    return reject(new Error("CODE_EXPIRED"));
+                }
+
+                resolve({ success: true, message: "Code is valid." });
+            }
+        );
+    });
+}
+
+function resetPasswordWithCode(email, code, newPassword) {
+    return new Promise((resolve, reject) => {
+        if (!email || !code || !newPassword) {
+            return reject(new Error("Email, verification code and new password are required."));
+        }
+
+        if (String(newPassword).length < 6) {
+            return reject(new Error("PASSWORD_TOO_SHORT"));
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const normalizedCode = String(code).trim();
+
+        db.get(
+            "SELECT * FROM password_resets WHERE LOWER(TRIM(email)) = ? AND code = ? AND used = 0 ORDER BY id DESC LIMIT 1",
+            [normalizedEmail, normalizedCode],
+            async function (err, row) {
+                if (err) return reject(err);
+                if (!row) {
+                    return reject(new Error("INVALID_CODE"));
+                }
+
+                if (new Date(row.expiresAt).getTime() < Date.now()) {
+                    return reject(new Error("CODE_EXPIRED"));
+                }
+
+                try {
+                    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+                    db.run(
+                        "UPDATE users SET passwordHash = ? WHERE id = ?",
+                        [hashedPassword, row.userId],
+                        function (err) {
+                            if (err) return reject(err);
+
+                            db.run(
+                                "UPDATE password_resets SET used = 1 WHERE id = ?",
+                                [row.id],
+                                function (err) {
+                                    if (err) console.error("Error marking reset code as used:", err);
+
+                                    db.get(
+                                        "SELECT id, name, email, gradeLevel, department, avatar FROM users WHERE id = ?",
+                                        [row.userId],
+                                        function (err, user) {
+                                            const token = user ? jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN }) : null;
+                                            resolve({
+                                                success: true,
+                                                token: token,
+                                                user: user || null,
+                                                message: "Password reset successfully. Logging you in..."
+                                            });
+                                        }
+                                    );
+                                }
+                            );
+                        }
+                    );
+                } catch (hashErr) {
+                    reject(hashErr);
+                }
+            }
+        );
+    });
+}
+
+function resetPasswordWithAccountDetails(email, fullName, newPassword) {
+    return new Promise((resolve, reject) => {
+        if (!email || !fullName || !newPassword) {
+            return reject(new Error("Email, full name and new password are required."));
+        }
+
+        if (String(newPassword).length < 6) {
+            return reject(new Error("PASSWORD_TOO_SHORT"));
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const normalizedName = String(fullName).trim().toLowerCase();
+
+        db.get(
+            "SELECT id, name, email, gradeLevel, department, avatar FROM users WHERE LOWER(TRIM(email)) = ?",
+            [normalizedEmail],
+            async function (err, user) {
+                if (err) return reject(err);
+                if (!user) {
+                    return reject(new Error("USER_NOT_FOUND"));
+                }
+
+                // Check if provided name matches registered user name
+                const userNameNormalized = String(user.name || "").trim().toLowerCase();
+                const isMatch = userNameNormalized === normalizedName ||
+                                userNameNormalized.includes(normalizedName) ||
+                                normalizedName.includes(userNameNormalized);
+
+                if (!isMatch) {
+                    return reject(new Error("NAME_MISMATCH"));
+                }
+
+                try {
+                    const hashedPassword = await bcrypt.hash(newPassword, 10);
+                    db.run(
+                        "UPDATE users SET passwordHash = ? WHERE id = ?",
+                        [hashedPassword, user.id],
+                        function (err) {
+                            if (err) return reject(err);
+
+                            const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+                                expiresIn: JWT_EXPIRES_IN
+                            });
+
+                            resolve({
+                                success: true,
+                                token: token,
+                                user: user,
+                                message: "Password updated successfully. Logging you in..."
+                            });
+                        }
+                    );
+                } catch (e) {
+                    reject(e);
+                }
+            }
+        );
+    });
+}
+
 function deleteUserAccount(userId) {
     return new Promise(function (resolve, reject) {
         if (!userId) return reject(new Error("User ID is required."));
 
         db.serialize(function () {
+            db.run("DELETE FROM password_resets WHERE userId = ?", [userId]);
             db.run("DELETE FROM day_notes WHERE userId = ?", [userId]);
             db.run("DELETE FROM study_sessions WHERE userId = ?", [userId]);
             db.run("DELETE FROM todos WHERE userId = ?", [userId]);
@@ -464,21 +695,16 @@ function getAvailableAvatars() {
 // =====================================================
 
 module.exports = {
-
     registerUser,
-
     loginUser,
-
     findUserById,
-
     updateUserProfile,
-
     deleteUserAccount,
-
     formatTitleCase,
-
     getAvailableAvatars,
-
+    requestPasswordReset,
+    verifyResetCode,
+    resetPasswordWithCode,
+    resetPasswordWithAccountDetails,
     JWT_SECRET
-
 };

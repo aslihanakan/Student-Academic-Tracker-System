@@ -252,15 +252,25 @@ function initializeDatabase() {
                 CREATE UNIQUE INDEX IF NOT EXISTS
                 idx_users_email_lower
                 ON users (LOWER(TRIM(email)))
-            `, [], function (err) {
+            `);
 
-                if (err) {
-                    console.error("Email unique index error:", err.message);
-                } else {
-                    console.log("Unique email index is ready.");
-                }
+            db.run(`
+                CREATE TABLE IF NOT EXISTS password_resets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    userId INTEGER NOT NULL,
+                    email TEXT NOT NULL,
+                    code TEXT NOT NULL,
+                    expiresAt TEXT NOT NULL,
+                    used INTEGER NOT NULL DEFAULT 0,
+                    createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `);
 
-            });
+            db.run(`
+                CREATE INDEX IF NOT EXISTS idx_password_resets_lookup
+                ON password_resets (LOWER(TRIM(email)), code, used)
+            `);
 
             db.run(`
                 CREATE TABLE IF NOT EXISTS courses (

@@ -126,4 +126,111 @@ router.get("/avatars", authController.getAvatars);
 router.delete("/account", requireAuth, authController.deleteAccount);
 router.delete("/me", requireAuth, authController.deleteAccount);
 
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Şifre sıfırlama için e-postaya 6 haneli doğrulama kodu gönderir
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: student@university.edu
+ *     responses:
+ *       200:
+ *         description: Doğrulama kodu gönderildi.
+ *       404:
+ *         description: E-posta adresi bulunamadı.
+ */
+router.post("/forgot-password", authController.forgotPassword);
+
+/**
+ * @swagger
+ * /api/auth/verify-reset-code:
+ *   post:
+ *     summary: 6 haneli şifre sıfırlama kodunu doğrular
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, code]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Kod geçerli.
+ *       400:
+ *         description: Kod geçersiz veya süresi dolmuş.
+ */
+router.post("/verify-reset-code", authController.verifyResetCode);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Doğrulama kodu ile yeni şifreyi kaydeder
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, code, newPassword]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Şifre başarıyla güncellendi.
+ *       400:
+ *         description: Kod geçersiz veya şifre çok kısa.
+ */
+router.post("/reset-password", authController.resetPassword);
+
+/**
+ * @swagger
+ * /api/auth/reset-password-by-account:
+ *   post:
+ *     summary: Hesap bilgileri ile yeni şifreyi kaydeder ve otomatik giriş yapar
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, fullName, newPassword]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               fullName:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Şifre güncellendi ve oturum açıldı.
+ *       400:
+ *         description: İsim uyuşmuyor veya şifre geçersiz.
+ */
+router.post("/reset-password-by-account", authController.resetPasswordByAccountDetails);
+
 module.exports = router;

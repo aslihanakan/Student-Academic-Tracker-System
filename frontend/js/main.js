@@ -6,9 +6,6 @@ document.getElementById("examsBtn")?.addEventListener("click", loadExamsPage);
 document.getElementById("studyBtn")?.addEventListener("click", loadStudyPage);
 document.getElementById("settingsBtn")?.addEventListener("click", loadSettingsPage);
 
-document.getElementById("aiCoachSidebarBtn")?.addEventListener("click", () => {
-    if (typeof openAiCoachModal === "function") openAiCoachModal();
-});
 document.getElementById("buddiesSidebarBtn")?.addEventListener("click", () => {
     if (typeof openBuddiesModal === "function") openBuddiesModal();
 });
@@ -19,4 +16,9 @@ document.getElementById("groupProjectsSidebarBtn")?.addEventListener("click", ()
 
 /* ─── START ───────────────────────────────────────────────────────────────────*/
 
-window.onAuthenticated = loadDashboard;
+window.onAuthenticated = function() {
+    loadDashboard();
+    if (typeof initAiChatBubble === "function") {
+        initAiChatBubble();
+    }
+};

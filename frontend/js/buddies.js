@@ -71,14 +71,14 @@ async function openBuddiesModal() {
     });
 
     modal.innerHTML = `
-        <div class="modal-box" style="max-width:680px; width:100%; max-height:88vh; overflow-y:auto; padding:0; background:#0f172a; color:#f8fafc; border-radius:14px; border:1px solid rgba(255,255,255,0.15); box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);">
+        <div class="modal-box" style="max-width:680px; width:100%; max-height:88vh; overflow-y:auto; padding:0; background:var(--theme-sidebar-bg, #0f172a); color:#f8fafc; border-radius:14px; border:1px solid var(--theme-sidebar-border, rgba(255,255,255,0.15)); box-shadow:0 25px 50px -12px rgba(0,0,0,0.6), 0 0 25px var(--theme-accent-glow, transparent);">
             <!-- Header -->
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; background:linear-gradient(135deg, #065f46, #047857); border-bottom:1px solid rgba(255,255,255,0.1); border-radius:14px 14px 0 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; background:var(--theme-header-bg, #1e293b); border-bottom:1px solid var(--theme-header-border, rgba(255,255,255,0.1)); border-radius:14px 14px 0 0;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:24px;">🤝</span>
                     <div>
-                        <div style="font-size:16px; font-weight:800; color:#ffffff;">Academi Buddies &amp; Study Streaks</div>
-                        <div style="font-size:12px; color:#a7f3d0;">Connect with classmates, share study streaks and motivate each other</div>
+                        <div style="font-size:16px; font-weight:800; color:var(--theme-header-title, #ffffff);">${escapeHtml(typeof t === "function" ? t("buddies_modal_title", "Academi Buddies & Study Streaks") : "Academi Buddies & Study Streaks")}</div>
+                        <div style="font-size:12px; color:var(--theme-active-nav-color, #e2e8f0);">${escapeHtml(typeof t === "function" ? t("buddies_modal_subtitle", "Connect with classmates, share study streaks and motivate each other") : "Connect with classmates, share study streaks and motivate each other")}</div>
                     </div>
                 </div>
                 <button type="button" onclick="closeBuddiesModal()" style="background:rgba(255,255,255,0.1); border:none; color:#ffffff; font-size:14px; font-weight:700; width:28px; height:28px; border-radius:50%; cursor:pointer;">✕</button>
@@ -91,21 +91,21 @@ async function openBuddiesModal() {
                     <input
                         type="text"
                         id="addBuddyInput"
-                        placeholder="Enter classmate's email or username to send invite..."
-                        style="flex:1; padding:10px 14px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#ffffff; font-size:13px;"
+                        placeholder="${escapeHtml(typeof t === 'function' ? t('buddies_input_placeholder', 'Enter classmate\'s email or username to send invite...') : 'Enter classmate\'s email or username to send invite...')}"
+                        style="flex:1; padding:10px 14px; background:rgba(0,0,0,0.3); border:1px solid var(--theme-sidebar-border, #334155); border-radius:8px; color:#ffffff; font-size:13px;"
                         onkeydown="if(event.key === 'Enter') addClassmateBuddy()"
                     >
                     <button
                         type="button"
                         onclick="addClassmateBuddy()"
-                        style="padding:10px 20px; background:#10b981; color:#ffffff; font-weight:700; font-size:13px; border:none; border-radius:8px; cursor:pointer;"
+                        style="padding:10px 20px; background:var(--theme-accent-gradient, #2563eb); color:#ffffff; font-weight:700; font-size:13px; border:none; border-radius:8px; cursor:pointer; box-shadow:0 3px 10px var(--theme-accent-glow, rgba(0,0,0,0.2));"
                     >
-                        + Send Invite
+                        ${escapeHtml(typeof t === "function" ? t("btn_send_invite", "+ Send Invite") : "+ Send Invite")}
                     </button>
                 </div>
 
                 <div id="buddiesContentList">
-                    <div style="text-align:center; padding:24px; color:#94a3b8;">Loading buddies and study stats...</div>
+                    <div style="text-align:center; padding:24px; color:#94a3b8;">Loading...</div>
                 </div>
             </div>
         </div>
@@ -163,7 +163,7 @@ async function loadBuddiesList(silent = false) {
                 ${incoming.map(req => `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,0,0,0.25); border-radius:8px; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <img src="icons/${escapeHtml(req.avatar || 'pp.png')}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.1);">
+                            <img src="${escapeHtml(typeof getAvatarSrc === 'function' ? getAvatarSrc(req.avatar) : 'icons/' + (req.avatar || 'pp.png'))}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.1);">
                             <div>
                                 <div style="font-weight:700; font-size:13px; color:#ffffff;">${escapeHtml(req.senderName)}</div>
                                 <div style="font-size:11px; color:#94a3b8;">${escapeHtml(req.department || req.gradeLevel || 'Student')}</div>
@@ -198,22 +198,22 @@ async function loadBuddiesList(silent = false) {
             <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; margin-bottom:10px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="font-size:15px; font-weight:800; color:#94a3b8; width:22px;">#${idx + 2}</div>
-                    <img src="icons/${escapeHtml(b.avatar || 'pp.png')}" alt="Avatar" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.1);">
+                    <img src="${escapeHtml(typeof getAvatarSrc === 'function' ? getAvatarSrc(b.avatar) : 'icons/' + (b.avatar || 'pp.png'))}" alt="Avatar" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.1);">
                     <div>
                         <div style="font-weight:700; color:#f8fafc; font-size:13px;">${escapeHtml(b.name)}</div>
-                        <div style="font-size:11px; color:#94a3b8;">${escapeHtml(b.gradeLevel || 'Student')}</div>
+                        <div style="font-size:11px; color:#94a3b8;">${escapeHtml(typeof formatLocalizedGradeLevel === 'function' ? formatLocalizedGradeLevel(b.gradeLevel) : b.gradeLevel || (typeof t === 'function' ? t('grade_student', 'Student') : 'Student'))}</div>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:16px;">
                     <div style="text-align:right;">
-                        <div style="font-size:13px; font-weight:700; color:#fbbf24;">🔥 ${b.streak} day streak</div>
-                        <div style="font-size:11px; color:#94a3b8;">${b.weeklyHours}h this week</div>
+                        <div style="font-size:13px; font-weight:700; color:#fbbf24;">${(typeof t === 'function' ? t('buddies_streak_text', { n: b.streak }) : `🔥 ${b.streak} day streak`)}</div>
+                        <div style="font-size:11px; color:#94a3b8;">${(typeof t === 'function' ? t('buddies_logged_week', { n: b.weeklyHours }) : `${b.weeklyHours}h this week`)}</div>
                     </div>
                     <button
                         type="button"
                         onclick="removeBuddyClassmate(${b.id})"
                         style="background:none; border:none; color:#ef4444; font-size:13px; cursor:pointer; padding:4px;"
-                        title="Remove Buddy"
+                        title="${escapeHtml(typeof t === 'function' ? t('buddies_remove_btn', 'Remove Buddy') : 'Remove Buddy')}"
                     >🗑️</button>
                 </div>
             </div>
@@ -227,26 +227,26 @@ async function loadBuddiesList(silent = false) {
             <div style="background:linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.05)); border:1px solid rgba(16, 185, 129, 0.3); border-radius:10px; padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="font-size:15px; font-weight:800; color:#34d399; width:22px;">#1</div>
-                    <img src="icons/${escapeHtml(myUser?.avatar || 'pp.png')}" alt="My Avatar" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #34d399;">
+                    <img src="${escapeHtml(typeof getAvatarSrc === 'function' ? getAvatarSrc(myUser?.avatar) : 'icons/' + (myUser?.avatar || 'pp.png'))}" alt="My Avatar" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #34d399;">
                     <div>
-                        <div style="font-weight:800; color:#ffffff; font-size:14px;">${escapeHtml(myName)} (You)</div>
-                        <div style="font-size:11px; color:#a7f3d0;">Your Academic Study Profile</div>
+                        <div style="font-weight:800; color:#ffffff; font-size:14px;">${escapeHtml(myName)} ${escapeHtml(typeof t === 'function' ? t('buddies_you', '(You)') : '(You)')}</div>
+                        <div style="font-size:11px; color:#a7f3d0;">${escapeHtml(typeof t === 'function' ? t('buddies_profile_desc', 'Your Academic Study Profile') : 'Your Academic Study Profile')}</div>
                     </div>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-size:15px; font-weight:800; color:#f59e0b;">🔥 ${myStreak} day streak</div>
-                    <div style="font-size:12px; color:#94a3b8;">${myWeekly}h logged this week</div>
+                    <div style="font-size:15px; font-weight:800; color:#f59e0b;">${(typeof t === 'function' ? t('buddies_streak_text', { n: myStreak }) : `🔥 ${myStreak} day streak`)}</div>
+                    <div style="font-size:12px; color:#94a3b8;">${(typeof t === 'function' ? t('buddies_logged_week', { n: myWeekly }) : `${myWeekly}h logged this week`)}</div>
                 </div>
             </div>
 
             <div style="font-size:13px; font-weight:700; color:#cbd5e1; margin-bottom:12px;">
-                🏆 Weekly Study Leaderboard (${buddies.length + 1} students)
+                ${(typeof t === 'function' ? t('buddies_leaderboard_title', { n: buddies.length + 1 }) : `🏆 Weekly Study Leaderboard (${buddies.length + 1} students)`)}
             </div>
 
             ${buddies.length ? buddyCards : `
                 <div style="text-align:center; padding:24px; color:#94a3b8; background:rgba(255,255,255,0.02); border-radius:8px; border:1px dashed rgba(255,255,255,0.1);">
-                    <div>👋 No buddies added yet!</div>
-                    <div style="font-size:12px; margin-top:4px;">Type your classmate's email or name above to send an invitation. Once they accept, you'll study and maintain streaks together!</div>
+                    <div>${escapeHtml(typeof t === 'function' ? t('buddies_no_buddies', '👋 No buddies added yet!') : '👋 No buddies added yet!')}</div>
+                    <div style="font-size:12px; margin-top:4px;">${escapeHtml(typeof t === 'function' ? t('buddies_invite_tip', 'Type your classmate\'s email or name above to send an invitation. Once they accept, you\'ll study and maintain streaks together!') : 'Type your classmate\'s email or name above to send an invitation. Once they accept, you\'ll study and maintain streaks together!')}</div>
                 </div>
             `}
         `;
@@ -257,7 +257,7 @@ async function loadBuddiesList(silent = false) {
                     <div style="font-size:24px; margin-bottom:6px;">⚡</div>
                     <div style="font-size:14px; font-weight:700; color:#f8fafc; margin-bottom:4px;">Connecting to leaderboard...</div>
                     <div style="font-size:12px; color:#94a3b8; margin-bottom:12px;">The server may be waking up or syncing.</div>
-                    <button type="button" onclick="loadBuddiesList()" style="padding:7px 18px; background:#10b981; color:#ffffff; font-weight:700; font-size:12px; border:none; border-radius:6px; cursor:pointer;">
+                    <button type="button" onclick="loadBuddiesList()" style="padding:7px 18px; background:var(--theme-accent-gradient, #2563eb); color:#ffffff; font-weight:700; font-size:12px; border:none; border-radius:6px; cursor:pointer;">
                         🔄 Retry Now
                     </button>
                 </div>
@@ -372,16 +372,20 @@ async function declineBuddyInvitation(invitationId) {
 window.declineBuddyInvitation = declineBuddyInvitation;
 
 async function removeBuddyClassmate(buddyId) {
-    const confirmed = await showConfirm("Remove Buddy", "Are you sure you want to remove this buddy?");
+    const confirmed = await showConfirm(
+        typeof t === "function" ? t("confirm_remove_buddy_title", "Remove Buddy") : "Remove Buddy",
+        typeof t === "function" ? t("confirm_remove_buddy_msg", "Are you sure you want to remove this buddy?") : "Are you sure you want to remove this buddy?",
+        typeof t === "function" ? t("btn_delete", "Remove") : "Remove"
+    );
     if (!confirmed) return;
 
     try {
         const res = await fetch(`${API_URL}/buddies/${buddyId}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Could not remove");
-        showToast("Buddy removed.", "success");
+        showToast(typeof t === "function" ? t("toast_buddy_removed", "Buddy removed.") : "Buddy removed.", "success");
         await loadBuddiesList();
     } catch (e) {
-        showToast("Could not remove buddy.", "error");
+        showToast(typeof t === "function" ? t("toast_buddy_remove_err", "Could not remove buddy.") : "Could not remove buddy.", "error");
     }
 }
 window.removeBuddyClassmate = removeBuddyClassmate;
@@ -415,13 +419,13 @@ async function openGroupProjectsModal() {
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:24px;">👥</span>
                     <div>
-                        <div style="font-size:16px; font-weight:800; color:#ffffff;">Group Projects &amp; Shared Tasks</div>
-                        <div style="font-size:12px; color:#bfdbfe;">Collaborate on term projects, assign tasks, and track member progress</div>
+                        <div style="font-size:16px; font-weight:800; color:#ffffff;">${escapeHtml(typeof t === 'function' ? t('group_modal_title', 'Group Projects & Shared Tasks') : 'Group Projects & Shared Tasks')}</div>
+                        <div style="font-size:12px; color:#bfdbfe;">${escapeHtml(typeof t === 'function' ? t('group_modal_subtitle', 'Collaborate on term projects, assign tasks, and track member progress') : 'Collaborate on term projects, assign tasks, and track member progress')}</div>
                     </div>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center;">
                     <button type="button" onclick="showCreateGroupProjectForm()" style="padding:6px 14px; background:#10b981; color:#ffffff; font-weight:700; font-size:12px; border:none; border-radius:6px; cursor:pointer;">
-                        + New Group Project
+                        ${escapeHtml(typeof t === 'function' ? t('group_new_project_btn', '+ New Group Project') : '+ New Group Project')}
                     </button>
                     <button type="button" onclick="document.getElementById('groupProjectsModal').remove()" style="background:rgba(255,255,255,0.1); border:none; color:#ffffff; font-size:14px; font-weight:700; width:28px; height:28px; border-radius:50%; cursor:pointer;">✕</button>
                 </div>
@@ -431,23 +435,23 @@ async function openGroupProjectsModal() {
             <div style="padding:24px;">
                 <!-- Create Form Box (Collapsible) -->
                 <div id="createGroupProjectBox" style="display:none; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:16px; margin-bottom:20px;">
-                    <div style="font-size:14px; font-weight:700; color:#ffffff; margin-bottom:10px;">Create Collaborative Project</div>
+                    <div style="font-size:14px; font-weight:700; color:#ffffff; margin-bottom:10px;">${escapeHtml(typeof t === 'function' ? t('group_create_title', 'Create Collaborative Project') : 'Create Collaborative Project')}</div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-                        <input type="text" id="gpTitle" placeholder="Project Title (e.g. Software Eng. Term Project)" style="padding:8px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:13px;">
-                        <input type="text" id="gpCourse" placeholder="Course Name (e.g. CS411)" style="padding:8px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:13px;">
+                        <input type="text" id="gpTitle" placeholder="${escapeHtml(typeof t === 'function' ? t('group_title_placeholder', 'Project Title') : 'Project Title')}" style="padding:8px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:13px;">
+                        <input type="text" id="gpCourse" placeholder="${escapeHtml(typeof t === 'function' ? t('group_course_placeholder', 'Course Name') : 'Course Name')}" style="padding:8px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:13px;">
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
                         <input type="date" id="gpDueDate" style="padding:8px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:13px;">
-                        <input type="text" id="gpDesc" placeholder="Brief project description..." style="padding:8px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:13px;">
+                        <input type="text" id="gpDesc" placeholder="${escapeHtml(typeof t === 'function' ? t('group_desc_placeholder', 'Brief project description...') : 'Brief project description...')}" style="padding:8px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:13px;">
                     </div>
                     <div style="display:flex; justify-content:flex-end; gap:8px;">
-                        <button type="button" onclick="document.getElementById('createGroupProjectBox').style.display='none'" style="padding:6px 14px; background:rgba(255,255,255,0.1); color:#ffffff; border:none; border-radius:6px; font-size:12px; cursor:pointer;">Cancel</button>
-                        <button type="button" onclick="submitCreateGroupProject()" style="padding:6px 16px; background:#2563eb; color:#ffffff; font-weight:700; border:none; border-radius:6px; font-size:12px; cursor:pointer;">Save Project</button>
+                        <button type="button" onclick="document.getElementById('createGroupProjectBox').style.display='none'" style="padding:6px 14px; background:rgba(255,255,255,0.1); color:#ffffff; border:none; border-radius:6px; font-size:12px; cursor:pointer;">${escapeHtml(typeof t === 'function' ? t('btn_cancel', 'Cancel') : 'Cancel')}</button>
+                        <button type="button" onclick="submitCreateGroupProject()" style="padding:6px 16px; background:#2563eb; color:#ffffff; font-weight:700; border:none; border-radius:6px; font-size:12px; cursor:pointer;">${escapeHtml(typeof t === 'function' ? t('group_save_btn', 'Save Project') : 'Save Project')}</button>
                     </div>
                 </div>
 
                 <div id="groupProjectsList">
-                    <div style="text-align:center; padding:30px; color:#94a3b8;">Loading group projects...</div>
+                    <div style="text-align:center; padding:30px; color:#94a3b8;">Loading...</div>
                 </div>
             </div>
         </div>
@@ -511,8 +515,8 @@ async function loadGroupProjectsList() {
             listEl.innerHTML = `
                 <div style="text-align:center; padding:32px; color:#94a3b8; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1);">
                     <div style="font-size:28px; margin-bottom:8px;">👥</div>
-                    <div style="font-size:14px; font-weight:700; color:#f8fafc;">No group projects yet!</div>
-                    <div style="font-size:12px; margin-top:4px;">Click "+ New Group Project" above to collaborate with classmates.</div>
+                    <div style="font-size:14px; font-weight:700; color:#f8fafc;">${escapeHtml(typeof t === 'function' ? t('group_no_projects', 'No group projects yet!') : 'No group projects yet!')}</div>
+                    <div style="font-size:12px; margin-top:4px;">${escapeHtml(typeof t === 'function' ? t('group_no_projects_tip', 'Click "+ New Group Project" above to collaborate with classmates.') : 'Click "+ New Group Project" above to collaborate with classmates.')}</div>
                 </div>
             `;
             return;
@@ -524,7 +528,7 @@ async function loadGroupProjectsList() {
             const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
             const memberAvatars = (p.members || []).map(m => `
-                <img src="icons/${escapeHtml(m.avatar || 'pp.png')}" title="${escapeHtml(m.name)}" alt="${escapeHtml(m.name)}" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:2px solid #0f172a; margin-left:-6px;">
+                <img src="${escapeHtml(typeof getAvatarSrc === 'function' ? getAvatarSrc(m.avatar) : 'icons/' + (m.avatar || 'pp.png'))}" title="${escapeHtml(m.name)}" alt="${escapeHtml(m.name)}" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:2px solid #0f172a; margin-left:-6px;">
             `).join("");
 
             return `
@@ -532,11 +536,11 @@ async function loadGroupProjectsList() {
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
                         <div>
                             <div style="font-size:15px; font-weight:800; color:#f8fafc;">${escapeHtml(p.title)}</div>
-                            <div style="font-size:12px; color:#94a3b8;">${escapeHtml(p.courseName || "")} • 📅 Due: ${escapeHtml(toDateText(p.dueDate))}</div>
+                            <div style="font-size:12px; color:#94a3b8;">${escapeHtml(p.courseName || "")} • 📅 ${escapeHtml(typeof t === 'function' ? t('deadlines_due_date', 'Due Date') : 'Due Date')}: ${escapeHtml(toDateText(p.dueDate))}</div>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div style="display:flex; align-items:center;">${memberAvatars}</div>
-                            <button type="button" onclick="inviteMemberToProject(${p.id})" style="padding:4px 8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#ffffff; font-size:11px; cursor:pointer;" title="Invite classmate">+ Invite</button>
+                            <button type="button" onclick="inviteMemberToProject(${p.id})" style="padding:4px 8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#ffffff; font-size:11px; cursor:pointer;" title="Invite classmate">${escapeHtml(typeof t === 'function' ? t('group_invite_btn', '+ Invite') : '+ Invite')}</button>
                             ${p.isOwner ? `<button type="button" onclick="deleteGroupProjectById(${p.id})" style="background:none; border:none; color:#ef4444; font-size:12px; cursor:pointer;" title="Delete Project">🗑️</button>` : ""}
                         </div>
                     </div>
@@ -544,7 +548,7 @@ async function loadGroupProjectsList() {
                     <!-- Progress Bar -->
                     <div style="margin-bottom:12px;">
                         <div style="display:flex; justify-content:space-between; font-size:11px; color:#cbd5e1; margin-bottom:4px;">
-                            <span>Tasks Progress (${done}/${total})</span>
+                            <span>${escapeHtml(typeof t === 'function' ? t('group_tasks_progress', 'Tasks Progress') : 'Tasks Progress')} (${done}/${total})</span>
                             <span style="font-weight:700; color:#60a5fa;">${pct}%</span>
                         </div>
                         <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden;">
@@ -555,15 +559,15 @@ async function loadGroupProjectsList() {
                     <!-- Tasks Accordion Trigger -->
                     <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
                         <button type="button" onclick="toggleProjectTasksView(${p.id})" style="background:none; border:none; color:#93c5fd; font-size:12px; font-weight:700; cursor:pointer; padding:0;">
-                            📋 View &amp; Manage Subtasks ▾
+                            📋 ${escapeHtml(typeof t === 'function' ? t('group_view_subtasks', 'View & Manage Subtasks') : 'View & Manage Subtasks')} ▾
                         </button>
                     </div>
 
                     <!-- Tasks Container -->
                     <div id="gpTasks_${p.id}" style="display:none; margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.1);">
                         <div style="display:flex; gap:8px; margin-bottom:10px;">
-                            <input type="text" id="newTaskInput_${p.id}" placeholder="Add subtask (e.g. Prepare Slide 1-5)..." style="flex:1; padding:7px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:12px;">
-                            <button type="button" onclick="addGroupSubtask(${p.id})" style="padding:7px 14px; background:#2563eb; color:#ffffff; font-weight:700; border:none; border-radius:6px; font-size:12px; cursor:pointer;">+ Add Task</button>
+                            <input type="text" id="newTaskInput_${p.id}" placeholder="${escapeHtml(typeof t === 'function' ? t('group_add_subtask_placeholder', 'Add subtask (e.g. Prepare Slide 1-5)...') : 'Add subtask (e.g. Prepare Slide 1-5)...')}" style="flex:1; padding:7px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#ffffff; font-size:12px;">
+                            <button type="button" onclick="addGroupSubtask(${p.id})" style="padding:7px 14px; background:#2563eb; color:#ffffff; font-weight:700; border:none; border-radius:6px; font-size:12px; cursor:pointer;">${escapeHtml(typeof t === 'function' ? t('group_add_task_btn', '+ Add Task') : '+ Add Task')}</button>
                         </div>
                         <div id="gpTasksList_${p.id}" style="font-size:12px; color:#94a3b8;">Loading tasks...</div>
                     </div>
@@ -598,16 +602,20 @@ async function inviteMemberToProject(projectId) {
 window.inviteMemberToProject = inviteMemberToProject;
 
 async function deleteGroupProjectById(projectId) {
-    const confirmed = await showConfirm("Delete Project", "Are you sure you want to delete this group project?");
+    const confirmed = await showConfirm(
+        typeof t === "function" ? t("confirm_del_grp_proj_title", "Delete Project") : "Delete Project",
+        typeof t === "function" ? t("confirm_del_grp_proj_msg", "Are you sure you want to delete this group project?") : "Are you sure you want to delete this group project?",
+        typeof t === "function" ? t("btn_delete", "Delete") : "Delete"
+    );
     if (!confirmed) return;
 
     try {
         const res = await fetch(`${API_URL}/group-projects/${projectId}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Could not delete");
-        showToast("Group project deleted.", "success");
+        showToast(typeof t === "function" ? t("toast_grp_proj_deleted", "Group project deleted.") : "Group project deleted.", "success");
         await loadGroupProjectsList();
     } catch (e) {
-        showToast("Could not delete project.", "error");
+        showToast(typeof t === "function" ? t("toast_grp_proj_delete_err", "Could not delete project.") : "Could not delete project.", "error");
     }
 }
 window.deleteGroupProjectById = deleteGroupProjectById;
