@@ -589,12 +589,12 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="js/settings.js?v=55"></script>
 <script src="js/main.js?v=38"></script>
 
-<!-- PWA: Service Worker Registration & Auto-Update -->
+<!-- PWA: Service Worker Registration & Background Cache Updates -->
 <script>
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
             navigator.serviceWorker
-                .register("./service-worker.js?v=41")
+                .register("./service-worker.js?v=42")
                 .then(function (reg) {
                     console.log("[PWA] Service worker registered:", reg.scope);
                     reg.update();
@@ -602,14 +602,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 .catch(function (err) {
                     console.log("[PWA] Service worker registration failed:", err);
                 });
-        });
-
-        let isRefreshing = false;
-        navigator.serviceWorker.addEventListener("controllerchange", function () {
-            if (!isRefreshing && navigator.onLine) {
-                isRefreshing = true;
-                window.location.reload();
-            }
         });
     }
 </script>
