@@ -974,26 +974,30 @@ function ensureNotificationRoot() {
     style.textContent = `
         #app-toast-root {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
+            top: 24px;
+            right: 24px;
+            z-index: 999999999 !important;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            pointer-events: none;
         }
         .app-toast {
             min-width: 280px;
             max-width: 380px;
             background: #ffffff;
             border-left: 4px solid #3b82f6;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-            padding: 14px 16px;
+            border-radius: 12px;
+            box-shadow: 0 16px 36px rgba(0,0,0,0.32);
+            padding: 14px 18px;
             font-size: 14px;
+            font-weight: 600;
             color: #1e293b;
             display: flex;
             align-items: flex-start;
             gap: 10px;
+            z-index: 999999999 !important;
+            pointer-events: auto;
             animation: app-toast-in 0.2s ease-out;
         }
         .app-toast.warning { border-left-color: #f97316; }

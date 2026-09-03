@@ -1466,6 +1466,9 @@ function updateForgotPasswordModalTranslations() {
 
     const sb = document.getElementById("forgotSuccessBtn");
     if (sb) sb.textContent = typeof t === "function" ? t("auth_go_to_login_btn", "Go to Login ➔") : "Go to Login ➔";
+
+    const step2Notice = document.getElementById("forgotStep2NoticeText");
+    if (step2Notice) step2Notice.textContent = typeof t === "function" ? t("auth_code_sent_toast", "Verification code sent to your email.") : "Verification code sent to your email.";
 }
 window.updateForgotPasswordModalTranslations = updateForgotPasswordModalTranslations;
 
