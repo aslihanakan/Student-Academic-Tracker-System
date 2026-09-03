@@ -649,11 +649,6 @@ function getCurrentLanguage() {
     if (saved && TRANSLATIONS[saved]) {
         return saved;
     }
-    const navLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
-    const primary = navLang.split('-')[0];
-    if (TRANSLATIONS[primary]) {
-        return primary;
-    }
     return 'en';
 }
 window.getCurrentLanguage = getCurrentLanguage;
