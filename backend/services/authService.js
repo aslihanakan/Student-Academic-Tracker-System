@@ -486,23 +486,18 @@ function requestPasswordReset(email) {
                                 if (err) return reject(err);
 
                                 try {
-                                    const emailResult = await emailService.sendPasswordResetEmail(user.email, user.name, code);
+                                    await emailService.sendPasswordResetEmail(user.email, user.name, code);
                                     resolve({
                                         success: true,
                                         email: user.email,
-                                        message: "Verification code sent to your email.",
-                                        emailResult: emailResult,
-                                        previewUrl: emailResult && emailResult.previewUrl ? emailResult.previewUrl : undefined,
-                                        devCode: (emailResult && emailResult.mode !== "smtp" && !emailResult.previewUrl) ? code : undefined
+                                        message: "Verification code sent to your email."
                                     });
                                 } catch (emailErr) {
                                     console.error("Email send failed:", emailErr);
-                                    // Even if email fails, resolve with fallback for smooth dev/demo
                                     resolve({
                                         success: true,
                                         email: user.email,
-                                        message: "Verification code generated.",
-                                        devCode: code
+                                        message: "Verification code sent to your email."
                                     });
                                 }
                             }

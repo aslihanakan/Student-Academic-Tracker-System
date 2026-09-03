@@ -1556,11 +1556,7 @@ async function handleSendResetCode() {
 
         const emailDisplay = document.getElementById("forgotTargetEmailDisplay");
         if (emailDisplay) {
-            if (data.previewUrl) {
-                emailDisplay.innerHTML = `${escapeHtml(email)} &nbsp;·&nbsp; <a href="${data.previewUrl}" target="_blank" rel="noopener noreferrer" style="color:#2563eb; font-weight:800; text-decoration:underline;">📬 Gelen E-postayı Aç ↗</a>`;
-            } else {
-                emailDisplay.textContent = email;
-            }
+            emailDisplay.textContent = email;
         }
 
         startResetCountdown();
