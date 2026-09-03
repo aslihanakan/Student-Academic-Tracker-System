@@ -910,10 +910,18 @@ table tbody tr:hover {
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--theme-header-border);
-        transition: background 0.35s ease, border-color 0.35s ease;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, background 0.35s ease, border-color 0.35s ease;
 
-        position: relative;
+        position: sticky;
+        top: 0;
         z-index: 30;
+        will-change: transform;
+    }
+
+    .mobile-topbar.header-hidden {
+        transform: translateY(-100%);
+        opacity: 0;
+        pointer-events: none;
     }
 
     .hamburger-btn {
@@ -1062,13 +1070,39 @@ table tbody tr:hover {
     }
 
     .sticky-header {
-        padding: 14px 16px;
-        flex-wrap: wrap;
+        padding: 10px 14px;
+        flex-wrap: nowrap;
+        gap: 8px;
+        position: sticky;
+        top: 0;
+        z-index: 25;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, background 0.35s ease, border-color 0.35s ease;
+        will-change: transform;
+    }
+
+    .sticky-header.header-hidden {
+        transform: translateY(-100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .sticky-header-subtitle {
+        display: none !important;
+    }
+
+    .sticky-header-icon {
+        font-size: 20px !important;
+    }
+
+    .sticky-header-title {
+        font-size: 15.5px !important;
     }
 
     .sticky-search {
-        flex: 1 1 100%;
+        flex: 1 1 auto;
         min-width: 0;
+        font-size: 12.5px;
+        padding: 6px 10px;
     }
 
     /* ---- Mobile Table Cards ---- */

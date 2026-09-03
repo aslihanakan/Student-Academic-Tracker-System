@@ -112,13 +112,21 @@ function setSession(token, user) {
 
 
     /*
-     * User gerçekten geldiyse kaydet.
+     * User gerçekten geldiyse kaydet ve buluttaki tema/dil tercihlerini hemen uygula.
      */
     if (user) {
         localStorage.setItem(
             AUTH_USER_KEY,
             JSON.stringify(user)
         );
+
+        if (user.theme && typeof applyTheme === "function") {
+            applyTheme(user.theme, false);
+        }
+
+        if (user.language && typeof setLanguage === "function") {
+            setLanguage(user.language);
+        }
 
         // Çevrimdışı oturum açabilmek için profili sakla
         try {

@@ -83,11 +83,101 @@ function applyTheme(themeKey, notify = false) {
         }
     }
 
+    if (notify) {
+        syncUserPreferenceToCloud({ theme: validTheme });
+    }
+
     if (notify && typeof showToast === "function") {
         showToast(typeof t === "function" ? t("toast_theme_changed", "Theme updated successfully!") : "Theme updated successfully!", "success");
     }
 }
 window.applyTheme = applyTheme;
+
+async function syncUserPreferenceToCloud(pref) {
+    const token = localStorage.getItem("ats_token");
+    if (!token) return;
+    try {
+        await fetch(apiUrl("/api/auth/preferences"), {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(pref)
+        });
+    } catch (e) {
+        // Silent background sync
+    }
+}
+window.syncUserPreferenceToCloud = syncUserPreferenceToCloud;
+
+function initMobileHeaderAutoHide() {
+    let lastScrollTop = 0;
+    let isHidden = false;
+    const threshold = 8;
+
+    function handleScroll(e) {
+        if (window.innerWidth > 768) {
+            if (isHidden) {
+                const topbar = document.getElementById("mobileTopbar");
+                const sticky = document.getElementById("sticky-header");
+                if (topbar) topbar.classList.remove("header-hidden");
+                if (sticky) sticky.classList.remove("header-hidden");
+                isHidden = false;
+            }
+            return;
+        }
+
+        const target = e.target && e.target.scrollTop !== undefined ? e.target : (document.scrollingElement || document.documentElement || document.body);
+        const scrollTop = target.scrollTop || window.pageYOffset || 0;
+
+        if (scrollTop <= 15) {
+            if (isHidden) {
+                const topbar = document.getElementById("mobileTopbar");
+                const sticky = document.getElementById("sticky-header");
+                if (topbar) topbar.classList.remove("header-hidden");
+                if (sticky) sticky.classList.remove("header-hidden");
+                isHidden = false;
+            }
+            lastScrollTop = scrollTop;
+            return;
+        }
+
+        const delta = scrollTop - lastScrollTop;
+
+        if (delta > threshold && !isHidden) {
+            // Scrolling down -> hide headers smoothly
+            const topbar = document.getElementById("mobileTopbar");
+            const sticky = document.getElementById("sticky-header");
+            if (topbar) topbar.classList.add("header-hidden");
+            if (sticky) sticky.classList.add("header-hidden");
+            isHidden = true;
+        } else if (delta < -threshold && isHidden) {
+            // Scrolling up -> reveal headers smoothly
+            const topbar = document.getElementById("mobileTopbar");
+            const sticky = document.getElementById("sticky-header");
+            if (topbar) topbar.classList.remove("header-hidden");
+            if (sticky) sticky.classList.remove("header-hidden");
+            isHidden = false;
+        }
+
+        lastScrollTop = scrollTop;
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+    const mainArea = document.querySelector(".main-area");
+    if (mainArea) {
+        mainArea.addEventListener("scroll", handleScroll, { passive: true });
+    }
+}
+window.initMobileHeaderAutoHide = initMobileHeaderAutoHide;
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMobileHeaderAutoHide);
+} else {
+    initMobileHeaderAutoHide();
+}
 
 // Auto-initialize theme on load
 if (typeof document !== "undefined") {

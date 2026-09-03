@@ -248,6 +248,14 @@ function initializeDatabase() {
                 );
             });
 
+            ensureColumn("users", "theme", "TEXT DEFAULT 'default'", function (err) {
+                if (err) console.error("Migration error (users.theme):", err.message);
+            });
+
+            ensureColumn("users", "language", "TEXT DEFAULT 'en'", function (err) {
+                if (err) console.error("Migration error (users.language):", err.message);
+            });
+
             db.run(`
                 CREATE UNIQUE INDEX IF NOT EXISTS
                 idx_users_email_lower

@@ -90,6 +90,7 @@ router.get("/me", requireAuth, authController.getCurrentUser);
  *         description: Oturum geçersiz veya eksik.
  */
 router.put("/profile", requireAuth, authController.updateProfile);
+router.put("/preferences", requireAuth, authController.updatePreferences);
 
 /**
  * @swagger

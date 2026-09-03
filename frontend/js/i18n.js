@@ -4377,6 +4377,10 @@ function setLanguage(langCode) {
     localStorage.setItem('ats_lang', langCode);
     document.documentElement.lang = langCode;
 
+    if (typeof syncUserPreferenceToCloud === 'function') {
+        syncUserPreferenceToCloud({ language: langCode });
+    }
+
     updateNavTranslations();
 
     // Re-render user sidebar if user info is present

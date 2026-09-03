@@ -152,11 +152,25 @@ function resetPassword(req, res) {
         });
 }
 
+function updatePreferences(req, res) {
+    const { theme, language } = req.body;
+
+    authService
+        .updateUserPreferences(req.userId, { theme, language })
+        .then(function (result) {
+            res.status(200).json(result);
+        })
+        .catch(function (err) {
+            res.status(400).json({ message: err.message });
+        });
+}
+
 module.exports = {
     register,
     login,
     getCurrentUser,
     updateProfile,
+    updatePreferences,
     getAvatars,
     deleteAccount,
     forgotPassword,

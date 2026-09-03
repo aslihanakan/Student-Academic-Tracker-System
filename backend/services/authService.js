@@ -186,7 +186,9 @@ function registerUser(name, email, password, gradeLevel, department, avatar) {
                                     email: normalizedEmail,
                                     gradeLevel: normalizedGrade,
                                     department: normalizedDepartment,
-                                    avatar: selectedAvatar
+                                    avatar: selectedAvatar,
+                                    theme: "default",
+                                    language: "en"
                                 }
                             });
 
@@ -275,7 +277,9 @@ function loginUser(email, password) {
                             email: user.email,
                             gradeLevel: user.gradeLevel || "",
                             department: user.department || "",
-                            avatar: user.avatar || "default"
+                            avatar: user.avatar || "default",
+                            theme: user.theme || "default",
+                            language: user.language || "en"
                         }
                     });
 
@@ -300,7 +304,7 @@ function findUserById(userId) {
     return new Promise((resolve, reject) => {
 
         const sql = `
-            SELECT id, name, email, gradeLevel, department, avatar, createdAt
+            SELECT id, name, email, gradeLevel, department, avatar, theme, language, createdAt
             FROM users
             WHERE id = ?
         `;
@@ -443,6 +447,41 @@ function updateUserProfile(userId, updateData) {
 
     });
 
+}
+
+function updateUserPreferences(userId, { theme, language }) {
+    return new Promise((resolve, reject) => {
+        if (!userId) return reject(new Error("User ID is required."));
+
+        const updates = [];
+        const params = [];
+
+        if (theme !== undefined) {
+            updates.push("theme = ?");
+            params.push(String(theme).trim().toLowerCase());
+        }
+
+        if (language !== undefined) {
+            updates.push("language = ?");
+            params.push(String(language).trim().toLowerCase());
+        }
+
+        if (updates.length === 0) {
+            return resolve({ success: true, message: "No preferences to update." });
+        }
+
+        params.push(userId);
+        const sql = `UPDATE users SET ${updates.join(", ")} WHERE id = ?`;
+
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            resolve({
+                success: true,
+                theme,
+                language
+            });
+        });
+    });
 }
 
 const emailService = require("./emailService");
@@ -649,5 +688,6 @@ module.exports = {
     requestPasswordReset,
     verifyResetCode,
     resetPasswordWithCode,
+    updateUserPreferences,
     JWT_SECRET
 };
