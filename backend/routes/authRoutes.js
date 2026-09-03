@@ -205,32 +205,4 @@ router.post("/verify-reset-code", authController.verifyResetCode);
  */
 router.post("/reset-password", authController.resetPassword);
 
-/**
- * @swagger
- * /api/auth/reset-password-by-account:
- *   post:
- *     summary: Hesap bilgileri ile yeni şifreyi kaydeder ve otomatik giriş yapar
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, fullName, newPassword]
- *             properties:
- *               email:
- *                 type: string
- *               fullName:
- *                 type: string
- *               newPassword:
- *                 type: string
- *     responses:
- *       200:
- *         description: Şifre güncellendi ve oturum açıldı.
- *       400:
- *         description: İsim uyuşmuyor veya şifre geçersiz.
- */
-router.post("/reset-password-by-account", authController.resetPasswordByAccountDetails);
-
 module.exports = router;

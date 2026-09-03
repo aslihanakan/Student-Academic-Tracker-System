@@ -1266,55 +1266,23 @@ function setRecoveryStep(stepNum) {
     }
 }
 
-function switchRecoveryMethod(method) {
-    const emailTab = document.getElementById("tabEmailMethod");
-    const accountTab = document.getElementById("tabAccountMethod");
+function goToStep1Email() {
     const emailStep1 = document.getElementById("forgotStep1");
-    const accountView = document.getElementById("forgotAccountMethodView");
     const step2 = document.getElementById("forgotStep2");
     const step3 = document.getElementById("forgotStep3");
 
-    if (method === "email") {
-        if (emailTab) {
-            emailTab.style.background = "#ffffff";
-            emailTab.style.color = "#0f172a";
-            emailTab.style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
-        }
-        if (accountTab) {
-            accountTab.style.background = "transparent";
-            accountTab.style.color = "#64748b";
-            accountTab.style.boxShadow = "none";
-        }
-        if (emailStep1) emailStep1.style.display = "block";
-        if (accountView) accountView.style.display = "none";
-        if (step2) step2.style.display = "none";
-        if (step3) step3.style.display = "none";
-        setRecoveryStep(1);
-    } else {
-        if (accountTab) {
-            accountTab.style.background = "#ffffff";
-            accountTab.style.color = "#0f172a";
-            accountTab.style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
-        }
-        if (emailTab) {
-            emailTab.style.background = "transparent";
-            emailTab.style.color = "#64748b";
-            emailTab.style.boxShadow = "none";
-        }
-        if (emailStep1) emailStep1.style.display = "none";
-        if (accountView) accountView.style.display = "block";
-        if (step2) step2.style.display = "none";
-        if (step3) step3.style.display = "none";
-        setRecoveryStep(1);
+    if (emailStep1) emailStep1.style.display = "block";
+    if (step2) step2.style.display = "none";
+    if (step3) step3.style.display = "none";
 
-        const loginEmail = document.getElementById("loginEmail");
-        const accountEmail = document.getElementById("accountResetEmail");
-        if (loginEmail && accountEmail && loginEmail.value) {
-            accountEmail.value = loginEmail.value.trim();
-        }
+    setRecoveryStep(1);
+
+    const forgotEmail = document.getElementById("forgotEmail");
+    if (forgotEmail) {
+        forgotEmail.focus();
     }
 }
-window.switchRecoveryMethod = switchRecoveryMethod;
+window.goToStep1Email = goToStep1Email;
 
 function updatePasswordStrengthMeter(inputId, barId, labelId) {
     const input = document.getElementById(inputId);
@@ -1384,18 +1352,13 @@ function openForgotPasswordModal() {
     modal.style.display = "flex";
     document.body.style.overflow = "hidden";
 
-    // Switch to default email method
-    switchRecoveryMethod("email");
-
-    const tabs = document.getElementById("recoveryMethodTabs");
-    if (tabs) tabs.style.display = "flex";
+    // Show Step 1
+    goToStep1Email();
 
     const err1 = document.getElementById("forgotError1");
     if (err1) { err1.style.display = "none"; err1.textContent = ""; }
     const err2 = document.getElementById("forgotError2");
     if (err2) { err2.style.display = "none"; err2.textContent = ""; }
-    const errAcc = document.getElementById("forgotAccountError");
-    if (errAcc) { errAcc.style.display = "none"; errAcc.textContent = ""; }
 
     // Pre-fill email from login form if present
     const loginEmail = document.getElementById("loginEmail");
@@ -1535,9 +1498,6 @@ async function handleSendResetCode() {
         // Switch to Step 2
         document.getElementById("forgotStep1").style.display = "none";
         document.getElementById("forgotStep2").style.display = "block";
-        const tabs = document.getElementById("recoveryMethodTabs");
-        if (tabs) tabs.style.display = "none";
-
         setRecoveryStep(2);
 
         const emailDisplay = document.getElementById("forgotTargetEmailDisplay");
@@ -1699,93 +1659,7 @@ async function handleResetPasswordSubmit() {
 }
 window.handleResetPasswordSubmit = handleResetPasswordSubmit;
 
-async function handleAccountResetSubmit() {
-    const emailInput = document.getElementById("accountResetEmail");
-    const nameInput = document.getElementById("accountResetName");
-    const passInput = document.getElementById("accountNewPass");
-    const confirmInput = document.getElementById("accountConfirmPass");
-    const errEl = document.getElementById("forgotAccountError");
-    const submitBtn = document.getElementById("accountResetSubmitBtn");
 
-    if (!emailInput || !nameInput || !passInput || !confirmInput) return;
-
-    const email = emailInput.value.trim();
-    const fullName = nameInput.value.trim();
-    const newPassword = passInput.value;
-    const confirmPassword = confirmInput.value;
-
-    if (errEl) errEl.style.display = "none";
-
-    if (newPassword !== confirmPassword) {
-        if (errEl) {
-            errEl.textContent = "Şifreler birbiriyle eşleşmiyor.";
-            errEl.style.display = "block";
-        }
-        return;
-    }
-
-    if (newPassword.length < 6) {
-        if (errEl) {
-            errEl.textContent = "Şifre en az 6 karakter olmalıdır.";
-            errEl.style.display = "block";
-        }
-        return;
-    }
-
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = typeof t === "function" ? t("common_loading", "Updating...") : "Updating...";
-    }
-
-    try {
-        const res = await fetch(apiUrl("/api/auth/reset-password-by-account"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email: email,
-                fullName: fullName,
-                newPassword: newPassword
-            })
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-            throw new Error(data.message || "Hesap doğrulaması başarısız oldu.");
-        }
-
-        // Show step 3 (Success)
-        document.getElementById("forgotAccountMethodView").style.display = "none";
-        document.getElementById("forgotStep3").style.display = "block";
-        const tabs = document.getElementById("recoveryMethodTabs");
-        if (tabs) tabs.style.display = "none";
-        setRecoveryStep(3);
-
-        if (typeof showToast === "function") {
-            showToast("🎉 Kimliğiniz doğrulandı ve şifreniz yenilendi!", "success");
-        }
-
-        // Auto login user
-        if (data.token && data.user) {
-            setTimeout(() => {
-                closeForgotPasswordModal();
-                setSession(data.token, data.user);
-                showMainApp(data.user);
-            }, 1200);
-        }
-
-    } catch (err) {
-        if (errEl) {
-            errEl.textContent = err.message || "Hesap doğrulaması başarısız oldu.";
-            errEl.style.display = "block";
-        }
-    } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = "Doğrula ve Şifremi Yenile 🚀";
-        }
-    }
-}
-window.handleAccountResetSubmit = handleAccountResetSubmit;
 
 
 /* ─── START AUTH ───────────────────────────────────────────────────────────── */

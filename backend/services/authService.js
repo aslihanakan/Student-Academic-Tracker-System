@@ -604,66 +604,6 @@ function resetPasswordWithCode(email, code, newPassword) {
     });
 }
 
-function resetPasswordWithAccountDetails(email, fullName, newPassword) {
-    return new Promise((resolve, reject) => {
-        if (!email || !fullName || !newPassword) {
-            return reject(new Error("Email, full name and new password are required."));
-        }
-
-        if (String(newPassword).length < 6) {
-            return reject(new Error("PASSWORD_TOO_SHORT"));
-        }
-
-        const normalizedEmail = String(email).trim().toLowerCase();
-        const normalizedName = String(fullName).trim().toLowerCase();
-
-        db.get(
-            "SELECT id, name, email, gradeLevel, department, avatar FROM users WHERE LOWER(TRIM(email)) = ?",
-            [normalizedEmail],
-            async function (err, user) {
-                if (err) return reject(err);
-                if (!user) {
-                    return reject(new Error("USER_NOT_FOUND"));
-                }
-
-                // Check if provided name matches registered user name
-                const userNameNormalized = String(user.name || "").trim().toLowerCase();
-                const isMatch = userNameNormalized === normalizedName ||
-                                userNameNormalized.includes(normalizedName) ||
-                                normalizedName.includes(userNameNormalized);
-
-                if (!isMatch) {
-                    return reject(new Error("NAME_MISMATCH"));
-                }
-
-                try {
-                    const hashedPassword = await bcrypt.hash(newPassword, 10);
-                    db.run(
-                        "UPDATE users SET passwordHash = ? WHERE id = ?",
-                        [hashedPassword, user.id],
-                        function (err) {
-                            if (err) return reject(err);
-
-                            const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
-                                expiresIn: JWT_EXPIRES_IN
-                            });
-
-                            resolve({
-                                success: true,
-                                token: token,
-                                user: user,
-                                message: "Password updated successfully. Logging you in..."
-                            });
-                        }
-                    );
-                } catch (e) {
-                    reject(e);
-                }
-            }
-        );
-    });
-}
-
 function deleteUserAccount(userId) {
     return new Promise(function (resolve, reject) {
         if (!userId) return reject(new Error("User ID is required."));
@@ -705,6 +645,5 @@ module.exports = {
     requestPasswordReset,
     verifyResetCode,
     resetPasswordWithCode,
-    resetPasswordWithAccountDetails,
     JWT_SECRET
 };

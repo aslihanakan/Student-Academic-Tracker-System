@@ -149,28 +149,6 @@ function resetPassword(req, res) {
         });
 }
 
-function resetPasswordByAccountDetails(req, res) {
-    const { email, fullName, newPassword } = req.body;
-
-    authService
-        .resetPasswordWithAccountDetails(email, fullName, newPassword)
-        .then(function (result) {
-            res.status(200).json(result);
-        })
-        .catch(function (err) {
-            if (err.message === "USER_NOT_FOUND") {
-                return res.status(404).json({ message: "No account found with this email address." });
-            }
-            if (err.message === "NAME_MISMATCH") {
-                return res.status(400).json({ message: "The provided name does not match the registered account name." });
-            }
-            if (err.message === "PASSWORD_TOO_SHORT") {
-                return res.status(400).json({ message: "New password must be at least 6 characters." });
-            }
-            res.status(400).json({ message: err.message });
-        });
-}
-
 module.exports = {
     register,
     login,
@@ -180,6 +158,5 @@ module.exports = {
     deleteAccount,
     forgotPassword,
     verifyResetCode,
-    resetPassword,
-    resetPasswordByAccountDetails
+    resetPassword
 };
