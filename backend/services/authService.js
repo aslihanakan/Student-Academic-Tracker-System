@@ -395,6 +395,10 @@ function updateUserProfile(userId, updateData) {
                     }
                 }
 
+                if (user.passwordHash && bcrypt.compareSync(updateData.newPassword, user.passwordHash)) {
+                    return reject(new Error("NEW_PASSWORD_SAME_AS_OLD"));
+                }
+
                 passwordHash = await bcrypt.hash(updateData.newPassword, 10);
             }
 
@@ -565,30 +569,23 @@ function resetPasswordWithCode(email, code, newPassword) {
                 }
 
                 db.get(
-                    "SELECT id, name, email, passwordHash, gradeLevel, department, avatar FROM users WHERE id = ?",
-                    [row.userId],
-                    async function (userErr, existingUser) {
+                    "SELECT id, name, email, passwordHash, gradeLevel, department, avatar FROM users WHERE id = ? OR LOWER(TRIM(email)) = ?",
+                    [row.userId || 0, normalizedEmail],
+                    function (userErr, existingUser) {
                         if (userErr) return reject(userErr);
                         if (!existingUser) return reject(new Error("USER_NOT_FOUND"));
 
-                        // Check if new password is identical to old password
-                        if (existingUser.passwordHash) {
-                            try {
-                                const isSame = await bcrypt.compare(newPassword, existingUser.passwordHash);
-                                if (isSame) {
-                                    return reject(new Error("NEW_PASSWORD_SAME_AS_OLD"));
-                                }
-                            } catch (e) {
-                                console.error("Error comparing password hashes:", e);
-                            }
+                        // Strict check: new password cannot match existing password
+                        if (existingUser.passwordHash && bcrypt.compareSync(String(newPassword), existingUser.passwordHash)) {
+                            return reject(new Error("NEW_PASSWORD_SAME_AS_OLD"));
                         }
 
                         try {
-                            const hashedPassword = await bcrypt.hash(newPassword, 10);
+                            const hashedPassword = bcrypt.hashSync(String(newPassword), 10);
 
                             db.run(
                                 "UPDATE users SET passwordHash = ? WHERE id = ?",
-                                [hashedPassword, row.userId],
+                                [hashedPassword, existingUser.id],
                                 function (err) {
                                     if (err) return reject(err);
 
