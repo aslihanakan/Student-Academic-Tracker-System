@@ -50,6 +50,24 @@ app.use(function (req, res, next) {
 
 
 // =====================================================
+// SWAGGER DOCUMENTATION
+// =====================================================
+
+app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+        customSiteTitle: "Academi Buddy API Documentation"
+    })
+);
+
+app.get("/api-docs.json", function (req, res) {
+    res.setHeader("Content-Type", "application/json");
+    res.send(swaggerSpec);
+});
+
+
+// =====================================================
 // STATIC FRONTEND
 // =====================================================
 
@@ -68,22 +86,6 @@ app.use(
 
 
 // =====================================================
-// SWAGGER DOCUMENTATION
-// =====================================================
-
-app.use(
-    "/api-docs",
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec)
-);
-
-app.get("/api-docs.json", function (req, res) {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerSpec);
-});
-
-
-// =====================================================
 // PUBLIC AUTH ROUTES
 // =====================================================
 
@@ -94,6 +96,20 @@ app.use("/api/auth", authRoutes);
 // HEALTH CHECK
 // =====================================================
 
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Sunucu ve servis çalışma durumunu kontrol eder
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Servis aktif ve çalışıyor.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthResponse'
+ */
 app.get("/api/health", function (req, res) {
 
     res.status(200).json({

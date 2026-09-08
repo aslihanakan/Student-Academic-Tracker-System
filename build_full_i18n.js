@@ -90,6 +90,50 @@ const RAW_DICTIONARY = {
     dept_computer_engineering: { en: 'Computer Engineering', tr: 'Bilgisayar Mühendisliği', de: 'Informatik', es: 'Ingeniería Informática', fr: 'Génie Informatique', it: 'Ingegneria Informatica', ru: 'Компьютерная инженерия', ko: '컴퓨터공학과', ja: 'コンピュータ工学', ar: 'هندسة الحاسوب' },
     login_btn: { en: 'Sign In to Portal', tr: 'Sisteme Giriş Yap', de: 'Im Portal anmelden', es: 'Entrar al Portal', fr: 'Se connecter au portail', it: 'Accedi al portale', ru: 'Войти в систему', ko: '포털 로그인', ja: 'ポータルにログイン', ar: 'الدخول إلى البوابة' },
     register_btn: { en: 'Create Account', tr: 'Hesap Oluştur', de: 'Konto erstellen', es: 'Crear Cuenta', fr: 'Créer un Compte', it: 'Crea Account', ru: 'Зарегистрироваться', ko: '회원가입 완료', ja: 'アカウント作成', ar: 'إنشاء الحساب' },
+    landing_hero_title: { en: 'Manage your academic life in one place.', tr: 'Akademik hayatını tek bir yerden yönet.', de: 'Verwalte dein akademisches Leben an einem Ort.', es: 'Gestiona tu vida académica en un solo lugar.', fr: 'Gérez votre vie académique en un seul endroit.', it: 'Gestisci la tua vita accademica in un unico posto.', ru: 'Управляйте учебным процессом в одном месте.', ko: '학업 생활을 한 곳에서 관리하세요.', ja: '学生生活のすべてを、ひとつの場所で管理。', ar: 'قم بإدارة حياتك الأكاديمية في مكان واحد.' },
+    landing_hero_desc: {
+        en: 'Keep track of your courses, exams, grades and study sessions with ease. Make your academic life more organized, productive and stress-free.',
+        tr: 'Derslerini, sınavlarını, notlarını ve çalışma saatlerini kolayca takip et. Akademik hayatını daha düzenli, verimli ve stressiz hale getir.',
+        de: 'Behalte den Überblick über Kurse, Prüfungen, Noten und Lernzeiten. Für ein stressfreies und produktives Studium.',
+        es: 'Organiza tus cursos, exámenes, notas y horas de estudio fácilmente. Haz tu vida académica más productiva y sin estrés.',
+        fr: 'Suivez vos cours, examens, notes et sessions d\'étude en toute simplicité. Une vie académique organisée et sereine.',
+        it: 'Tieni traccia di corsi, esami, voti e sessioni di studio con facilità. Rendi il tuo percorso universitario più organizzato.',
+        ru: 'Легко отслеживайте курсы, экзамены, оценки и учебные часы. Сделайте учебу более организованной и продуктивной.',
+        ko: '과목, 시험, 성적, 학습 세션을 손쉽게 추적하세요. 더 체계적이고 스트레스 없는 학업 생활을 만들어보세요.',
+        ja: '授業、試験、成績、学習時間を簡単に記録。より計画的でストレスのない大学生活を実現します。',
+        ar: 'تابع مقرراتك، واختباراتك، ودرجاتك، وساعات مذاكرتك بكل سهولة. اجعل حياتك الأكاديمية أكثر تنظيماً وإنتاجية.'
+    },
+    landing_feat_courses_title: { en: 'Course & Grade Tracking', tr: 'Ders ve Not Takibi', de: 'Kurs- & Notenverwaltung', es: 'Seguimiento de Cursos y Notas', fr: 'Suivi des Cours et Notes', it: 'Monitoraggio Corsi e Voti', ru: 'Учет курсов и оценок', ko: '과목 및 성적 관리', ja: '科目・成績管理', ar: 'متابعة المقررات والدرجات' },
+    landing_feat_courses_desc: { en: 'Keep all your courses and grades organized in one place.', tr: 'Tüm derslerini ve notlarını tek bir yerde düzenli tut.', de: 'Alle Kurse und Noten an einem Ort übersichtlich organisieren.', es: 'Mantén todas tus materias y calificaciones organizadas.', fr: 'Gardez tous vos cours et vos notes organisés au même endroit.', it: 'Tutti i corsi e voti organizzati in un unico posto.', ru: 'Все ваши предметы и оценки в одном удобном месте.', ko: '모든 과목과 성적을 한눈에 체계적으로 관리하세요.', ja: 'すべての履修科目と成績をすっきり整理。', ar: 'احتفظ بجميع مقرراتك ودرجاتك منظمة في مكان واحد.' },
+    landing_feat_exams_title: { en: 'Exam Tracking', tr: 'Sınav Takibi', de: 'Prüfungsplaner', es: 'Control de Exámenes', fr: 'Suivi des Examens', it: 'Pianificazione Esami', ru: 'Календарь экзаменов', ko: '시험 및 마감일 관리', ja: '試験・締切管理', ar: 'متابعة الاختبارات' },
+    landing_feat_exams_desc: { en: 'Keep track of upcoming exams and important deadlines.', tr: 'Yaklaşan sınavlarını ve önemli teslim tarihlerini takip et.', de: 'Behalte anstehende Prüfungen und wichtige Fristen im Auge.', es: 'Sigue tus próximos exámenes y fechas límite importantes.', fr: 'Gardez un œil sur vos examens à venir et vos échéances clés.', it: 'Monitora gli esami imminenti e le scadenze importanti.', ru: 'Будьте в курсе предстоящих экзаменов и важных сроков.', ko: '다가오는 시험 일정과 중요한 과제 마감일을 놓치지 마세요.', ja: '試験日程や大切な提出期限をしっかり把握。', ar: 'تتبع مواعيد الاختبارات القادمة والمهام الهامة.' },
+    landing_feat_calc_title: { en: 'Grade Calculator', tr: 'Not Hesaplayıcı', de: 'Notenrechner', es: 'Calculadora de Calificaciones', fr: 'Calculateur de Notes', it: 'Calcolatore Voti', ru: 'Калькулятор оценок', ko: '학점 계산기', ja: '成績計算ツール', ar: 'حاسبة الدرجات' },
+    landing_feat_calc_desc: { en: 'Calculate your required final grade and course results.', tr: 'Dersi geçmek için gereken final notunu ve sonuçlarını hesapla.', de: 'Berechne die benötigte Abschlussnote für deine Kurse.', es: 'Calcula la nota requerida para aprobar cada asignatura.', fr: 'Calculez la note nécessaire pour réussir vos cours.', it: 'Calcola il voto necessario per superare ogni esame.', ru: 'Рассчитайте балл, необходимый для успешной сдачи курса.', ko: '과목 이수를 위해 필요한 기말 점수와 학점을 시뮬레이션하세요.', ja: '単位取得に必要な期末目標点と成績を自動計算。', ar: 'احسب الدرجة المطلوبة في الاختبار النهائي لاجتياز المقرر.' },
+    landing_feat_study_title: { en: 'Study Tracking', tr: 'Çalışma Takibi', de: 'Lernzeit-Tracker', es: 'Registro de Estudio', fr: 'Suivi du Temps d\'Étude', it: 'Monitoraggio Studio', ru: 'Таймер учебы', ko: '학습 시간 추적', ja: '学習時間トラッカー', ar: 'تتبع ساعات المذاكرة' },
+    landing_feat_study_desc: { en: 'Record your study sessions and monitor your progress.', tr: 'Çalışma seanslarını kaydet ve gelişimini izle.', de: 'Erfasse deine Lerneinheiten und verfolge deinen Fortschritt.', es: 'Registra tus sesiones de estudio y observa tu progreso.', fr: 'Enregistrez vos sessions de révision et mesurez vos progrès.', it: 'Registra le sessioni di studio e osserva i tuoi miglioramenti.', ru: 'Записывайте учебные сессии и следите за прогрессом.', ko: '공부時間を記録하고 나의 성장을 통계로 확인하세요.', ja: '日々の勉強時間を記録し、積み重ねを可視化。', ar: 'سجل جلسات مذاكرتك وراقب مدى تقدمك الدراسي.' },
+    landing_footer_text: { en: 'Make your academic journey easier.', tr: 'Akademik yolculuğunu kolaylaştır.', de: 'Erleichtere deine Studienreise.', es: 'Haz tu camino académico más sencillo.', fr: 'Facilitez votre parcours universitaire.', it: 'Rendi il tuo percorso di studi più semplice.', ru: 'Сделайте ваш учебный путь проще.', ko: '당신의 대학 학업 여정을 더 스마트하게 만들어보세요.', ja: 'あなたの学びの旅を、もっとスムーズに。', ar: 'اجعل مسيرتك الأكاديمية أكثر سهولة ويسراً.' },
+    welcome_title: { en: 'Welcome to', tr: 'Hoş Geldiniz:', de: 'Willkommen bei', es: 'Bienvenido/a a', fr: 'Bienvenue sur', it: 'Benvenuto su', ru: 'Добро пожаловать в', ko: '환영합니다:', ja: 'ようこそ', ar: 'مرحباً بك في' },
+    welcome_desc: {
+        en: 'Your personal academic companion for managing courses, grades, exams and study time.',
+        tr: 'Derslerini, notlarını, sınavlarını ve çalışma saatlerini yöneten kişisel akademik yardımcın.',
+        de: 'Dein persönlicher akademischer Begleiter für Kurse, Noten, Prüfungen und Lernzeit.',
+        es: 'Tu compañero académico personal para organizar cursos, notas, exámenes y tiempo de estudio.',
+        fr: 'Votre assistant académique pour gérer cours, notes, examens et temps de révision.',
+        it: 'Il tuo compagno personale per corsi, voti, esami e tempo di studio.',
+        ru: 'Ваш персональный помощник для управления курсами, оценками, экзаменами и временем.',
+        ko: '과목, 성적, 시험 일정, 공부 시간을 체계적으로 관리하는 나만의 학업 도우미.',
+        ja: '授業・成績・試験・学習時間を一元管理するパーソナルアシスタント。',
+        ar: 'رفيقك الأكاديمي الشخصي لإدارة المقررات، والدرجات، والاختبارات ووقت المذاكرة.'
+    },
+    welcome_login_btn: { en: 'Log In', tr: 'Giriş Yap', de: 'Anmelden', es: 'Iniciar Sesión', fr: 'Connexion', it: 'Accedi', ru: 'Вход', ko: '로그인', ja: 'ログイン', ar: 'تسجيل الدخول' },
+    welcome_register_btn: { en: 'Create Account', tr: 'Hesap Oluştur', de: 'Konto erstellen', es: 'Crear Cuenta', fr: 'Créer un Compte', it: 'Crea Account', ru: 'Создать аккаунт', ko: '계정 만들기', ja: 'アカウント作成', ar: 'إنشاء حساب' },
+    welcome_note: { en: 'Start organizing your academic life today.', tr: 'Akademik hayatını düzenlemeye bugün başla.', de: 'Beginne noch heute, dein Studium zu organisieren.', es: 'Empieza a organizar tu vida académica hoy.', fr: 'Commencez à organiser votre vie étudiante dès aujourd\'hui.', it: 'Inizia oggi a organizzare la tua vita universitaria.', ru: 'Начните организовывать учебу уже сегодня.', ko: '오늘부터 체계적인 학업 관리를 시작해보세요.', ja: '今日から学習環境をアップデートしよう。', ar: 'ابدأ بتنظيم حياتك الأكاديمية اليوم.' },
+    auth_tagline: { en: 'Sign in to track your courses, exams and study time.', tr: 'Derslerini, sınavlarını ve çalışma sürelerini takip etmek için giriş yap.', de: 'Melde dich an, um Kurse, Prüfungen und Lernzeiten zu verfolgen.', es: 'Inicia sesión para gestionar tus asignaturas, exámenes y estudio.', fr: 'Connectez-vous pour suivre vos cours, examens et temps de révision.', it: 'Accedi per monitorare corsi, esami e tempo di studio.', ru: 'Войдите, чтобы отслеживать курсы, экзамены и учебные часы.', ko: '과목, 시험, 학습 시간을 관리하려면 로그인하세요.', ja: 'ログインして授業、試験、学習時間を記録しましょう。', ar: 'سجل الدخول لتتبع مقرراتك واختباراتك ووقت مذاكرتك.' },
+    auth_back_btn: { en: '← Back', tr: '← Geri', de: '← Zurück', es: '← Volver', fr: '← Retour', it: '← Indietro', ru: '← Назад', ko: '← 뒤로', ja: '← 戻る', ar: '← رجوع' },
+    auth_grade_label: { en: 'Class / Year', tr: 'Sınıf / Düzey', de: 'Studienjahr / Klasse', es: 'Año / Nivel', fr: 'Année / Niveau', it: 'Anno di Corso', ru: 'Курс / Уровень', ko: '학년 / 과정', ja: '学年・課程', ar: 'السنة / المستوى' },
+    auth_grade_select_default: { en: 'Select your class / year', tr: 'Sınıfınızı / düzeyinizi seçin', de: 'Wähle dein Studienjahr', es: 'Selecciona tu año o nivel', fr: 'Sélectionnez votre année / niveau', it: 'Seleziona il tuo anno di corso', ru: 'Выберите ваш курс', ko: '학년 및 과정을 선택하세요', ja: '学年を選択してください', ar: 'اختر سنتك الدراسية / مستواك' },
+    auth_optional_label: { en: '(optional)', tr: '(isteğe bağlı)', de: '(optional)', es: '(opcional)', fr: '(facultatif)', it: '(opzionale)', ru: '(необязательно)', ko: '(선택)', ja: '(任意)', ar: '(اختياري)' },
+    auth_select_language: { en: 'Language', tr: 'Dil', de: 'Sprache', es: 'Idioma', fr: 'Langue', it: 'Lingua', ru: 'Язык', ko: '언어', ja: '言語', ar: 'اللغة' },
     auth_forgot_password_link: { en: 'Forgot Password?', tr: 'Parolamı Unuttum?', de: 'Passwort vergessen?', es: '¿Olvidaste tu contraseña?', fr: 'Mot de passe oublié ?', it: 'Password dimenticata?', ru: 'Забыли пароль?', ko: '비밀번호를 잊으셨나요?', ja: 'パスワードをお忘れですか？', ar: 'هل نسيت كلمة المرور؟' },
     auth_forgot_title: { en: 'Reset Password', tr: 'Şifremi Sıfırla', de: 'Passwort zurücksetzen', es: 'Restablecer Contraseña', fr: 'Réinitialiser le mot de passe', it: 'Reimposta Password', ru: 'Сброс пароля', ko: '비밀번호 재설정', ja: 'パスワードの再設定', ar: 'إعادة تعيين كلمة المرور' },
     auth_forgot_subtitle_step1: {
@@ -649,6 +693,14 @@ function getCurrentLanguage() {
     if (saved && TRANSLATIONS[saved]) {
         return saved;
     }
+    try {
+        const authUserKey = typeof AUTH_USER_KEY !== 'undefined' ? AUTH_USER_KEY : 'atsUser';
+        const storedUser = JSON.parse(localStorage.getItem(authUserKey) || 'null');
+        if (storedUser && storedUser.language && TRANSLATIONS[storedUser.language]) {
+            localStorage.setItem('ats_lang', storedUser.language);
+            return storedUser.language;
+        }
+    } catch (e) {}
     return 'en';
 }
 window.getCurrentLanguage = getCurrentLanguage;
@@ -751,6 +803,130 @@ function updateNavTranslations() {
 }
 window.updateNavTranslations = updateNavTranslations;
 
+function updateAuthTranslations() {
+    const safeT = typeof t === 'function' ? t : (k, d) => (TRANSLATIONS[getCurrentLanguage()] && TRANSLATIONS[getCurrentLanguage()][k]) || d;
+    const safeEsc = typeof escapeHtml === 'function' ? escapeHtml : str => String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+    // Landing screen Left Side
+    const heroTitle = document.getElementById('landingHeroTitle');
+    if (heroTitle) {
+        heroTitle.innerHTML = safeT('landing_hero_title', 'Manage your academic life in one place.');
+    }
+    const heroDesc = document.getElementById('landingHeroDesc');
+    if (heroDesc) {
+        heroDesc.textContent = safeT('landing_hero_desc', 'Keep track of your courses, exams, grades and study sessions with ease. Make your academic life more organized, productive and stress-free.');
+    }
+    const featCoursesTitle = document.getElementById('featCoursesTitle');
+    if (featCoursesTitle) featCoursesTitle.textContent = safeT('landing_feat_courses_title', 'Course & Grade Tracking');
+    const featCoursesDesc = document.getElementById('featCoursesDesc');
+    if (featCoursesDesc) featCoursesDesc.textContent = safeT('landing_feat_courses_desc', 'Keep all your courses and grades organized in one place.');
+
+    const featExamsTitle = document.getElementById('featExamsTitle');
+    if (featExamsTitle) featExamsTitle.textContent = safeT('landing_feat_exams_title', 'Exam Tracking');
+    const featExamsDesc = document.getElementById('featExamsDesc');
+    if (featExamsDesc) featExamsDesc.textContent = safeT('landing_feat_exams_desc', 'Keep track of upcoming exams and important deadlines.');
+
+    const featCalcTitle = document.getElementById('featCalcTitle');
+    if (featCalcTitle) featCalcTitle.textContent = safeT('landing_feat_calc_title', 'Grade Calculator');
+    const featCalcDesc = document.getElementById('featCalcDesc');
+    if (featCalcDesc) featCalcDesc.textContent = safeT('landing_feat_calc_desc', 'Calculate your required final grade and course results.');
+
+    const featStudyTitle = document.getElementById('featStudyTitle');
+    if (featStudyTitle) featStudyTitle.textContent = safeT('landing_feat_study_title', 'Study Tracking');
+    const featStudyDesc = document.getElementById('featStudyDesc');
+    if (featStudyDesc) featStudyDesc.textContent = safeT('landing_feat_study_desc', 'Record your study sessions and monitor your progress.');
+
+    const landingFooter = document.getElementById('landingFooterText');
+    if (landingFooter) {
+        landingFooter.innerHTML = \`<span>✦</span> \${safeEsc(safeT('landing_footer_text', 'Make your academic journey easier.'))}\`;
+    }
+
+    // Welcome Card Right Side
+    const welcomeTitle = document.getElementById('welcomeCardTitle');
+    if (welcomeTitle) {
+        welcomeTitle.innerHTML = \`\${safeEsc(safeT('welcome_title', 'Welcome to'))} <span>Academi Buddy</span>\`;
+    }
+    const welcomeDesc = document.getElementById('welcomeCardDesc');
+    if (welcomeDesc) welcomeDesc.textContent = safeT('welcome_desc', 'Your personal academic companion for managing courses, grades, exams and study time.');
+
+    const welcomeLoginBtn = document.getElementById('welcomeLoginBtn');
+    if (welcomeLoginBtn) welcomeLoginBtn.textContent = safeT('welcome_login_btn', 'Log In');
+
+    const welcomeRegisterBtn = document.getElementById('welcomeRegisterBtn');
+    if (welcomeRegisterBtn) welcomeRegisterBtn.textContent = safeT('welcome_register_btn', 'Create Account');
+
+    const welcomeNote = document.getElementById('welcomeCardNote');
+    if (welcomeNote) {
+        welcomeNote.innerHTML = \`<span>✦</span> \${safeEsc(safeT('welcome_note', 'Start organizing your academic life today.'))}\`;
+    }
+
+    // Auth Box Tagline & Tabs
+    const authTagline = document.getElementById('authTagline');
+    if (authTagline) authTagline.textContent = safeT('auth_tagline', 'Sign in to track your courses, exams and study time.');
+
+    const showLoginTab = document.getElementById('showLoginTab');
+    if (showLoginTab) showLoginTab.textContent = safeT('login_tab', 'Log In');
+
+    const showRegisterTab = document.getElementById('showRegisterTab');
+    if (showRegisterTab) showRegisterTab.textContent = safeT('register_tab', 'Register');
+
+    // Login Form
+    const loginEmailLabel = document.querySelector('label[for="loginEmail"]');
+    if (loginEmailLabel) loginEmailLabel.textContent = safeT('email_label', 'Email');
+
+    const loginPasswordLabel = document.querySelector('label[for="loginPassword"]');
+    if (loginPasswordLabel) loginPasswordLabel.textContent = safeT('password_label', 'Password');
+
+    const forgotPasswordLinkBtn = document.getElementById('forgotPasswordLinkBtn');
+    if (forgotPasswordLinkBtn) forgotPasswordLinkBtn.textContent = safeT('auth_forgot_password_link', 'Forgot Password?');
+
+    const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+    if (loginSubmitBtn) loginSubmitBtn.textContent = safeT('login_tab', 'Log In');
+
+    // Register Form
+    const registerNameLabel = document.querySelector('label[for="registerName"]');
+    if (registerNameLabel) registerNameLabel.textContent = safeT('name_label', 'Full Name');
+
+    const registerEmailLabel = document.querySelector('label[for="registerEmail"]');
+    if (registerEmailLabel) registerEmailLabel.textContent = safeT('email_label', 'Email');
+
+    const registerGradeLabel = document.querySelector('label[for="registerGrade"]');
+    if (registerGradeLabel) registerGradeLabel.textContent = safeT('auth_grade_label', 'Class / Year');
+
+    const registerDeptLabel = document.querySelector('label[for="registerDepartment"]');
+    if (registerDeptLabel) {
+        registerDeptLabel.innerHTML = \`\${safeEsc(safeT('dept_label', 'Department'))} <span style="font-size:12px; font-weight:normal; opacity:0.75;">\${safeEsc(safeT('auth_optional_label', '(optional)'))}</span>\`;
+    }
+
+    const registerPasswordLabel = document.querySelector('label[for="registerPassword"]');
+    if (registerPasswordLabel) registerPasswordLabel.textContent = safeT('password_label', 'Password');
+
+    const registerSubmitBtn = document.getElementById('registerSubmitBtn');
+    if (registerSubmitBtn) registerSubmitBtn.textContent = safeT('register_btn', 'Create Account');
+
+    const authBackBtn = document.querySelector('.auth-back-button');
+    if (authBackBtn) authBackBtn.textContent = safeT('auth_back_btn', '← Back');
+
+    // Placeholders
+    const loginEmail = document.getElementById('loginEmail');
+    if (loginEmail) loginEmail.placeholder = safeT('email_placeholder', 'you@example.com');
+
+    const registerName = document.getElementById('registerName');
+    if (registerName) registerName.placeholder = safeT('name_placeholder', 'John Doe');
+
+    const registerEmail = document.getElementById('registerEmail');
+    if (registerEmail) registerEmail.placeholder = safeT('email_placeholder', 'you@example.com');
+
+    const registerDept = document.getElementById('registerDepartment');
+    if (registerDept) registerDept.placeholder = safeT('dept_placeholder', 'e.g. Computer Engineering');
+
+    const registerGrade = document.getElementById('registerGrade');
+    if (registerGrade && registerGrade.options.length > 0) {
+        registerGrade.options[0].text = safeT('auth_grade_select_default', 'Select your class / year');
+    }
+}
+window.updateAuthTranslations = updateAuthTranslations;
+
 function setLanguage(langCode, notify = false) {
     if (!TRANSLATIONS[langCode]) {
         console.warn('Unsupported language code:', langCode);
@@ -760,11 +936,37 @@ function setLanguage(langCode, notify = false) {
     localStorage.setItem('ats_lang', langCode);
     document.documentElement.lang = langCode;
 
+    // Immediately update stored user object cache so all offline/online session checks preserve it
+    try {
+        const authUserKey = typeof AUTH_USER_KEY !== 'undefined' ? AUTH_USER_KEY : 'atsUser';
+        const storedUser = JSON.parse(localStorage.getItem(authUserKey) || 'null');
+        if (storedUser) {
+            storedUser.language = langCode;
+            localStorage.setItem(authUserKey, JSON.stringify(storedUser));
+        }
+        const savedUsers = JSON.parse(localStorage.getItem('ats_saved_users') || '{}');
+        if (storedUser && storedUser.email && savedUsers[storedUser.email.toLowerCase().trim()]) {
+            savedUsers[storedUser.email.toLowerCase().trim()].user.language = langCode;
+            localStorage.setItem('ats_saved_users', JSON.stringify(savedUsers));
+        }
+    } catch (e) {}
+
     if (notify && typeof syncUserPreferenceToCloud === 'function') {
         syncUserPreferenceToCloud({ language: langCode });
     }
 
     updateNavTranslations();
+    updateAuthTranslations();
+
+    // Update active dropdowns in Settings and on Auth / Landing screen
+    const settingsLangSelect = document.getElementById('settingsLanguageSelect');
+    if (settingsLangSelect) {
+        settingsLangSelect.value = langCode;
+    }
+    const authLangSelect = document.getElementById('authLanguageSelect');
+    if (authLangSelect) {
+        authLangSelect.value = langCode;
+    }
 
     // Re-render user sidebar if user info is present
     if (typeof getStoredUser === 'function') {
@@ -774,19 +976,22 @@ function setLanguage(langCode, notify = false) {
         }
     }
 
-    // Re-render current page if active using exact page state
-    const currentPage = window._currentActivePage || 'dashboard';
+    // Only re-render internal app pages if the main app layout is actually open and active
+    const mainLayout = document.getElementById('mainLayout');
+    if (mainLayout && mainLayout.style.display !== 'none') {
+        const currentPage = window._currentActivePage || 'dashboard';
 
-    if (currentPage === 'settings') {
-        if (typeof loadSettingsPage === 'function') loadSettingsPage();
-    } else if (currentPage === 'courses' || currentPage === 'grades') {
-        if (typeof loadCourses === 'function') loadCourses();
-    } else if (currentPage === 'exams' || currentPage === 'deadlines') {
-        if (typeof loadExamsPage === 'function') loadExamsPage();
-    } else if (currentPage === 'study') {
-        if (typeof loadStudyPage === 'function') loadStudyPage();
-    } else {
-        if (typeof loadDashboard === 'function') loadDashboard();
+        if (currentPage === 'settings') {
+            if (typeof loadSettingsPage === 'function') loadSettingsPage();
+        } else if (currentPage === 'courses' || currentPage === 'grades') {
+            if (typeof loadCourses === 'function') loadCourses();
+        } else if (currentPage === 'exams' || currentPage === 'deadlines') {
+            if (typeof loadExamsPage === 'function') loadExamsPage();
+        } else if (currentPage === 'study') {
+            if (typeof loadStudyPage === 'function') loadStudyPage();
+        } else {
+            if (typeof loadDashboard === 'function') loadDashboard();
+        }
     }
 
     // Refresh AI Bubble texts if exists
@@ -805,8 +1010,12 @@ function setLanguage(langCode, notify = false) {
 window.setLanguage = setLanguage;
 
 document.addEventListener('DOMContentLoaded', function () {
-    document.documentElement.lang = getCurrentLanguage();
+    const lang = getCurrentLanguage();
+    document.documentElement.lang = lang;
     updateNavTranslations();
+    updateAuthTranslations();
+    const authLangSelect = document.getElementById('authLanguageSelect');
+    if (authLangSelect) authLangSelect.value = lang;
 });
 `;
 

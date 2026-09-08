@@ -90,6 +90,33 @@ router.get("/me", requireAuth, authController.getCurrentUser);
  *         description: Oturum geçersiz veya eksik.
  */
 router.put("/profile", requireAuth, authController.updateProfile);
+
+/**
+ * @swagger
+ * /api/auth/preferences:
+ *   put:
+ *     summary: Kullanıcının tema ve dil tercihlerini günceller ve buluta senkronize eder
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PreferencesInput'
+ *     responses:
+ *       200:
+ *         description: Tercihler başarıyla güncellendi.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PreferencesResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         description: Oturum geçersiz veya eksik.
+ */
 router.put("/preferences", requireAuth, authController.updatePreferences);
 
 /**
@@ -125,6 +152,21 @@ router.get("/avatars", authController.getAvatars);
  *         description: Oturum geçersiz veya eksik.
  */
 router.delete("/account", requireAuth, authController.deleteAccount);
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   delete:
+ *     summary: Kullanıcının kendi hesabını ve tüm verilerini kalıcı olarak siler (account rotası alternatifi)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Hesap başarıyla silindi.
+ *       401:
+ *         description: Oturum geçersiz veya eksik.
+ */
 router.delete("/me", requireAuth, authController.deleteAccount);
 
 /**

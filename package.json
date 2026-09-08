@@ -1,6 +1,7 @@
 {
   "scripts": {
     "start": "node backend/server.js",
+    "build:i18n": "node build_full_i18n.js",
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync android",
     "cap:open:android": "npx cap open android"
@@ -18,7 +19,6 @@
   "devDependencies": {
     "@capacitor/android": "^7.0.0",
     "@capacitor/cli": "^7.0.0",
-    "@capacitor/core": "^7.0.0",
-    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+    "@capacitor/core": "^7.0.0"
   }
 }

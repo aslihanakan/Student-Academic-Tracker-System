@@ -332,9 +332,14 @@ async function sendAiChatMessage(userMessage) {
 
     try {
         const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en";
+        const token = typeof getToken === "function" ? getToken() : (localStorage.getItem("atsToken") || localStorage.getItem("ats_token"));
+        const reqHeaders = { "Content-Type": "application/json" };
+        if (token) {
+            reqHeaders["Authorization"] = "Bearer " + token;
+        }
         const res = await fetch(`${API_URL}/ai/chat`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: reqHeaders,
             body: JSON.stringify({ question: userMessage, targetGpa: 3.0, history: aiChatHistory, lang })
         });
 

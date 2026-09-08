@@ -11,14 +11,16 @@ const routeFiles = fs
     .filter((file) => file.endsWith(".js"))
     .map((file) => path.join(routesPath, file));
 
+const apiFiles = [...routeFiles, path.resolve(__dirname, "../app.js")];
+
 const options = {
     definition: {
         openapi: "3.0.0",
         info: {
-            title: "Student Academic Tracker System API",
-            version: "1.0.0",
+            title: "Academi Buddy - Student Academic Tracker API",
+            version: "1.2.0",
             description:
-                "Öğrencilerin derslerini, sınavlarını, projelerini, çalışma seanslarını ve yapılacaklar listesini takip etmesini sağlayan REST API dokümantasyonu."
+                "Öğrencilerin derslerini, sınavlarını, projelerini, çalışma seanslarını, yapılacaklar listesini, günlük notlarını, grup projelerini, çalışma arkadaşlarını (Buddies) ve Yapay Zeka koçunu takip etmesini sağlayan kapsamlı REST API dokümantasyonu."
         },
         servers: [
             {
@@ -30,13 +32,18 @@ const options = {
             { bearerAuth: [] }
         ],
         tags: [
-            { name: "Auth", description: "Kayıt olma, giriş yapma ve oturum işlemleri" },
-            { name: "Courses", description: "Ders yönetimi ile ilgili işlemler" },
-            { name: "Exams", description: "Sınav kayıtları ile ilgili işlemler" },
-            { name: "Projects", description: "Proje kayıtları ile ilgili işlemler" },
-            { name: "Study Sessions", description: "Çalışma seansları ile ilgili işlemler" },
-            { name: "Todos", description: "Yapılacaklar listesi ile ilgili işlemler" },
-            { name: "Dashboard", description: "Genel özet bilgileri" }
+            { name: "Auth", description: "Kayıt olma, giriş yapma, profil ve oturum işlemleri" },
+            { name: "Courses", description: "Ders yönetimi ve notlandırma ile ilgili işlemler" },
+            { name: "Exams", description: "Sınav kayıtları ve durum takibi" },
+            { name: "Projects", description: "Bireysel proje kayıtları ile ilgili işlemler" },
+            { name: "Study Sessions", description: "Çalışma seansları ve saat hesaplama işlemleri" },
+            { name: "Todos", description: "Yapılacaklar listesi ve son teslim tarihleri" },
+            { name: "Dashboard", description: "Genel istatistik ve özet bilgileri" },
+            { name: "Day Notes", description: "Günlük notlar ve takvim ajandası işlemleri" },
+            { name: "AI Assistant", description: "Yapay zeka akademik koçu, sohbet ve müfredat (syllabus) analizi" },
+            { name: "Study Buddies", description: "Çalışma arkadaşı ekleme, davetler ve çalışma serisi (streak)" },
+            { name: "Group Projects", description: "Grup projeleri, üye yönetimi ve ortak görev takibi" },
+            { name: "System", description: "Sistem durumu ve servis sağlık kontrolleri" }
         ],
         components: {
             securitySchemes: {
@@ -57,7 +64,9 @@ const options = {
                         password: { type: "string", format: "password", minLength: 6, example: "sifre123" },
                         gradeLevel: { type: "string", example: "4. Sınıf" },
                         department: { type: "string", example: "Bilgisayar Mühendisliği" },
-                        avatar: { type: "string", example: "1.jpg" }
+                        avatar: { type: "string", example: "1.jpg" },
+                        theme: { type: "string", example: "default" },
+                        language: { type: "string", example: "tr" }
                     }
                 },
 
@@ -69,6 +78,8 @@ const options = {
                         gradeLevel: { type: "string", example: "4. Sınıf" },
                         department: { type: "string", example: "Bilgisayar Mühendisliği" },
                         avatar: { type: "string", example: "1.jpg" },
+                        theme: { type: "string", example: "default" },
+                        language: { type: "string", example: "tr" },
                         currentPassword: { type: "string", format: "password", example: "eskiSifre123" },
                         newPassword: { type: "string", format: "password", minLength: 6, example: "yeniSifre123" }
                     }
@@ -98,7 +109,9 @@ const options = {
                                 email: { type: "string", example: "ayse@example.com" },
                                 gradeLevel: { type: "string", example: "4. Sınıf" },
                                 department: { type: "string", example: "Bilgisayar Mühendisliği" },
-                                avatar: { type: "string", example: "1.jpg" }
+                                avatar: { type: "string", example: "1.jpg" },
+                                theme: { type: "string", example: "default" },
+                                language: { type: "string", example: "tr" }
                             }
                         }
                     }
@@ -742,6 +755,246 @@ const options = {
                     }
                 },
 
+                PreferencesInput: {
+                    type: "object",
+                    properties: {
+                        theme: { type: "string", example: "dark" },
+                        language: { type: "string", example: "tr" }
+                    }
+                },
+
+                PreferencesResponse: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean", example: true },
+                        theme: { type: "string", example: "dark" },
+                        language: { type: "string", example: "tr" }
+                    }
+                },
+
+                DayNote: {
+                    type: "object",
+                    properties: {
+                        id: { type: "integer", example: 1 },
+                        userId: { type: "integer", example: 1 },
+                        noteDate: { type: "string", format: "date", example: "2026-09-04" },
+                        text: { type: "string", example: "Algoritmalar dersi için araştırma yapıldı." },
+                        createdAt: { type: "string", example: "2026-09-04 10:00:00" },
+                        updatedAt: { type: "string", example: "2026-09-04 10:00:00" }
+                    }
+                },
+
+                DayNoteInput: {
+                    type: "object",
+                    required: ["noteDate", "text"],
+                    properties: {
+                        noteDate: { type: "string", format: "date", example: "2026-09-04" },
+                        text: { type: "string", example: "Algoritmalar dersi için araştırma yapıldı." }
+                    }
+                },
+
+                Buddy: {
+                    type: "object",
+                    properties: {
+                        id: { type: "integer", example: 2 },
+                        name: { type: "string", example: "Burak Demir" },
+                        email: { type: "string", example: "burak@example.com" },
+                        avatar: { type: "string", example: "default" },
+                        department: { type: "string", example: "Bilgisayar Mühendisliği" },
+                        gradeLevel: { type: "string", example: "3" },
+                        friendshipId: { type: "integer", example: 5 },
+                        weeklyHours: { type: "number", example: 12.5 },
+                        streak: { type: "integer", example: 4 }
+                    }
+                },
+
+                BuddiesResponse: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean", example: true },
+                        myStreak: { type: "integer", example: 5 },
+                        myWeeklyHours: { type: "number", example: 14.2 },
+                        buddies: {
+                            type: "array",
+                            items: { $ref: "#/components/schemas/Buddy" }
+                        },
+                        pendingIncoming: {
+                            type: "array",
+                            items: { type: "object" }
+                        },
+                        pendingOutgoing: {
+                            type: "array",
+                            items: { type: "object" }
+                        }
+                    }
+                },
+
+                BuddyInviteInput: {
+                    type: "object",
+                    required: ["emailOrName"],
+                    properties: {
+                        emailOrName: { type: "string", example: "burak@example.com" }
+                    }
+                },
+
+                GroupProject: {
+                    type: "object",
+                    properties: {
+                        id: { type: "integer", example: 1 },
+                        title: { type: "string", example: "Yapay Zeka Dönem Projesi" },
+                        courseName: { type: "string", example: "CENG 401" },
+                        ownerId: { type: "integer", example: 1 },
+                        dueDate: { type: "string", format: "date", example: "2026-06-15" },
+                        description: { type: "string", example: "Görüntü işleme tabanlı akademik takip projesi" },
+                        createdAt: { type: "string", example: "2026-09-04 10:00:00" },
+                        totalTasks: { type: "integer", example: 8 },
+                        completedTasks: { type: "integer", example: 3 },
+                        isOwner: { type: "boolean", example: true },
+                        members: {
+                            type: "array",
+                            items: { type: "object" }
+                        }
+                    }
+                },
+
+                GroupProjectInput: {
+                    type: "object",
+                    required: ["title"],
+                    properties: {
+                        title: { type: "string", example: "Yapay Zeka Dönem Projesi" },
+                        courseName: { type: "string", example: "CENG 401" },
+                        dueDate: { type: "string", format: "date", example: "2026-06-15" },
+                        description: { type: "string", example: "Görüntü işleme tabanlı akademik takip projesi" }
+                    }
+                },
+
+                GroupMemberInput: {
+                    type: "object",
+                    required: ["emailOrName"],
+                    properties: {
+                        emailOrName: { type: "string", example: "ogrenci@universite.edu" }
+                    }
+                },
+
+                GroupTask: {
+                    type: "object",
+                    properties: {
+                        id: { type: "integer", example: 1 },
+                        projectId: { type: "integer", example: 1 },
+                        title: { type: "string", example: "API Mimarisi Raporunu Hazırla" },
+                        isDone: { type: "integer", example: 0 },
+                        dueDate: { type: "string", format: "date", example: "2026-05-10" },
+                        assignedUserId: { type: "integer", example: 2, nullable: true },
+                        assignedUserName: { type: "string", example: "Burak Demir", nullable: true },
+                        assignedUserAvatar: { type: "string", example: "default", nullable: true }
+                    }
+                },
+
+                GroupTaskInput: {
+                    type: "object",
+                    required: ["title"],
+                    properties: {
+                        title: { type: "string", example: "API Mimarisi Raporunu Hazırla" },
+                        dueDate: { type: "string", format: "date", example: "2026-05-10" },
+                        assignedUserId: { type: "integer", example: 2 }
+                    }
+                },
+
+                GroupTaskToggleInput: {
+                    type: "object",
+                    required: ["isDone"],
+                    properties: {
+                        isDone: { type: "boolean", example: true }
+                    }
+                },
+
+                AiCoachRequest: {
+                    type: "object",
+                    properties: {
+                        targetGpa: { type: "number", example: 3.5 }
+                    }
+                },
+
+                AiCoachResponse: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean", example: true },
+                        data: { type: "object" }
+                    }
+                },
+
+                AiChatRequest: {
+                    type: "object",
+                    required: ["question"],
+                    properties: {
+                        question: { type: "string", example: "Final haftasında hangi derse daha çok ağırlık vermeliyim?" },
+                        targetGpa: { type: "number", example: 3.5 },
+                        lang: { type: "string", example: "tr" },
+                        history: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    role: { type: "string", example: "user" },
+                                    content: { type: "string", example: "Merhaba" }
+                                }
+                            }
+                        }
+                    }
+                },
+
+                AiChatResponse: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean", example: true },
+                        answer: { type: "string", example: "Mevcut not durumunuza göre..." },
+                        mode: { type: "string", example: "gemini" },
+                        provider: { type: "string", example: "Gemini 2.0 Flash" }
+                    }
+                },
+
+                AiParseSyllabusRequest: {
+                    type: "object",
+                    required: ["text"],
+                    properties: {
+                        text: { type: "string", example: "Course: Software Engineering\nCredit: 4\nMidterm: 30%..." }
+                    }
+                },
+
+                AiParseSyllabusResponse: {
+                    type: "object",
+                    properties: {
+                        success: { type: "boolean", example: true },
+                        data: { type: "object" }
+                    }
+                },
+
+                AiImportSyllabusRequest: {
+                    type: "object",
+                    required: ["courseName"],
+                    properties: {
+                        courseName: { type: "string", example: "Software Engineering" },
+                        instructorName: { type: "string", example: "Dr. Smith" },
+                        credit: { type: "integer", example: 4 },
+                        passingGrade: { type: "number", example: 60 },
+                        midtermWeight: { type: "number", example: 30 },
+                        projectWeight: { type: "number", example: 20 },
+                        academicYear: { type: "string", example: "2026-2027 Fall" },
+                        exams: { type: "array", items: { type: "object" } },
+                        projects: { type: "array", items: { type: "object" } },
+                        activities: { type: "array", items: { type: "object" } }
+                    }
+                },
+
+                HealthResponse: {
+                    type: "object",
+                    properties: {
+                        status: { type: "string", example: "ok" },
+                        message: { type: "string", example: "Student Academic Tracker API is running" },
+                        timestamp: { type: "string", format: "date-time" }
+                    }
+                },
+
                 MessageResponse: {
                     type: "object",
                     properties: {
@@ -801,7 +1054,7 @@ const options = {
         }
     },
 
-    apis: routeFiles,
+    apis: apiFiles,
     failOnErrors: true
 };
 

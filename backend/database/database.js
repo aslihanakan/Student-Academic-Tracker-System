@@ -221,6 +221,8 @@ function initializeDatabase() {
                     gradeLevel TEXT,
                     department TEXT,
                     avatar TEXT DEFAULT 'pp.png',
+                    theme TEXT DEFAULT 'default',
+                    language TEXT DEFAULT 'en',
                     createdAt TEXT NOT NULL
                         DEFAULT (datetime('now'))
                 )
@@ -249,11 +251,31 @@ function initializeDatabase() {
             });
 
             ensureColumn("users", "theme", "TEXT DEFAULT 'default'", function (err) {
-                if (err) console.error("Migration error (users.theme):", err.message);
+                if (err) {
+                    console.error("Migration error (users.theme):", err.message);
+                    return;
+                }
+                db.run(
+                    `UPDATE users SET theme = 'default' WHERE theme IS NULL OR theme = ''`,
+                    [],
+                    function (err) {
+                        if (err) console.error("Backfill error (users.theme):", err.message);
+                    }
+                );
             });
 
             ensureColumn("users", "language", "TEXT DEFAULT 'en'", function (err) {
-                if (err) console.error("Migration error (users.language):", err.message);
+                if (err) {
+                    console.error("Migration error (users.language):", err.message);
+                    return;
+                }
+                db.run(
+                    `UPDATE users SET language = 'en' WHERE language IS NULL OR language = ''`,
+                    [],
+                    function (err) {
+                        if (err) console.error("Backfill error (users.language):", err.message);
+                    }
+                );
             });
 
             db.run(`
@@ -619,15 +641,6 @@ function initializeDatabase() {
                     createdAt TEXT NOT NULL DEFAULT (datetime('now')),
                     FOREIGN KEY (projectId) REFERENCES group_projects(id) ON DELETE CASCADE,
                     FOREIGN KEY (assignedUserId) REFERENCES users(id) ON DELETE SET NULL
-                )
-            `);
-
-            db.run(`
-                CREATE TABLE IF NOT EXISTS dashboard_summary (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    totalStudyHours REAL DEFAULT 0,
-                    completedTasks INTEGER DEFAULT 0,
-                    lastUpdated TEXT
                 )
             `, [], function (err) {
 

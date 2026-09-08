@@ -6,4 +6,5 @@ backend/.env.*
 *.log
 .DS_Store
 backend/database/academic_tracker.db
-.vercel  
+.vercel
+test-results/

@@ -134,8 +134,8 @@ function registerUser(name, email, password, gradeLevel, department, avatar) {
 
                     const insertSql = `
                         INSERT INTO users
-                        (name, email, passwordHash, gradeLevel, department, avatar)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        (name, email, passwordHash, gradeLevel, department, avatar, theme, language)
+                        VALUES (?, ?, ?, ?, ?, ?, 'default', 'en')
                     `;
 
                     db.run(
@@ -326,7 +326,9 @@ function findUserById(userId) {
                     ...user,
                     gradeLevel: user.gradeLevel || "",
                     department: user.department || "",
-                    avatar: user.avatar || "default"
+                    avatar: user.avatar || "default",
+                    theme: user.theme || "default",
+                    language: user.language || "en"
                 });
 
             }
@@ -438,7 +440,9 @@ function updateUserProfile(userId, updateData) {
                         email,
                         gradeLevel: gradeLevel || "",
                         department: department || "",
-                        avatar: avatar || "default"
+                        avatar: avatar || "default",
+                        theme: user.theme || "default",
+                        language: user.language || "en"
                     });
                 }
             );

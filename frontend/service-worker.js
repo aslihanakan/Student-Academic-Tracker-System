@@ -1,4 +1,4 @@
-const CACHE_NAME = "academi-buddy-static-v43";
+const CACHE_NAME = "academi-buddy-static-v44";
 
 const STATIC_ASSETS = [
     "./",
@@ -25,20 +25,15 @@ const STATIC_ASSETS = [
     "./videos/login-background.mp4",
     "./videos/default.mp4",
     "./videos/spring.mp4",
-    "./videos/spring.gif",
     "./videos/spring_cat.mp4",
     "./videos/summer_cat.mp4",
-    "./videos/summer_cat.gif",
     "./videos/autumn_cat.mp4",
     "./videos/winter_cat.mp4",
-    "./videos/motivation.mp4",
     "./photos/ai.jpg",
     "./photos/spring.jpg",
     "./photos/summer.jpg",
     "./photos/autumn.jpg",
     "./photos/winter.jpg",
-    "./photos/summer_tree_sidebar.svg",
-    "./photos/summer_tree_topbar.svg",
     "./photos/logo.png",
     "./photos/favicon-180.png",
     "./photos/favicon-32.png",
@@ -150,8 +145,8 @@ self.addEventListener("fetch", (event) => {
 
     const url = new URL(request.url);
 
-    // 1. API Requests: Pass directly to network!
-    if (url.pathname.includes("/api/")) {
+    // 1. API & Swagger Documentation Requests: Pass directly to network!
+    if (url.pathname.startsWith("/api") || url.pathname.includes("api-docs")) {
         return;
     }
 

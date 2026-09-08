@@ -117,19 +117,23 @@ function setSession(token, user) {
     if (user) {
         const current = getStoredUser() || {};
         const effectiveTheme = user.theme || localStorage.getItem("ats_theme") || "default";
+        const effectiveLanguage = user.language || localStorage.getItem("ats_lang") || "en";
 
-        const merged = { ...current, ...user, theme: effectiveTheme };
+        const merged = { ...current, ...user, theme: effectiveTheme, language: effectiveLanguage };
         localStorage.setItem(
             AUTH_USER_KEY,
             JSON.stringify(merged)
         );
 
+        localStorage.setItem("ats_theme", effectiveTheme);
+        localStorage.setItem("ats_lang", effectiveLanguage);
+
         if (typeof applyTheme === "function") {
             applyTheme(effectiveTheme, false);
         }
 
-        if (user.language && typeof setLanguage === "function") {
-            setLanguage(user.language);
+        if (typeof setLanguage === "function") {
+            setLanguage(effectiveLanguage, false);
         }
 
         // Çevrimdışı oturum açabilmek için profili sakla
@@ -1149,6 +1153,12 @@ async function initAuth() {
     // Mevcut açık oturumla güvenle devam et
     if (!navigator.onLine) {
         console.log("[Auth] Session left open: continuing in offline mode with:", storedUser);
+        if (storedUser.theme && typeof applyTheme === "function") {
+            applyTheme(storedUser.theme, false);
+        }
+        if (storedUser.language && typeof setLanguage === "function") {
+            setLanguage(storedUser.language, false);
+        }
         showMainApp(storedUser);
         if (typeof window.showOfflineIndicator === "function") {
             window.showOfflineIndicator(true);
@@ -1185,6 +1195,12 @@ async function initAuth() {
             // Diğer sunucu/servis hatalarında (500, 502, 503 veya SW çevrimdışı yanıtı)
             if (storedUser) {
                 console.warn("[Auth] Server responded with error, falling back to cached user:", response.status);
+                if (storedUser.theme && typeof applyTheme === "function") {
+                    applyTheme(storedUser.theme, false);
+                }
+                if (storedUser.language && typeof setLanguage === "function") {
+                    setLanguage(storedUser.language, false);
+                }
                 showMainApp(storedUser);
                 if (!navigator.onLine && typeof window.showOfflineIndicator === "function") {
                     window.showOfflineIndicator(true);
@@ -1234,6 +1250,12 @@ async function initAuth() {
          */
         if (storedUser) {
             console.log("[Auth] Continuing in offline mode with cached user data");
+            if (storedUser.theme && typeof applyTheme === "function") {
+                applyTheme(storedUser.theme, false);
+            }
+            if (storedUser.language && typeof setLanguage === "function") {
+                setLanguage(storedUser.language, false);
+            }
             showMainApp(storedUser);
             if (!navigator.onLine && typeof window.showOfflineIndicator === "function") {
                 window.showOfflineIndicator(true);
@@ -1258,27 +1280,44 @@ async function checkCloudPreferencesSync() {
         const user = await res.json();
         if (!user) return;
 
-        if (user.theme && typeof applyTheme === "function" && user.theme !== (typeof getSavedTheme === "function" ? getSavedTheme() : localStorage.getItem("ats_theme"))) {
+        const currentTheme = typeof getSavedTheme === "function" ? getSavedTheme() : (localStorage.getItem("ats_theme") || "default");
+        const currentLang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : (localStorage.getItem("ats_lang") || "en");
+
+        let changed = false;
+
+        if (user.theme && user.theme !== currentTheme && typeof applyTheme === "function") {
             applyTheme(user.theme, false);
+            changed = true;
         }
 
-        if (user.language && typeof setLanguage === "function" && user.language !== localStorage.getItem("ats_lang")) {
-            setLanguage(user.language);
+        if (user.language && user.language !== currentLang && typeof setLanguage === "function") {
+            setLanguage(user.language, false);
+            changed = true;
         }
 
         const current = getStoredUser() || {};
-        const merged = { ...current, ...user };
+        const merged = { ...current, ...user, theme: user.theme || currentTheme, language: user.language || currentLang };
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(merged));
+
+        if (changed && typeof renderSidebarUser === "function") {
+            renderSidebarUser(merged);
+        }
     } catch (e) {}
 }
 window.checkCloudPreferencesSync = checkCloudPreferencesSync;
 
 window.addEventListener("focus", checkCloudPreferencesSync);
+window.addEventListener("online", checkCloudPreferencesSync);
 document.addEventListener("visibilitychange", function() {
     if (document.visibilityState === "visible") {
         checkCloudPreferencesSync();
     }
 });
+setInterval(function() {
+    if (document.visibilityState === "visible" && navigator.onLine && getToken()) {
+        checkCloudPreferencesSync();
+    }
+}, 45000);
 
 
 /* ─── FORGOT / RESET PASSWORD UI ─────────────────────────────────────────── */

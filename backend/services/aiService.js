@@ -3,9 +3,6 @@ const { db } = require("../database/database");
 /**
  * Intelligent Academic Coaching Algorithm
  */
-/**
- * Intelligent Academic Coaching Algorithm
- */
 function generateHeuristicAcademicAdvice(courses, targetGpa = 3.0, totalStudyHours = 0) {
     const target = parseFloat(targetGpa) || 3.0;
     const courseAnalyses = [];
@@ -746,17 +743,20 @@ COMMUNICATION, TONE & SCOPE RULES:
    - Provide well-structured, clear, motivating guidance when asked how to study, revise, or solve a problem.`;
 
     const fastModels = [
+        process.env.GEMINI_MODEL,
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
         "gemini-3.5-flash-lite",
-        "gemini-flash-lite-latest",
-        "gemini-3.1-flash-lite"
-    ];
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest"
+    ].filter(Boolean);
 
     for (const modelName of fastModels) {
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                signal: AbortSignal.timeout(8000),
+                signal: AbortSignal.timeout(12000),
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: {
@@ -772,13 +772,16 @@ COMMUNICATION, TONE & SCOPE RULES:
                 if (text && text.trim()) {
                     return text.trim();
                 }
+            } else {
+                const errText = await res.text().catch(() => "");
+                console.warn(`Model ${modelName} returned status ${res.status}:`, errText.slice(0, 200));
             }
         } catch (err) {
             console.warn(`Model ${modelName} fetch failed/timed out:`, err.message);
         }
     }
 
-    throw new Error("Tüm hızlı Gemini modelleri zaman aşımına uğradı.");
+    throw new Error("Tüm hızlı Gemini modelleri zaman aşımına veya hataya uğradı.");
 }
 
 

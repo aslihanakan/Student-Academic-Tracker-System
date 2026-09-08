@@ -21,7 +21,7 @@ exports.getCoachAdvice = function (req, res) {
 };
 
 exports.askCoachChat = async function (req, res) {
-    const userId = req.user.id;
+    const userId = req.user ? req.user.id : null;
     const question = req.body.question || "";
     const targetGpa = parseFloat(req.body.targetGpa) || 3.0;
 
@@ -33,6 +33,7 @@ exports.askCoachChat = async function (req, res) {
 
     // Safe DB query wrappers: if Turso cloud is offline/unreachable, do NOT crash with 500
     const safeGet = (sql, params) => new Promise((resolve) => {
+        if (!userId) return resolve(null);
         db.get(sql, params, (err, row) => {
             if (err) console.warn("DB safeGet offline/fail (fallback used):", err.message);
             resolve(row || null);
@@ -40,6 +41,7 @@ exports.askCoachChat = async function (req, res) {
     });
 
     const safeAll = (sql, params) => new Promise((resolve) => {
+        if (!userId) return resolve([]);
         db.all(sql, params, (err, rows) => {
             if (err) console.warn("DB safeAll offline/fail (fallback used):", err.message);
             resolve(rows || []);
@@ -47,13 +49,13 @@ exports.askCoachChat = async function (req, res) {
     });
 
     try {
-        const userRow = await safeGet("SELECT name, gradeLevel, department FROM users WHERE id = ?", [userId]);
-        const courses = await safeAll("SELECT * FROM courses WHERE userId = ? AND COALESCE(listedInGrades, 1) = 1", [userId]);
-        const exams = await safeAll("SELECT * FROM exams WHERE userId = ? ORDER BY examDate ASC", [userId]);
-        const todos = await safeAll("SELECT * FROM todos WHERE userId = ? AND isDone = 0 ORDER BY dueDate ASC", [userId]);
-        const studyRow = await safeGet("SELECT COALESCE(SUM(hours), 0) as totalHours FROM study_sessions WHERE userId = ?", [userId]);
+        const userRow = userId ? await safeGet("SELECT name, gradeLevel, department FROM users WHERE id = ?", [userId]) : null;
+        const courses = userId ? await safeAll("SELECT * FROM courses WHERE userId = ? AND COALESCE(listedInGrades, 1) = 1", [userId]) : [];
+        const exams = userId ? await safeAll("SELECT * FROM exams WHERE userId = ? ORDER BY examDate ASC", [userId]) : [];
+        const todos = userId ? await safeAll("SELECT * FROM todos WHERE userId = ? AND isDone = 0 ORDER BY dueDate ASC", [userId]) : [];
+        const studyRow = userId ? await safeGet("SELECT COALESCE(SUM(hours), 0) as totalHours FROM study_sessions WHERE userId = ?", [userId]) : null;
 
-        const studentInfo = userRow || { name: req.user.name || "Aslıhan", department: "Bilgisayar Mühendisliği", gradeLevel: "4" };
+        const studentInfo = userRow || { name: (req.user && req.user.name) || "Öğrenci", department: "Bilgisayar Mühendisliği", gradeLevel: "4" };
         const totalHours = studyRow ? studyRow.totalHours : 0;
 
         const lang = req.body.lang || "en";
@@ -78,7 +80,7 @@ exports.askCoachChat = async function (req, res) {
         console.error("AI Chat Controller Fallback:", chatErr.message);
         try {
             const fallbackLocal = aiService.generateRichChatResponse({
-                student: { name: req.user.name || "Aslıhan" },
+                student: { name: (req.user && req.user.name) || "Öğrenci" },
                 courses: [],
                 exams: [],
                 todos: [],

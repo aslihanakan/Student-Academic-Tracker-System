@@ -45,6 +45,24 @@ function requireAuth(req, res, next) {
     }
 }
 
+function optionalAuth(req, res, next) {
+    const authHeader = req.headers.authorization || "";
+    const [scheme, token] = authHeader.split(" ");
+
+    if (scheme === "Bearer" && token) {
+        try {
+            const payload = jwt.verify(token, JWT_SECRET);
+            req.user = payload;
+            req.userId = payload.id;
+        } catch (error) {
+            // Expired or invalid token, proceed without user context
+        }
+    }
+
+    next();
+}
+
 module.exports = {
-    requireAuth
+    requireAuth,
+    optionalAuth
 };

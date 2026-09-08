@@ -25,8 +25,19 @@
                 var savedTheme = localStorage.getItem("ats_theme") || "default";
                 document.documentElement.setAttribute("data-theme", savedTheme);
 
+                var savedLang = localStorage.getItem("ats_lang");
+                if (!savedLang) {
+                    try {
+                        var u = JSON.parse(localStorage.getItem("atsUser"));
+                        if (u && u.language) savedLang = u.language;
+                    } catch (e) {}
+                }
+                if (savedLang) {
+                    document.documentElement.lang = savedLang;
+                }
+
                 // Auto-purge stale PWA and Service Worker caches
-                var CURRENT_VERSION = "academi_v43";
+                var CURRENT_VERSION = "academi_v44";
                 var oldVersion = localStorage.getItem("academi_app_build_version");
                 if (oldVersion !== CURRENT_VERSION) {
                     localStorage.setItem("academi_app_build_version", CURRENT_VERSION);
@@ -66,6 +77,21 @@
 
     <div class="auth-video-overlay"></div>
 
+    <div class="auth-lang-wrap" style="position:absolute; top:18px; right:20px; z-index:99;">
+        <select id="authLanguageSelect" onchange="setLanguage(this.value, false)" aria-label="Language" style="background:rgba(15,23,42,0.72); color:#f8fafc; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(8px); padding:7px 12px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; outline:none; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+            <option value="en">🇬🇧 English</option>
+            <option value="tr">🇹🇷 Türkçe</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="it">🇮🇹 Italiano</option>
+            <option value="ru">🇷🇺 Русский</option>
+            <option value="ko">🇰🇷 한국어</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="ar">🇸🇦 العربية</option>
+        </select>
+    </div>
+
     <button id="mobileAuthToggle" class="mobile-auth-toggle" type="button" aria-label="Sign In / Register" aria-expanded="false">👤</button>
 
     <div id="landingScreen" class="landing-screen">
@@ -75,9 +101,9 @@
             <img src="photos/logo.png" alt="Academi Buddy" class="landing-logo">
             <div class="landing-brand">Academi Buddy</div>
 
-            <h1>Manage your <span>academic life in one place.</span></h1>
+            <h1 id="landingHeroTitle">Manage your <span>academic life in one place.</span></h1>
 
-            <p class="landing-description">
+            <p id="landingHeroDesc" class="landing-description">
                 Keep track of your courses, exams, grades and study sessions with ease.
                 Make your academic life more organized, productive and stress-free.
             </p>
@@ -86,37 +112,37 @@
                 <div class="landing-feature">
                     <div class="feature-icon">📚</div>
                     <div>
-                        <strong>Course & Grade Tracking</strong>
-                        <span>Keep all your courses and grades organized in one place.</span>
+                        <strong id="featCoursesTitle">Course & Grade Tracking</strong>
+                        <span id="featCoursesDesc">Keep all your courses and grades organized in one place.</span>
                     </div>
                 </div>
 
                 <div class="landing-feature">
                     <div class="feature-icon">📝</div>
                     <div>
-                        <strong>Exam Tracking</strong>
-                        <span>Keep track of upcoming exams and important deadlines.</span>
+                        <strong id="featExamsTitle">Exam Tracking</strong>
+                        <span id="featExamsDesc">Keep track of upcoming exams and important deadlines.</span>
                     </div>
                 </div>
 
                 <div class="landing-feature">
                     <div class="feature-icon">🎯</div>
                     <div>
-                        <strong>Grade Calculator</strong>
-                        <span>Calculate your required final grade and course results.</span>
+                        <strong id="featCalcTitle">Grade Calculator</strong>
+                        <span id="featCalcDesc">Calculate your required final grade and course results.</span>
                     </div>
                 </div>
 
                 <div class="landing-feature">
                     <div class="feature-icon">⏱️</div>
                     <div>
-                        <strong>Study Tracking</strong>
-                        <span>Record your study sessions and monitor your progress.</span>
+                        <strong id="featStudyTitle">Study Tracking</strong>
+                        <span id="featStudyDesc">Record your study sessions and monitor your progress.</span>
                     </div>
                 </div>
             </div>
 
-            <div class="landing-footer">
+            <div id="landingFooterText" class="landing-footer">
                 <span>✦</span>
                 Make your academic journey easier.
             </div>
@@ -131,16 +157,16 @@
                     <img src="photos/logo.png" alt="Academi Buddy" class="welcome-logo">
                 </div>
 
-                <h2>Welcome to <span>Academi Buddy</span></h2>
+                <h2 id="welcomeCardTitle">Welcome to <span>Academi Buddy</span></h2>
 
-                <p>Your personal academic companion for managing courses, grades, exams and study time.</p>
+                <p id="welcomeCardDesc">Your personal academic companion for managing courses, grades, exams and study time.</p>
 
                 <div class="welcome-buttons">
-                    <button type="button" class="welcome-login-button" onclick="showLoginScreen()">Log In</button>
-                    <button type="button" class="welcome-register-button" onclick="showRegisterScreen()">Create Account</button>
+                    <button type="button" id="welcomeLoginBtn" class="welcome-login-button" onclick="showLoginScreen()">Log In</button>
+                    <button type="button" id="welcomeRegisterBtn" class="welcome-register-button" onclick="showRegisterScreen()">Create Account</button>
                 </div>
 
-                <div class="welcome-note">
+                <div id="welcomeCardNote" class="welcome-note">
                     <span>✦</span>
                     Start organizing your academic life today.
                 </div>
@@ -150,7 +176,7 @@
             <div id="auth-box" class="auth-box" style="display:none;">
                 <img src="photos/logo.png" alt="Academi Buddy" class="auth-logo">
                 <h1>Academi Buddy</h1>
-                <p class="auth-tagline">Sign in to track your courses, exams and study time.</p>
+                <p id="authTagline" class="auth-tagline">Sign in to track your courses, exams and study time.</p>
 
                 <div class="auth-tabs">
                     <button type="button" id="showLoginTab" class="auth-tab active">Log In</button>
@@ -222,7 +248,7 @@
                     <button type="submit" id="registerSubmitBtn">Create Account</button>
                 </form>
 
-                <button type="button" class="auth-back-button" onclick="showLandingScreen()">← Back</button>
+                <button type="button" id="authBackButton" class="auth-back-button" onclick="showLandingScreen()">← Back</button>
             </div>
 
         </section>

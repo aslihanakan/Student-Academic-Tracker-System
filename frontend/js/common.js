@@ -104,6 +104,23 @@ function applyTheme(themeKey, notify = false) {
 window.applyTheme = applyTheme;
 
 async function syncUserPreferenceToCloud(pref) {
+    if (!pref || typeof pref !== "object") return;
+
+    // Immediately update stored user object cache so all offline/online session checks preserve it
+    try {
+        const authUserKey = typeof AUTH_USER_KEY !== "undefined" ? AUTH_USER_KEY : "atsUser";
+        const storedUser = JSON.parse(localStorage.getItem(authUserKey) || "null");
+        if (storedUser) {
+            Object.assign(storedUser, pref);
+            localStorage.setItem(authUserKey, JSON.stringify(storedUser));
+        }
+        const savedUsers = JSON.parse(localStorage.getItem("ats_saved_users") || "{}");
+        if (storedUser && storedUser.email && savedUsers[storedUser.email.toLowerCase().trim()]) {
+            Object.assign(savedUsers[storedUser.email.toLowerCase().trim()].user, pref);
+            localStorage.setItem("ats_saved_users", JSON.stringify(savedUsers));
+        }
+    } catch (e) {}
+
     const token = typeof getToken === "function" ? getToken() : (localStorage.getItem("atsToken") || localStorage.getItem("ats_token"));
     if (!token) return;
     try {
@@ -1112,7 +1129,7 @@ function ensureNotificationRoot() {
             position: fixed;
             inset: 0;
             background: rgba(15,23,42,0.55);
-            z-index: 10000;
+            z-index: 20000;
             display: flex;
             align-items: center;
             justify-content: center;

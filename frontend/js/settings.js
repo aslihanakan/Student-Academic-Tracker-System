@@ -23,17 +23,6 @@ const DEFAULT_AVATAR_LIST = [
 
 let currentSelectedAvatar = "default";
 
-function getAvatarSrc(avatarVal) {
-    if (!avatarVal || avatarVal === "default" || avatarVal === "pp.png" || avatarVal === "icons/pp.png" || avatarVal === "logo.png" || avatarVal === "photos/logo.png") {
-        return "icons/pp.png";
-    }
-    if (avatarVal.startsWith("data:image/") || avatarVal.startsWith("blob:") || avatarVal.startsWith("http://") || avatarVal.startsWith("https://")) {
-        return avatarVal;
-    }
-    return avatarVal.startsWith("icons/") || avatarVal.startsWith("photos/") ? avatarVal : "icons/" + avatarVal;
-}
-window.getAvatarSrc = getAvatarSrc;
-
 async function loadSettingsPage() {
     updateStickyHeader("settings");
 
@@ -51,6 +40,11 @@ async function loadSettingsPage() {
         if (response.ok) {
             const freshUser = await response.json();
             if (freshUser) {
+                const localLang = localStorage.getItem("ats_lang");
+                const localTheme = localStorage.getItem("ats_theme");
+                if (localLang) freshUser.language = localLang;
+                if (localTheme) freshUser.theme = localTheme;
+
                 user = freshUser;
                 if (typeof updateCurrentUser === "function") {
                     updateCurrentUser(user);

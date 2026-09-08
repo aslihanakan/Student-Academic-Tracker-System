@@ -910,7 +910,7 @@ function calculateGPA() {
         const midtermValue = Number.isNaN(midterm) ? 0 : midterm;
         const projectValue = Number.isNaN(project) ? 0 : project;
 
-        const extraEarned = extras = extraGrades.reduce((sum, item) => {
+        const extraEarned = extraGrades.reduce((sum, item) => {
             const score = item.score !== null && item.score !== undefined && item.score !== "" ? Number(item.score) : 0;
             return sum + (score * (Number(item.weight) || 0) / 100);
         }, 0);

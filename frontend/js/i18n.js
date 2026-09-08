@@ -87,6 +87,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "Computer Engineering",
         "login_btn": "Sign In to Portal",
         "register_btn": "Create Account",
+        "landing_hero_title": "Manage your academic life in one place.",
+        "landing_hero_desc": "Keep track of your courses, exams, grades and study sessions with ease. Make your academic life more organized, productive and stress-free.",
+        "landing_feat_courses_title": "Course & Grade Tracking",
+        "landing_feat_courses_desc": "Keep all your courses and grades organized in one place.",
+        "landing_feat_exams_title": "Exam Tracking",
+        "landing_feat_exams_desc": "Keep track of upcoming exams and important deadlines.",
+        "landing_feat_calc_title": "Grade Calculator",
+        "landing_feat_calc_desc": "Calculate your required final grade and course results.",
+        "landing_feat_study_title": "Study Tracking",
+        "landing_feat_study_desc": "Record your study sessions and monitor your progress.",
+        "landing_footer_text": "Make your academic journey easier.",
+        "welcome_title": "Welcome to",
+        "welcome_desc": "Your personal academic companion for managing courses, grades, exams and study time.",
+        "welcome_login_btn": "Log In",
+        "welcome_register_btn": "Create Account",
+        "welcome_note": "Start organizing your academic life today.",
+        "auth_tagline": "Sign in to track your courses, exams and study time.",
+        "auth_back_btn": "← Back",
+        "auth_grade_label": "Class / Year",
+        "auth_grade_select_default": "Select your class / year",
+        "auth_optional_label": "(optional)",
+        "auth_select_language": "Language",
         "auth_forgot_password_link": "Forgot Password?",
         "auth_forgot_title": "Reset Password",
         "auth_forgot_subtitle_step1": "Enter your registered email address to receive a 6-digit verification code.",
@@ -511,6 +533,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "Bilgisayar Mühendisliği",
         "login_btn": "Sisteme Giriş Yap",
         "register_btn": "Hesap Oluştur",
+        "landing_hero_title": "Akademik hayatını tek bir yerden yönet.",
+        "landing_hero_desc": "Derslerini, sınavlarını, notlarını ve çalışma saatlerini kolayca takip et. Akademik hayatını daha düzenli, verimli ve stressiz hale getir.",
+        "landing_feat_courses_title": "Ders ve Not Takibi",
+        "landing_feat_courses_desc": "Tüm derslerini ve notlarını tek bir yerde düzenli tut.",
+        "landing_feat_exams_title": "Sınav Takibi",
+        "landing_feat_exams_desc": "Yaklaşan sınavlarını ve önemli teslim tarihlerini takip et.",
+        "landing_feat_calc_title": "Not Hesaplayıcı",
+        "landing_feat_calc_desc": "Dersi geçmek için gereken final notunu ve sonuçlarını hesapla.",
+        "landing_feat_study_title": "Çalışma Takibi",
+        "landing_feat_study_desc": "Çalışma seanslarını kaydet ve gelişimini izle.",
+        "landing_footer_text": "Akademik yolculuğunu kolaylaştır.",
+        "welcome_title": "Hoş Geldiniz:",
+        "welcome_desc": "Derslerini, notlarını, sınavlarını ve çalışma saatlerini yöneten kişisel akademik yardımcın.",
+        "welcome_login_btn": "Giriş Yap",
+        "welcome_register_btn": "Hesap Oluştur",
+        "welcome_note": "Akademik hayatını düzenlemeye bugün başla.",
+        "auth_tagline": "Derslerini, sınavlarını ve çalışma sürelerini takip etmek için giriş yap.",
+        "auth_back_btn": "← Geri",
+        "auth_grade_label": "Sınıf / Düzey",
+        "auth_grade_select_default": "Sınıfınızı / düzeyinizi seçin",
+        "auth_optional_label": "(isteğe bağlı)",
+        "auth_select_language": "Dil",
         "auth_forgot_password_link": "Parolamı Unuttum?",
         "auth_forgot_title": "Şifremi Sıfırla",
         "auth_forgot_subtitle_step1": "Kayıtlı e-posta adresinizi girin, 6 haneli doğrulama kodunu gönderelim.",
@@ -935,6 +979,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "Informatik",
         "login_btn": "Im Portal anmelden",
         "register_btn": "Konto erstellen",
+        "landing_hero_title": "Verwalte dein akademisches Leben an einem Ort.",
+        "landing_hero_desc": "Behalte den Überblick über Kurse, Prüfungen, Noten und Lernzeiten. Für ein stressfreies und produktives Studium.",
+        "landing_feat_courses_title": "Kurs- & Notenverwaltung",
+        "landing_feat_courses_desc": "Alle Kurse und Noten an einem Ort übersichtlich organisieren.",
+        "landing_feat_exams_title": "Prüfungsplaner",
+        "landing_feat_exams_desc": "Behalte anstehende Prüfungen und wichtige Fristen im Auge.",
+        "landing_feat_calc_title": "Notenrechner",
+        "landing_feat_calc_desc": "Berechne die benötigte Abschlussnote für deine Kurse.",
+        "landing_feat_study_title": "Lernzeit-Tracker",
+        "landing_feat_study_desc": "Erfasse deine Lerneinheiten und verfolge deinen Fortschritt.",
+        "landing_footer_text": "Erleichtere deine Studienreise.",
+        "welcome_title": "Willkommen bei",
+        "welcome_desc": "Dein persönlicher akademischer Begleiter für Kurse, Noten, Prüfungen und Lernzeit.",
+        "welcome_login_btn": "Anmelden",
+        "welcome_register_btn": "Konto erstellen",
+        "welcome_note": "Beginne noch heute, dein Studium zu organisieren.",
+        "auth_tagline": "Melde dich an, um Kurse, Prüfungen und Lernzeiten zu verfolgen.",
+        "auth_back_btn": "← Zurück",
+        "auth_grade_label": "Studienjahr / Klasse",
+        "auth_grade_select_default": "Wähle dein Studienjahr",
+        "auth_optional_label": "(optional)",
+        "auth_select_language": "Sprache",
         "auth_forgot_password_link": "Passwort vergessen?",
         "auth_forgot_title": "Passwort zurücksetzen",
         "auth_forgot_subtitle_step1": "Gib deine registrierte E-Mail-Adresse ein, um einen 6-stelligen Code zu erhalten.",
@@ -1359,6 +1425,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "Ingeniería Informática",
         "login_btn": "Entrar al Portal",
         "register_btn": "Crear Cuenta",
+        "landing_hero_title": "Gestiona tu vida académica en un solo lugar.",
+        "landing_hero_desc": "Organiza tus cursos, exámenes, notas y horas de estudio fácilmente. Haz tu vida académica más productiva y sin estrés.",
+        "landing_feat_courses_title": "Seguimiento de Cursos y Notas",
+        "landing_feat_courses_desc": "Mantén todas tus materias y calificaciones organizadas.",
+        "landing_feat_exams_title": "Control de Exámenes",
+        "landing_feat_exams_desc": "Sigue tus próximos exámenes y fechas límite importantes.",
+        "landing_feat_calc_title": "Calculadora de Calificaciones",
+        "landing_feat_calc_desc": "Calcula la nota requerida para aprobar cada asignatura.",
+        "landing_feat_study_title": "Registro de Estudio",
+        "landing_feat_study_desc": "Registra tus sesiones de estudio y observa tu progreso.",
+        "landing_footer_text": "Haz tu camino académico más sencillo.",
+        "welcome_title": "Bienvenido/a a",
+        "welcome_desc": "Tu compañero académico personal para organizar cursos, notas, exámenes y tiempo de estudio.",
+        "welcome_login_btn": "Iniciar Sesión",
+        "welcome_register_btn": "Crear Cuenta",
+        "welcome_note": "Empieza a organizar tu vida académica hoy.",
+        "auth_tagline": "Inicia sesión para gestionar tus asignaturas, exámenes y estudio.",
+        "auth_back_btn": "← Volver",
+        "auth_grade_label": "Año / Nivel",
+        "auth_grade_select_default": "Selecciona tu año o nivel",
+        "auth_optional_label": "(opcional)",
+        "auth_select_language": "Idioma",
         "auth_forgot_password_link": "¿Olvidaste tu contraseña?",
         "auth_forgot_title": "Restablecer Contraseña",
         "auth_forgot_subtitle_step1": "Introduce tu correo para recibir un código de verificación de 6 dígitos.",
@@ -1783,6 +1871,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "Génie Informatique",
         "login_btn": "Se connecter au portail",
         "register_btn": "Créer un Compte",
+        "landing_hero_title": "Gérez votre vie académique en un seul endroit.",
+        "landing_hero_desc": "Suivez vos cours, examens, notes et sessions d'étude en toute simplicité. Une vie académique organisée et sereine.",
+        "landing_feat_courses_title": "Suivi des Cours et Notes",
+        "landing_feat_courses_desc": "Gardez tous vos cours et vos notes organisés au même endroit.",
+        "landing_feat_exams_title": "Suivi des Examens",
+        "landing_feat_exams_desc": "Gardez un œil sur vos examens à venir et vos échéances clés.",
+        "landing_feat_calc_title": "Calculateur de Notes",
+        "landing_feat_calc_desc": "Calculez la note nécessaire pour réussir vos cours.",
+        "landing_feat_study_title": "Suivi du Temps d'Étude",
+        "landing_feat_study_desc": "Enregistrez vos sessions de révision et mesurez vos progrès.",
+        "landing_footer_text": "Facilitez votre parcours universitaire.",
+        "welcome_title": "Bienvenue sur",
+        "welcome_desc": "Votre assistant académique pour gérer cours, notes, examens et temps de révision.",
+        "welcome_login_btn": "Connexion",
+        "welcome_register_btn": "Créer un Compte",
+        "welcome_note": "Commencez à organiser votre vie étudiante dès aujourd'hui.",
+        "auth_tagline": "Connectez-vous pour suivre vos cours, examens et temps de révision.",
+        "auth_back_btn": "← Retour",
+        "auth_grade_label": "Année / Niveau",
+        "auth_grade_select_default": "Sélectionnez votre année / niveau",
+        "auth_optional_label": "(facultatif)",
+        "auth_select_language": "Langue",
         "auth_forgot_password_link": "Mot de passe oublié ?",
         "auth_forgot_title": "Réinitialiser le mot de passe",
         "auth_forgot_subtitle_step1": "Entrez votre e-mail pour recevoir un code de vérification à 6 chiffres.",
@@ -2207,6 +2317,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "Ingegneria Informatica",
         "login_btn": "Accedi al portale",
         "register_btn": "Crea Account",
+        "landing_hero_title": "Gestisci la tua vita accademica in un unico posto.",
+        "landing_hero_desc": "Tieni traccia di corsi, esami, voti e sessioni di studio con facilità. Rendi il tuo percorso universitario più organizzato.",
+        "landing_feat_courses_title": "Monitoraggio Corsi e Voti",
+        "landing_feat_courses_desc": "Tutti i corsi e voti organizzati in un unico posto.",
+        "landing_feat_exams_title": "Pianificazione Esami",
+        "landing_feat_exams_desc": "Monitora gli esami imminenti e le scadenze importanti.",
+        "landing_feat_calc_title": "Calcolatore Voti",
+        "landing_feat_calc_desc": "Calcola il voto necessario per superare ogni esame.",
+        "landing_feat_study_title": "Monitoraggio Studio",
+        "landing_feat_study_desc": "Registra le sessioni di studio e osserva i tuoi miglioramenti.",
+        "landing_footer_text": "Rendi il tuo percorso di studi più semplice.",
+        "welcome_title": "Benvenuto su",
+        "welcome_desc": "Il tuo compagno personale per corsi, voti, esami e tempo di studio.",
+        "welcome_login_btn": "Accedi",
+        "welcome_register_btn": "Crea Account",
+        "welcome_note": "Inizia oggi a organizzare la tua vita universitaria.",
+        "auth_tagline": "Accedi per monitorare corsi, esami e tempo di studio.",
+        "auth_back_btn": "← Indietro",
+        "auth_grade_label": "Anno di Corso",
+        "auth_grade_select_default": "Seleziona il tuo anno di corso",
+        "auth_optional_label": "(opzionale)",
+        "auth_select_language": "Lingua",
         "auth_forgot_password_link": "Password dimenticata?",
         "auth_forgot_title": "Reimposta Password",
         "auth_forgot_subtitle_step1": "Inserisci la tua email per ricevere un codice di verifica a 6 cifre.",
@@ -2631,6 +2763,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "Компьютерная инженерия",
         "login_btn": "Войти в систему",
         "register_btn": "Зарегистрироваться",
+        "landing_hero_title": "Управляйте учебным процессом в одном месте.",
+        "landing_hero_desc": "Легко отслеживайте курсы, экзамены, оценки и учебные часы. Сделайте учебу более организованной и продуктивной.",
+        "landing_feat_courses_title": "Учет курсов и оценок",
+        "landing_feat_courses_desc": "Все ваши предметы и оценки в одном удобном месте.",
+        "landing_feat_exams_title": "Календарь экзаменов",
+        "landing_feat_exams_desc": "Будьте в курсе предстоящих экзаменов и важных сроков.",
+        "landing_feat_calc_title": "Калькулятор оценок",
+        "landing_feat_calc_desc": "Рассчитайте балл, необходимый для успешной сдачи курса.",
+        "landing_feat_study_title": "Таймер учебы",
+        "landing_feat_study_desc": "Записывайте учебные сессии и следите за прогрессом.",
+        "landing_footer_text": "Сделайте ваш учебный путь проще.",
+        "welcome_title": "Добро пожаловать в",
+        "welcome_desc": "Ваш персональный помощник для управления курсами, оценками, экзаменами и временем.",
+        "welcome_login_btn": "Вход",
+        "welcome_register_btn": "Создать аккаунт",
+        "welcome_note": "Начните организовывать учебу уже сегодня.",
+        "auth_tagline": "Войдите, чтобы отслеживать курсы, экзамены и учебные часы.",
+        "auth_back_btn": "← Назад",
+        "auth_grade_label": "Курс / Уровень",
+        "auth_grade_select_default": "Выберите ваш курс",
+        "auth_optional_label": "(необязательно)",
+        "auth_select_language": "Язык",
         "auth_forgot_password_link": "Забыли пароль?",
         "auth_forgot_title": "Сброс пароля",
         "auth_forgot_subtitle_step1": "Введите ваш email для получения 6-значного кода подтверждения.",
@@ -3055,6 +3209,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "컴퓨터공학과",
         "login_btn": "포털 로그인",
         "register_btn": "회원가입 완료",
+        "landing_hero_title": "학업 생활을 한 곳에서 관리하세요.",
+        "landing_hero_desc": "과목, 시험, 성적, 학습 세션을 손쉽게 추적하세요. 더 체계적이고 스트레스 없는 학업 생활을 만들어보세요.",
+        "landing_feat_courses_title": "과목 및 성적 관리",
+        "landing_feat_courses_desc": "모든 과목과 성적을 한눈에 체계적으로 관리하세요.",
+        "landing_feat_exams_title": "시험 및 마감일 관리",
+        "landing_feat_exams_desc": "다가오는 시험 일정과 중요한 과제 마감일을 놓치지 마세요.",
+        "landing_feat_calc_title": "학점 계산기",
+        "landing_feat_calc_desc": "과목 이수를 위해 필요한 기말 점수와 학점을 시뮬레이션하세요.",
+        "landing_feat_study_title": "학습 시간 추적",
+        "landing_feat_study_desc": "공부時間を記録하고 나의 성장을 통계로 확인하세요.",
+        "landing_footer_text": "당신의 대학 학업 여정을 더 스마트하게 만들어보세요.",
+        "welcome_title": "환영합니다:",
+        "welcome_desc": "과목, 성적, 시험 일정, 공부 시간을 체계적으로 관리하는 나만의 학업 도우미.",
+        "welcome_login_btn": "로그인",
+        "welcome_register_btn": "계정 만들기",
+        "welcome_note": "오늘부터 체계적인 학업 관리를 시작해보세요.",
+        "auth_tagline": "과목, 시험, 학습 시간을 관리하려면 로그인하세요.",
+        "auth_back_btn": "← 뒤로",
+        "auth_grade_label": "학년 / 과정",
+        "auth_grade_select_default": "학년 및 과정을 선택하세요",
+        "auth_optional_label": "(선택)",
+        "auth_select_language": "언어",
         "auth_forgot_password_link": "비밀번호를 잊으셨나요?",
         "auth_forgot_title": "비밀번호 재설정",
         "auth_forgot_subtitle_step1": "6자리 인증번호를 받으실 등록된 이메일 주소를 입력하세요.",
@@ -3479,6 +3655,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "コンピュータ工学",
         "login_btn": "ポータルにログイン",
         "register_btn": "アカウント作成",
+        "landing_hero_title": "学生生活のすべてを、ひとつの場所で管理。",
+        "landing_hero_desc": "授業、試験、成績、学習時間を簡単に記録。より計画的でストレスのない大学生活を実現します。",
+        "landing_feat_courses_title": "科目・成績管理",
+        "landing_feat_courses_desc": "すべての履修科目と成績をすっきり整理。",
+        "landing_feat_exams_title": "試験・締切管理",
+        "landing_feat_exams_desc": "試験日程や大切な提出期限をしっかり把握。",
+        "landing_feat_calc_title": "成績計算ツール",
+        "landing_feat_calc_desc": "単位取得に必要な期末目標点と成績を自動計算。",
+        "landing_feat_study_title": "学習時間トラッカー",
+        "landing_feat_study_desc": "日々の勉強時間を記録し、積み重ねを可視化。",
+        "landing_footer_text": "あなたの学びの旅を、もっとスムーズに。",
+        "welcome_title": "ようこそ",
+        "welcome_desc": "授業・成績・試験・学習時間を一元管理するパーソナルアシスタント。",
+        "welcome_login_btn": "ログイン",
+        "welcome_register_btn": "アカウント作成",
+        "welcome_note": "今日から学習環境をアップデートしよう。",
+        "auth_tagline": "ログインして授業、試験、学習時間を記録しましょう。",
+        "auth_back_btn": "← 戻る",
+        "auth_grade_label": "学年・課程",
+        "auth_grade_select_default": "学年を選択してください",
+        "auth_optional_label": "(任意)",
+        "auth_select_language": "言語",
         "auth_forgot_password_link": "パスワードをお忘れですか？",
         "auth_forgot_title": "パスワードの再設定",
         "auth_forgot_subtitle_step1": "6桁の認証コードを受信するための登録メールアドレスを入力してください。",
@@ -3903,6 +4101,28 @@ const TRANSLATIONS = {
         "dept_computer_engineering": "هندسة الحاسوب",
         "login_btn": "الدخول إلى البوابة",
         "register_btn": "إنشاء الحساب",
+        "landing_hero_title": "قم بإدارة حياتك الأكاديمية في مكان واحد.",
+        "landing_hero_desc": "تابع مقرراتك، واختباراتك، ودرجاتك، وساعات مذاكرتك بكل سهولة. اجعل حياتك الأكاديمية أكثر تنظيماً وإنتاجية.",
+        "landing_feat_courses_title": "متابعة المقررات والدرجات",
+        "landing_feat_courses_desc": "احتفظ بجميع مقرراتك ودرجاتك منظمة في مكان واحد.",
+        "landing_feat_exams_title": "متابعة الاختبارات",
+        "landing_feat_exams_desc": "تتبع مواعيد الاختبارات القادمة والمهام الهامة.",
+        "landing_feat_calc_title": "حاسبة الدرجات",
+        "landing_feat_calc_desc": "احسب الدرجة المطلوبة في الاختبار النهائي لاجتياز المقرر.",
+        "landing_feat_study_title": "تتبع ساعات المذاكرة",
+        "landing_feat_study_desc": "سجل جلسات مذاكرتك وراقب مدى تقدمك الدراسي.",
+        "landing_footer_text": "اجعل مسيرتك الأكاديمية أكثر سهولة ويسراً.",
+        "welcome_title": "مرحباً بك في",
+        "welcome_desc": "رفيقك الأكاديمي الشخصي لإدارة المقررات، والدرجات، والاختبارات ووقت المذاكرة.",
+        "welcome_login_btn": "تسجيل الدخول",
+        "welcome_register_btn": "إنشاء حساب",
+        "welcome_note": "ابدأ بتنظيم حياتك الأكاديمية اليوم.",
+        "auth_tagline": "سجل الدخول لتتبع مقرراتك واختباراتك ووقت مذاكرتك.",
+        "auth_back_btn": "← رجوع",
+        "auth_grade_label": "السنة / المستوى",
+        "auth_grade_select_default": "اختر سنتك الدراسية / مستواك",
+        "auth_optional_label": "(اختياري)",
+        "auth_select_language": "اللغة",
         "auth_forgot_password_link": "هل نسيت كلمة المرور؟",
         "auth_forgot_title": "إعادة تعيين كلمة المرور",
         "auth_forgot_subtitle_step1": "أدخل بريدك الإلكتروني المسجل لتلقي رمز التحقق المكون من 6 أرقام.",
@@ -4266,6 +4486,14 @@ function getCurrentLanguage() {
     if (saved && TRANSLATIONS[saved]) {
         return saved;
     }
+    try {
+        const authUserKey = typeof AUTH_USER_KEY !== 'undefined' ? AUTH_USER_KEY : 'atsUser';
+        const storedUser = JSON.parse(localStorage.getItem(authUserKey) || 'null');
+        if (storedUser && storedUser.language && TRANSLATIONS[storedUser.language]) {
+            localStorage.setItem('ats_lang', storedUser.language);
+            return storedUser.language;
+        }
+    } catch (e) {}
     return 'en';
 }
 window.getCurrentLanguage = getCurrentLanguage;
@@ -4368,6 +4596,130 @@ function updateNavTranslations() {
 }
 window.updateNavTranslations = updateNavTranslations;
 
+function updateAuthTranslations() {
+    const safeT = typeof t === 'function' ? t : (k, d) => (TRANSLATIONS[getCurrentLanguage()] && TRANSLATIONS[getCurrentLanguage()][k]) || d;
+    const safeEsc = typeof escapeHtml === 'function' ? escapeHtml : str => String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+    // Landing screen Left Side
+    const heroTitle = document.getElementById('landingHeroTitle');
+    if (heroTitle) {
+        heroTitle.innerHTML = safeT('landing_hero_title', 'Manage your academic life in one place.');
+    }
+    const heroDesc = document.getElementById('landingHeroDesc');
+    if (heroDesc) {
+        heroDesc.textContent = safeT('landing_hero_desc', 'Keep track of your courses, exams, grades and study sessions with ease. Make your academic life more organized, productive and stress-free.');
+    }
+    const featCoursesTitle = document.getElementById('featCoursesTitle');
+    if (featCoursesTitle) featCoursesTitle.textContent = safeT('landing_feat_courses_title', 'Course & Grade Tracking');
+    const featCoursesDesc = document.getElementById('featCoursesDesc');
+    if (featCoursesDesc) featCoursesDesc.textContent = safeT('landing_feat_courses_desc', 'Keep all your courses and grades organized in one place.');
+
+    const featExamsTitle = document.getElementById('featExamsTitle');
+    if (featExamsTitle) featExamsTitle.textContent = safeT('landing_feat_exams_title', 'Exam Tracking');
+    const featExamsDesc = document.getElementById('featExamsDesc');
+    if (featExamsDesc) featExamsDesc.textContent = safeT('landing_feat_exams_desc', 'Keep track of upcoming exams and important deadlines.');
+
+    const featCalcTitle = document.getElementById('featCalcTitle');
+    if (featCalcTitle) featCalcTitle.textContent = safeT('landing_feat_calc_title', 'Grade Calculator');
+    const featCalcDesc = document.getElementById('featCalcDesc');
+    if (featCalcDesc) featCalcDesc.textContent = safeT('landing_feat_calc_desc', 'Calculate your required final grade and course results.');
+
+    const featStudyTitle = document.getElementById('featStudyTitle');
+    if (featStudyTitle) featStudyTitle.textContent = safeT('landing_feat_study_title', 'Study Tracking');
+    const featStudyDesc = document.getElementById('featStudyDesc');
+    if (featStudyDesc) featStudyDesc.textContent = safeT('landing_feat_study_desc', 'Record your study sessions and monitor your progress.');
+
+    const landingFooter = document.getElementById('landingFooterText');
+    if (landingFooter) {
+        landingFooter.innerHTML = `<span>✦</span> ${safeEsc(safeT('landing_footer_text', 'Make your academic journey easier.'))}`;
+    }
+
+    // Welcome Card Right Side
+    const welcomeTitle = document.getElementById('welcomeCardTitle');
+    if (welcomeTitle) {
+        welcomeTitle.innerHTML = `${safeEsc(safeT('welcome_title', 'Welcome to'))} <span>Academi Buddy</span>`;
+    }
+    const welcomeDesc = document.getElementById('welcomeCardDesc');
+    if (welcomeDesc) welcomeDesc.textContent = safeT('welcome_desc', 'Your personal academic companion for managing courses, grades, exams and study time.');
+
+    const welcomeLoginBtn = document.getElementById('welcomeLoginBtn');
+    if (welcomeLoginBtn) welcomeLoginBtn.textContent = safeT('welcome_login_btn', 'Log In');
+
+    const welcomeRegisterBtn = document.getElementById('welcomeRegisterBtn');
+    if (welcomeRegisterBtn) welcomeRegisterBtn.textContent = safeT('welcome_register_btn', 'Create Account');
+
+    const welcomeNote = document.getElementById('welcomeCardNote');
+    if (welcomeNote) {
+        welcomeNote.innerHTML = `<span>✦</span> ${safeEsc(safeT('welcome_note', 'Start organizing your academic life today.'))}`;
+    }
+
+    // Auth Box Tagline & Tabs
+    const authTagline = document.getElementById('authTagline');
+    if (authTagline) authTagline.textContent = safeT('auth_tagline', 'Sign in to track your courses, exams and study time.');
+
+    const showLoginTab = document.getElementById('showLoginTab');
+    if (showLoginTab) showLoginTab.textContent = safeT('login_tab', 'Log In');
+
+    const showRegisterTab = document.getElementById('showRegisterTab');
+    if (showRegisterTab) showRegisterTab.textContent = safeT('register_tab', 'Register');
+
+    // Login Form
+    const loginEmailLabel = document.querySelector('label[for="loginEmail"]');
+    if (loginEmailLabel) loginEmailLabel.textContent = safeT('email_label', 'Email');
+
+    const loginPasswordLabel = document.querySelector('label[for="loginPassword"]');
+    if (loginPasswordLabel) loginPasswordLabel.textContent = safeT('password_label', 'Password');
+
+    const forgotPasswordLinkBtn = document.getElementById('forgotPasswordLinkBtn');
+    if (forgotPasswordLinkBtn) forgotPasswordLinkBtn.textContent = safeT('auth_forgot_password_link', 'Forgot Password?');
+
+    const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+    if (loginSubmitBtn) loginSubmitBtn.textContent = safeT('login_tab', 'Log In');
+
+    // Register Form
+    const registerNameLabel = document.querySelector('label[for="registerName"]');
+    if (registerNameLabel) registerNameLabel.textContent = safeT('name_label', 'Full Name');
+
+    const registerEmailLabel = document.querySelector('label[for="registerEmail"]');
+    if (registerEmailLabel) registerEmailLabel.textContent = safeT('email_label', 'Email');
+
+    const registerGradeLabel = document.querySelector('label[for="registerGrade"]');
+    if (registerGradeLabel) registerGradeLabel.textContent = safeT('auth_grade_label', 'Class / Year');
+
+    const registerDeptLabel = document.querySelector('label[for="registerDepartment"]');
+    if (registerDeptLabel) {
+        registerDeptLabel.innerHTML = `${safeEsc(safeT('dept_label', 'Department'))} <span style="font-size:12px; font-weight:normal; opacity:0.75;">${safeEsc(safeT('auth_optional_label', '(optional)'))}</span>`;
+    }
+
+    const registerPasswordLabel = document.querySelector('label[for="registerPassword"]');
+    if (registerPasswordLabel) registerPasswordLabel.textContent = safeT('password_label', 'Password');
+
+    const registerSubmitBtn = document.getElementById('registerSubmitBtn');
+    if (registerSubmitBtn) registerSubmitBtn.textContent = safeT('register_btn', 'Create Account');
+
+    const authBackBtn = document.querySelector('.auth-back-button');
+    if (authBackBtn) authBackBtn.textContent = safeT('auth_back_btn', '← Back');
+
+    // Placeholders
+    const loginEmail = document.getElementById('loginEmail');
+    if (loginEmail) loginEmail.placeholder = safeT('email_placeholder', 'you@example.com');
+
+    const registerName = document.getElementById('registerName');
+    if (registerName) registerName.placeholder = safeT('name_placeholder', 'John Doe');
+
+    const registerEmail = document.getElementById('registerEmail');
+    if (registerEmail) registerEmail.placeholder = safeT('email_placeholder', 'you@example.com');
+
+    const registerDept = document.getElementById('registerDepartment');
+    if (registerDept) registerDept.placeholder = safeT('dept_placeholder', 'e.g. Computer Engineering');
+
+    const registerGrade = document.getElementById('registerGrade');
+    if (registerGrade && registerGrade.options.length > 0) {
+        registerGrade.options[0].text = safeT('auth_grade_select_default', 'Select your class / year');
+    }
+}
+window.updateAuthTranslations = updateAuthTranslations;
+
 function setLanguage(langCode, notify = false) {
     if (!TRANSLATIONS[langCode]) {
         console.warn('Unsupported language code:', langCode);
@@ -4377,11 +4729,37 @@ function setLanguage(langCode, notify = false) {
     localStorage.setItem('ats_lang', langCode);
     document.documentElement.lang = langCode;
 
+    // Immediately update stored user object cache so all offline/online session checks preserve it
+    try {
+        const authUserKey = typeof AUTH_USER_KEY !== 'undefined' ? AUTH_USER_KEY : 'atsUser';
+        const storedUser = JSON.parse(localStorage.getItem(authUserKey) || 'null');
+        if (storedUser) {
+            storedUser.language = langCode;
+            localStorage.setItem(authUserKey, JSON.stringify(storedUser));
+        }
+        const savedUsers = JSON.parse(localStorage.getItem('ats_saved_users') || '{}');
+        if (storedUser && storedUser.email && savedUsers[storedUser.email.toLowerCase().trim()]) {
+            savedUsers[storedUser.email.toLowerCase().trim()].user.language = langCode;
+            localStorage.setItem('ats_saved_users', JSON.stringify(savedUsers));
+        }
+    } catch (e) {}
+
     if (notify && typeof syncUserPreferenceToCloud === 'function') {
         syncUserPreferenceToCloud({ language: langCode });
     }
 
     updateNavTranslations();
+    updateAuthTranslations();
+
+    // Update active dropdowns in Settings and on Auth / Landing screen
+    const settingsLangSelect = document.getElementById('settingsLanguageSelect');
+    if (settingsLangSelect) {
+        settingsLangSelect.value = langCode;
+    }
+    const authLangSelect = document.getElementById('authLanguageSelect');
+    if (authLangSelect) {
+        authLangSelect.value = langCode;
+    }
 
     // Re-render user sidebar if user info is present
     if (typeof getStoredUser === 'function') {
@@ -4391,19 +4769,22 @@ function setLanguage(langCode, notify = false) {
         }
     }
 
-    // Re-render current page if active using exact page state
-    const currentPage = window._currentActivePage || 'dashboard';
+    // Only re-render internal app pages if the main app layout is actually open and active
+    const mainLayout = document.getElementById('mainLayout');
+    if (mainLayout && mainLayout.style.display !== 'none') {
+        const currentPage = window._currentActivePage || 'dashboard';
 
-    if (currentPage === 'settings') {
-        if (typeof loadSettingsPage === 'function') loadSettingsPage();
-    } else if (currentPage === 'courses' || currentPage === 'grades') {
-        if (typeof loadCourses === 'function') loadCourses();
-    } else if (currentPage === 'exams' || currentPage === 'deadlines') {
-        if (typeof loadExamsPage === 'function') loadExamsPage();
-    } else if (currentPage === 'study') {
-        if (typeof loadStudyPage === 'function') loadStudyPage();
-    } else {
-        if (typeof loadDashboard === 'function') loadDashboard();
+        if (currentPage === 'settings') {
+            if (typeof loadSettingsPage === 'function') loadSettingsPage();
+        } else if (currentPage === 'courses' || currentPage === 'grades') {
+            if (typeof loadCourses === 'function') loadCourses();
+        } else if (currentPage === 'exams' || currentPage === 'deadlines') {
+            if (typeof loadExamsPage === 'function') loadExamsPage();
+        } else if (currentPage === 'study') {
+            if (typeof loadStudyPage === 'function') loadStudyPage();
+        } else {
+            if (typeof loadDashboard === 'function') loadDashboard();
+        }
     }
 
     // Refresh AI Bubble texts if exists
@@ -4422,6 +4803,10 @@ function setLanguage(langCode, notify = false) {
 window.setLanguage = setLanguage;
 
 document.addEventListener('DOMContentLoaded', function () {
-    document.documentElement.lang = getCurrentLanguage();
+    const lang = getCurrentLanguage();
+    document.documentElement.lang = lang;
     updateNavTranslations();
+    updateAuthTranslations();
+    const authLangSelect = document.getElementById('authLanguageSelect');
+    if (authLangSelect) authLangSelect.value = lang;
 });
