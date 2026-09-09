@@ -744,11 +744,9 @@ COMMUNICATION, TONE & SCOPE RULES:
 
     const fastModels = [
         process.env.GEMINI_MODEL,
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.5-flash-lite",
-        "gemini-3.1-flash-lite",
-        "gemini-flash-latest"
+        "gemini-3.1-flash-lite-preview",
+        "gemini-flash-latest",
+        "gemini-3.1-flash-lite"
     ].filter(Boolean);
 
     for (const modelName of fastModels) {
@@ -756,7 +754,7 @@ COMMUNICATION, TONE & SCOPE RULES:
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                signal: AbortSignal.timeout(12000),
+                signal: AbortSignal.timeout(7000),
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: {
@@ -781,7 +779,7 @@ COMMUNICATION, TONE & SCOPE RULES:
         }
     }
 
-    throw new Error("Tüm hızlı Gemini modelleri zaman aşımına veya hataya uğradı.");
+    throw new Error("Gemini API modelleri yanıt vermedi, akıllı yerel motora geçildi.");
 }
 
 
