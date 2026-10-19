@@ -1,4 +1,4 @@
-const CACHE_NAME = "academi-buddy-static-v44";
+const CACHE_NAME = "academi-buddy-static-v45";
 
 const STATIC_ASSETS = [
     "./",

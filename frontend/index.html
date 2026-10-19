@@ -37,7 +37,7 @@
                 }
 
                 // Auto-purge stale PWA and Service Worker caches
-                var CURRENT_VERSION = "academi_v44";
+                var CURRENT_VERSION = "academi_v45";
                 var oldVersion = localStorage.getItem("academi_app_build_version");
                 if (oldVersion !== CURRENT_VERSION) {
                     localStorage.setItem("academi_app_build_version", CURRENT_VERSION);
@@ -57,7 +57,7 @@
     </script>
 
     <link rel="stylesheet" href="css/common.css?v=45">
-    <link rel="stylesheet" href="css/auth.css?v=11">
+    <link rel="stylesheet" href="css/auth.css?v=12">
     <link rel="stylesheet" href="css/dashboard.css?v=14">
     <link rel="stylesheet" href="css/grades.css?v=10">
     <link rel="stylesheet" href="css/deadlines.css?v=12">
@@ -77,22 +77,24 @@
 
     <div class="auth-video-overlay"></div>
 
-    <div class="auth-lang-wrap" style="position:absolute; top:18px; right:20px; z-index:99;">
-        <select id="authLanguageSelect" onchange="setLanguage(this.value, false)" aria-label="Language" style="background:rgba(15,23,42,0.72); color:#f8fafc; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(8px); padding:7px 12px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; outline:none; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-            <option value="en">🇬🇧 English</option>
-            <option value="tr">🇹🇷 Türkçe</option>
-            <option value="de">🇩🇪 Deutsch</option>
-            <option value="es">🇪🇸 Español</option>
-            <option value="fr">🇫🇷 Français</option>
-            <option value="it">🇮🇹 Italiano</option>
-            <option value="ru">🇷🇺 Русский</option>
-            <option value="ko">🇰🇷 한국어</option>
-            <option value="ja">🇯🇵 日本語</option>
-            <option value="ar">🇸🇦 العربية</option>
-        </select>
-    </div>
+    <div class="auth-top-actions">
+        <div class="auth-lang-wrap">
+            <select id="authLanguageSelect" onchange="setLanguage(this.value, false)" aria-label="Language">
+                <option value="en">🇬🇧 English</option>
+                <option value="tr">🇹🇷 Türkçe</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="it">🇮🇹 Italiano</option>
+                <option value="ru">🇷🇺 Русский</option>
+                <option value="ko">🇰🇷 한국어</option>
+                <option value="ja">🇯🇵 日本語</option>
+                <option value="ar">🇸🇦 العربية</option>
+            </select>
+        </div>
 
-    <button id="mobileAuthToggle" class="mobile-auth-toggle" type="button" aria-label="Sign In / Register" aria-expanded="false">👤</button>
+        <button id="mobileAuthToggle" class="mobile-auth-toggle" type="button" aria-label="Sign In / Register" aria-expanded="false">👤</button>
+    </div>
 
     <div id="landingScreen" class="landing-screen">
 
@@ -568,8 +570,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const clickedInsidePanel = landingAuth.contains(e.target);
         const clickedToggleBtn = mobileAuthToggle && mobileAuthToggle.contains(e.target);
+        const clickedLangSelect = document.getElementById("authLanguageSelect") && document.getElementById("authLanguageSelect").contains(e.target);
 
-        if (!clickedInsidePanel && !clickedToggleBtn) closeMobileAuth();
+        if (!clickedInsidePanel && !clickedToggleBtn && !clickedLangSelect) closeMobileAuth();
     });
 
     window.addEventListener("resize", function () {
@@ -620,7 +623,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
             navigator.serviceWorker
-                .register("./service-worker.js?v=43")
+                .register("./service-worker.js?v=44")
                 .then(function (reg) {
                     console.log("[PWA] Service worker registered:", reg.scope);
                     reg.update();

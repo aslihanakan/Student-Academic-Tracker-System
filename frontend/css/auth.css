@@ -48,6 +48,53 @@
         radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.14), transparent 35%);
 }
 
+/* Top Action Bar (Language Selector & Mobile Auth Toggle) */
+.auth-top-actions {
+    position: fixed;
+    top: 18px;
+    right: 20px;
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.auth-lang-wrap {
+    display: inline-flex;
+    align-items: center;
+}
+
+#authLanguageSelect {
+    background: rgba(15, 23, 42, 0.75);
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 7px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+#authLanguageSelect:hover {
+    background: rgba(30, 41, 59, 0.88);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+#authLanguageSelect:focus {
+    border-color: rgba(96, 165, 250, 0.7);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+#authLanguageSelect option {
+    background: #0f172a;
+    color: #f8fafc;
+}
+
 .mobile-auth-toggle {
     display: none;
 }
@@ -659,18 +706,26 @@
 }
 
 @media (max-width: 768px) {
+    .auth-top-actions {
+        top: 18px;
+        right: 18px;
+        gap: 10px;
+    }
+
     .mobile-auth-toggle {
         display: flex;
         align-items: center;
         justify-content: center;
-        position: fixed;
-        top: 18px;
-        right: 18px;
+        position: relative;
+        top: auto;
+        right: auto;
         z-index: 60;
-        width: 46px;
-        height: 46px;
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
         background: rgba(4, 14, 33, 0.75);
         backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 50%;
         font-size: 20px;
@@ -689,6 +744,11 @@
     .mobile-auth-toggle.is-active {
         background: rgba(59, 130, 246, 0.3);
         border-color: rgba(96, 165, 250, 0.6);
+    }
+
+    #authLanguageSelect {
+        padding: 7px 10px;
+        font-size: 13px;
     }
 
     .landing-auth {
@@ -735,7 +795,7 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        padding: 30px 18px 40px;
+        padding: 72px 18px 40px;
         gap: 30px;
     }
     .landing-content h1 {
@@ -789,8 +849,28 @@
 }
 
 @media (max-width: 420px) {
+    .auth-top-actions {
+        top: 14px;
+        right: 14px;
+        gap: 8px;
+    }
+    .mobile-auth-toggle {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    #authLanguageSelect {
+        padding: 6px 8px;
+        font-size: 12px;
+        max-width: 145px;
+    }
+    .landing-auth {
+        top: 66px;
+        right: 14px;
+        left: 14px;
+    }
     .landing-screen {
-        padding: 24px 14px 30px;
+        padding: 64px 14px 30px;
     }
     .landing-content h1 {
         font-size: 32px;
